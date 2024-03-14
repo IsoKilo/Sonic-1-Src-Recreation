@@ -1,0 +1,91 @@
+byte:		equ 1
+word:		equ 2
+long:		equ 4
+
+spgamemd:	equ $10
+
+actno:		equ $00
+actflg:		equ $01
+sproffset:	equ $02
+patbase:	equ $04
+xposi:		equ $08
+yposi:		equ $0c
+xspeed:		equ $10
+yspeed:		equ $12
+mspeed:		equ $14
+sprhsize:	equ $16
+sprvsize:	equ $17
+sprhs:		equ $18
+sprpri:		equ $19
+patno:		equ $1a
+patcnt:		equ $1b
+mstno:		equ $1c
+pattim:		equ $1e
+pattimm:	equ $1f
+colino:		equ $20
+colicnt:	equ $21
+cddat:		equ $22
+cdsts:		equ $23
+r_no0:		equ $24
+r_no1:		equ $25
+direc:		equ $26
+userflag:	equ $28
+dummy:		equ $2a
+actfree:	equ $2c
+
+play00_act:		equ $00
+
+
+
+
+
+
+
+
+play01_act:		equ $09
+*dekisi_act:	equ $0a
+bou_act:		equ $0b
+ben_act:		equ $0c
+gole_act:		equ $0d
+*titlsonic_act:	equ $0e
+*titlspr_act:	equ $0f
+play02_act:		equ $10
+hashi_act:		equ $11
+signal_act:		equ $12
+mfire_act:		equ $13
+fire_act:		equ $14
+buranko_act:	equ $15
+yari_act:		equ $16
+thashi_act:		equ $17
+shima_act:		equ $18
+*ball_act:		equ $19
+break_act:		equ $1a
+wave_act:		equ $1b
+bgspr_act:		equ $1c
+switch_act:		equ $1d
+buta_act:		equ $1e
+kani_act:		equ $1f
+*butatama:		equ $20
+score_act:		equ $21
+hachi_act:		equ $22
+*hachitama:		equ $23
+*butabakuhatu:	equ $24
+ring_act:		equ $25
+item_act:		equ $26
+bakuhatu_act:	equ $27
+usagi_act:		equ $28
+*points:		equ $29
+door_act:		equ $2a
+fish_act:		equ $2b
+fish2_act:		equ $2c
+mogura_act:		equ $2d
+item2_act:		equ $2e
+yuka_act:		equ $2f
+ochi_act:		equ $30
+turi_act:		equ $31
+switch2_act:	equ $32
+box_act:		equ $33
+*haikei_act:	equ $34
+
+cd_ball:		equ $02
+cd_jump:		equ $01
