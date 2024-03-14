@@ -250,9 +250,9 @@ GameModeArray:
 ; ===========================================================================
 		bra.w	TitleScreen	; Title	Screen ($04)
 ; ===========================================================================
-		bra.w	Level		; Demo Mode ($08)
+		bra.w	game		; Demo Mode ($08)
 ; ===========================================================================
-		bra.w	Level		; Normal Level ($0C)
+		bra.w	game		; Normal Level ($0C)
 ; ===========================================================================
 		bra.w	SpecialStage	; Special Stage	($10)
 ; ===========================================================================
@@ -3443,9 +3443,9 @@ LevSel_Level_SS:			; XREF: LevelSelect
 		clr.w	stageno	; clear	level
 		move.b	#3,($FFFFFE12).w ; set lives to	3
 		moveq	#0,d0
-		move.w	d0,($FFFFFE20).w ; clear rings
+		move.w	d0,plring ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
-		move.l	d0,($FFFFFE26).w ; clear score
+		move.l	d0,plscore ; clear score
 		rts	
 ; ===========================================================================
 
@@ -3457,9 +3457,9 @@ PlayLevel:				; XREF: ROM:00003246j ...
 		move.b	#$C,gmmode ; set	screen mode to $0C (level)
 		move.b	#3,($FFFFFE12).w ; set lives to	3
 		moveq	#0,d0
-		move.w	d0,($FFFFFE20).w ; clear rings
+		move.w	d0,plring ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
-		move.l	d0,($FFFFFE26).w ; clear score
+		move.l	d0,plscore ; clear score
 		move.b	d0,($FFFFFE16).w ; clear special stage number
 		move.b	d0,($FFFFFE57).w ; clear emeralds
 		move.l	d0,($FFFFFE58).w ; clear emeralds
@@ -3538,9 +3538,9 @@ loc_3422:
 Demo_Level:
 		move.b	#3,($FFFFFE12).w ; set lives to	3
 		moveq	#0,d0
-		move.w	d0,($FFFFFE20).w ; clear rings
+		move.w	d0,plring ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
-		move.l	d0,($FFFFFE26).w ; clear score
+		move.l	d0,plscore ; clear score
 		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -3726,7 +3726,7 @@ MusicList:	incbin	misc\muslist1.bin
 ; Level
 ; ---------------------------------------------------------------------------
 
-Level:					; XREF: GameModeArray
+game:					; XREF: GameModeArray
 		bset	#7,gmmode ; add $80 to screen mode (for pre level sequence)
 		tst.w	($FFFFFFF0).w
 		bmi.b	loc_37B6
@@ -3908,15 +3908,15 @@ Level_LoadObj:
 		moveq	#0,d0
 		tst.b	($FFFFFE30).w	; are you starting from	a lamppost?
 		bne.b	loc_39E8	; if yes, branch
-		move.w	d0,($FFFFFE20).w ; clear rings
+		move.w	d0,plring ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
 		move.b	d0,($FFFFFE1B).w ; clear lives counter
 
 loc_39E8:
 		move.b	d0,($FFFFFE1A).w
-		move.b	d0,($FFFFFE2C).w ; clear shield
-		move.b	d0,($FFFFFE2D).w ; clear invincibility
-		move.b	d0,($FFFFFE2E).w ; clear speed shoes
+		move.b	d0,plpower_b ; clear shield
+		move.b	d0,plpower_m ; clear invincibility
+		move.b	d0,plpower_s ; clear speed shoes
 		move.b	d0,($FFFFFE2F).w
 		move.w	d0,editmode
 		move.w	d0,($FFFFFE02).w
@@ -4884,7 +4884,7 @@ SS_ClrNemRam:
 		movea.l	(a1,d0.w),a1
 		move.b	1(a1),($FFFFF792).w
 		subq.b	#1,($FFFFF792).w
-		clr.w	($FFFFFE20).w
+		clr.w	plring
 		clr.b	($FFFFFE1B).w
 		move.w	#0,editmode
 		move.w	#1800,($FFFFF614).w
@@ -4972,7 +4972,7 @@ loc_47D4:
 		bsr.w	LoadPLC		; load results screen patterns
 		move.b	#1,($FFFFFE1F).w ; update score	counter
 		move.b	#1,($FFFFF7D6).w ; update ring bonus counter
-		move.w	($FFFFFE20).w,d0
+		move.w	plring,d0
 		mulu.w	#10,d0		; multiply rings by 10
 		move.w	d0,($FFFFF7D4).w ; set rings bonus
 		move.w	#$8E,d0
@@ -5383,9 +5383,9 @@ Cont_GotoLevel:				; XREF: Cont_MainLoop
 		move.b	#$C,gmmode ; set	screen mode to $0C (level)
 		move.b	#3,($FFFFFE12).w ; set lives to	3
 		moveq	#0,d0
-		move.w	d0,($FFFFFE20).w ; clear rings
+		move.w	d0,plring ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
-		move.l	d0,($FFFFFE26).w ; clear score
+		move.l	d0,plscore ; clear score
 		move.b	d0,($FFFFFE30).w ; clear lamppost count
 		subq.b	#1,($FFFFFE18).w ; subtract 1 from continues
 		rts	
@@ -5415,7 +5415,7 @@ Obj80_Main:				; XREF: Obj80_Index
 		move.b	#$3C,$19(a0)
 		move.w	#$120,8(a0)
 		move.w	#$C0,$A(a0)
-		move.w	#0,($FFFFFE20).w ; clear rings
+		move.w	#0,plring ; clear rings
 
 Obj80_Display:				; XREF: Obj80_Index
 		jmp	actionsub
@@ -5673,12 +5673,12 @@ End_LoadSonic:
 		jsr	action
 		jsr	patset
 		moveq	#0,d0
-		move.w	d0,($FFFFFE20).w
+		move.w	d0,plring
 		move.l	d0,($FFFFFE22).w
 		move.b	d0,($FFFFFE1B).w
-		move.b	d0,($FFFFFE2C).w
-		move.b	d0,($FFFFFE2D).w
-		move.b	d0,($FFFFFE2E).w
+		move.b	d0,plpower_b
+		move.b	d0,plpower_m
+		move.b	d0,plpower_s
 		move.b	d0,($FFFFFE2F).w
 		move.w	d0,editmode
 		move.w	d0,($FFFFFE02).w
@@ -6157,9 +6157,9 @@ EndingDemoLoad:				; XREF: Credits
 		move.b	#8,gmmode ; set game mode to 08 (demo)
 		move.b	#3,($FFFFFE12).w ; set lives to	3
 		moveq	#0,d0
-		move.w	d0,($FFFFFE20).w ; clear rings
+		move.w	d0,plring ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
-		move.l	d0,($FFFFFE26).w ; clear score
+		move.l	d0,plscore ; clear score
 		move.b	d0,($FFFFFE30).w ; clear lamppost counter
 		cmpi.w	#4,($FFFFFFF4).w ; is SLZ demo running?
 		bne.b	EndDemo_Exit	; if not, branch
@@ -12063,14 +12063,14 @@ ring_Delete:				; XREF: ring_Index
 
 
 CollectRing:				; XREF: ring_Collect
-		addq.w	#1,($FFFFFE20).w ; add 1 to rings
+		addq.w	#1,plring ; add 1 to rings
 		ori.b	#1,($FFFFFE1D).w ; update the rings counter
 		move.w	#$B5,d0		; play ring sound
-		cmpi.w	#100,($FFFFFE20).w ; do	you have < 100 rings?
+		cmpi.w	#100,plring ; do	you have < 100 rings?
 		bcs.b	ring_PlaySnd	; if yes, branch
 		bset	#1,($FFFFFE1B).w ; update lives	counter
 		beq.b	loc_9CA4
-		cmpi.w	#200,($FFFFFE20).w ; do	you have < 200 rings?
+		cmpi.w	#200,plring ; do	you have < 200 rings?
 		bcs.b	ring_PlaySnd	; if yes, branch
 		bset	#2,($FFFFFE1B).w ; update lives	counter
 		bne.b	ring_PlaySnd
@@ -12105,7 +12105,7 @@ flyring_Index:	dc.w flyring_CountRings-flyring_Index
 flyring_CountRings:			; XREF: flyring_Index
 		movea.l	a0,a1
 		moveq	#0,d5
-		move.w	($FFFFFE20).w,d5 ; check number	of rings you have
+		move.w	plring,d5 ; check number	of rings you have
 		moveq	#32,d0
 		cmp.w	d0,d5		; do you have 32 or more?
 		bcs.b	loc_9CDE	; if not, branch
@@ -12159,7 +12159,7 @@ loc_9D62:
 		dbra	d5,flyring_Loop	; repeat for number of rings (max 31)
 
 flyring_ResetCounter:			; XREF: flyring_Loop
-		move.w	#0,($FFFFFE20).w ; reset number	of rings to zero
+		move.w	#0,plring ; reset number	of rings to zero
 		move.b	#$80,($FFFFFE1D).w ; update ring counter
 		move.b	#0,($FFFFFE1B).w
 		move.w	#$C6,d0
@@ -12233,7 +12233,7 @@ Obj4B_Main:				; XREF: Obj4B_Index
 		bpl.b	Obj4B_Animate
 		cmpi.b	#6,($FFFFFE57).w ; do you have 6 emeralds?
 		beq.w	Obj4B_Delete	; if yes, branch
-		cmpi.w	#50,($FFFFFE20).w ; do you have	at least 50 rings?
+		cmpi.w	#50,plring ; do you have	at least 50 rings?
 		bcc.b	Obj4B_Okay	; if yes, branch
 		rts	
 ; ===========================================================================
@@ -12332,8 +12332,8 @@ Obj7C_Collect:				; XREF: Obj7C_ChkDel
 		move.b	#6,$24(a1)	; delete giant ring object (Obj4B)
 		move.b	#$1C,playerwk+mstno ; make Sonic	invisible
 		move.b	#1,($FFFFF7CD).w ; stop	Sonic getting bonuses
-		clr.b	($FFFFFE2D).w	; remove invincibility
-		clr.b	($FFFFFE2C).w	; remove shield
+		clr.b	plpower_m	; remove invincibility
+		clr.b	plpower_b	; remove shield
 
 locret_9F76:
 		rts	
@@ -12608,7 +12608,7 @@ ExtraLife:
 item2_ChkShoes:
 		cmpi.b	#3,d0		; does monitor contain speed shoes?
 		bne.b	item2_ChkShield
-		move.b	#1,($FFFFFE2E).w ; speed up the	BG music
+		move.b	#1,plpower_s ; speed up the	BG music
 		move.w	#$4B0,($FFFFD034).w ; time limit for the power-up
 		move.w	#$C00,($FFFFF760).w ; change Sonic's top speed
 		move.w	#$18,($FFFFF762).w
@@ -12620,7 +12620,7 @@ item2_ChkShoes:
 item2_ChkShield:
 		cmpi.b	#4,d0		; does monitor contain a shield?
 		bne.b	item2_ChkInvinc
-		move.b	#1,($FFFFFE2C).w ; give	Sonic a	shield
+		move.b	#1,plpower_b ; give	Sonic a	shield
 		move.b	#$38,($FFFFD180).w ; load shield object	($38)
 		move.w	#$AF,d0
 		jmp	(bgmset).l	; play shield sound
@@ -12629,7 +12629,7 @@ item2_ChkShield:
 item2_ChkInvinc:
 		cmpi.b	#5,d0		; does monitor contain invincibility?
 		bne.b	item2_ChkRings
-		move.b	#1,($FFFFFE2D).w ; make	Sonic invincible
+		move.b	#1,plpower_m ; make	Sonic invincible
 		move.w	#$4B0,($FFFFD032).w ; time limit for the power-up
 		move.b	#$38,($FFFFD200).w ; load stars	object ($3801)
 		move.b	#1,($FFFFD21C).w
@@ -12652,13 +12652,13 @@ item2_NoMusic:
 item2_ChkRings:
 		cmpi.b	#6,d0		; does monitor contain 10 rings?
 		bne.b	item2_ChkS
-		addi.w	#$A,($FFFFFE20).w ; add	10 rings to the	number of rings	you have
+		addi.w	#$A,plring ; add	10 rings to the	number of rings	you have
 		ori.b	#1,($FFFFFE1D).w ; update the ring counter
-		cmpi.w	#100,($FFFFFE20).w ; check if you have 100 rings
+		cmpi.w	#100,plring ; check if you have 100 rings
 		bcs.b	item2_RingSound
 		bset	#1,($FFFFFE1B).w
 		beq.w	ExtraLife
-		cmpi.w	#200,($FFFFFE20).w ; check if you have 200 rings
+		cmpi.w	#200,plring ; check if you have 200 rings
 		bcs.b	item2_RingSound
 		bset	#2,($FFFFFE1B).w
 		beq.w	ExtraLife
@@ -15408,7 +15408,7 @@ Obj7E_Main:
 		movea.l	a0,a1
 		lea	(Obj7E_Config).l,a2
 		moveq	#3,d1
-		cmpi.w	#50,($FFFFFE20).w ; do you have	50 or more rings?
+		cmpi.w	#50,plring ; do you have	50 or more rings?
 		bcs.b	Obj7E_Loop	; if no, branch
 		addq.w	#1,d1		; if yes, add 1	to d1 (number of sprites)
 
@@ -15497,7 +15497,7 @@ loc_C8C4:				; XREF: Obj7E_RingBonus
 		jsr	(soundset).l ;	play "ker-ching" sound
 		addq.b	#2,$24(a0)
 		move.w	#180,$1E(a0)	; set time delay to 3 seconds
-		cmpi.w	#50,($FFFFFE20).w ; do you have	at least 50 rings?
+		cmpi.w	#50,plring ; do you have	at least 50 rings?
 		bcs.b	locret_C8EA	; if not, branch
 		move.w	#60,$1E(a0)	; set time delay to 1 second
 		addq.b	#4,$24(a0)	; goto "Obj7E_Continue"	routine
@@ -15937,7 +15937,7 @@ toge_Upright:				; XREF: toge_Solid
 		bpl.b	toge_Display
 
 toge_Hurt:				; XREF: toge_SideWays; toge_Upright
-		tst.b	($FFFFFE2D).w	; is Sonic invincible?
+		tst.b	plpower_m	; is Sonic invincible?
 		bne.b	toge_Display	; if yes, branch
 		move.l	a0,-(sp)
 		movea.l	a0,a2
@@ -16331,7 +16331,7 @@ loc_D37C:
 
 act_tbl:
 		dc.l	play00,speedset,speedset,speedset,speedset,speedset,speedset,Obj08
-		dc.l	play01,Obj0A,bou,ben,gole,Obj0E,Obj0F,play02
+		dc.l	play01,plawa,bou,ben,gole,Obj0E,Obj0F,play02
 		dc.l	hashi,signal,mfire,fire,buranko,yari,thashi,shima
 		dc.l	Obj19,break,water,bgspr,switch,buta,kani,Obj20
 		dc.l	score,hachi,Obj23,Obj24,ring,item,bakuhatu,usagi
@@ -18337,7 +18337,7 @@ GotThroughAct:				; XREF: masin_EndAct
 		tst.b	($FFFFD5C0).w
 		bne.b	locret_ECEE
 		move.w	($FFFFF72A).w,($FFFFF728).w
-		clr.b	($FFFFFE2D).w	; disable invincibility
+		clr.b	plpower_m	; disable invincibility
 		clr.b	($FFFFFE1E).w	; stop time counter
 		move.b	#$3A,($FFFFD5C0).w
 		moveq	#$10,d0
@@ -18358,7 +18358,7 @@ GotThroughAct:				; XREF: masin_EndAct
 loc_ECD0:
 		add.w	d0,d0
 		move.w	TimeBonuses(pc,d0.w),($FFFFF7D2).w ; set time bonus
-		move.w	($FFFFFE20).w,d0 ; load	number of rings
+		move.w	plring,d0 ; load	number of rings
 		mulu.w	#10,d0		; multiply by 10
 		move.w	d0,($FFFFF7D4).w ; set ring bonus
 		move.w	#$8E,d0
@@ -23193,7 +23193,7 @@ awa_Wobble:				; XREF: awa_ChkWater
 		move.b	$26(a0),d0
 		addq.b	#1,$26(a0)
 		andi.w	#$7F,d0
-		lea	(Obj0A_WobbleData).l,a1
+		lea	(plawa_WobbleData).l,a1
 		move.b	(a1,d0.w),d0
 		ext.w	d0
 		add.w	$30(a0),d0
@@ -23576,7 +23576,7 @@ play00_Display:
 		jsr	actionsub
 
 play00_ChkInvin:
-		tst.b	($FFFFFE2D).w	; does Sonic have invincibility?
+		tst.b	plpower_m	; does Sonic have invincibility?
 		beq.b	play00_ChkShoes	; if not, branch
 		tst.w	$32(a0)		; check	time remaining for invinciblity
 		beq.b	play00_ChkShoes	; if no	time remains, branch
@@ -23598,10 +23598,10 @@ play00_PlayMusic:
 		jsr	(bgmset).l	; play normal music
 
 play00_RmvInvin:
-		move.b	#0,($FFFFFE2D).w ; cancel invincibility
+		move.b	#0,plpower_m ; cancel invincibility
 
 play00_ChkShoes:
-		tst.b	($FFFFFE2E).w	; does Sonic have speed	shoes?
+		tst.b	plpower_s	; does Sonic have speed	shoes?
 		beq.b	play00_ExitChk	; if not, branch
 		tst.w	$34(a0)		; check	time remaining
 		beq.b	play00_ExitChk
@@ -23610,7 +23610,7 @@ play00_ChkShoes:
 		move.w	#$600,($FFFFF760).w ; restore Sonic's speed
 		move.w	#$C,($FFFFF762).w ; restore Sonic's acceleration
 		move.w	#$80,($FFFFF764).w ; restore Sonic's deceleration
-		move.b	#0,($FFFFFE2E).w ; cancel speed	shoes
+		move.b	#0,plpower_s ; cancel speed	shoes
 		move.w	#$E3,d0
 		jmp	(bgmset).l	; run music at normal speed
 ; ===========================================================================
@@ -25255,20 +25255,20 @@ locret_13C96:
 ; Object 0A - drowning countdown numbers and small bubbles (LZ)
 ; ---------------------------------------------------------------------------
 
-Obj0A:					; XREF: act_tbl
+plawa:					; XREF: act_tbl
 		moveq	#0,d0
 		move.b	$24(a0),d0
-		move.w	Obj0A_Index(pc,d0.w),d1
-		jmp	Obj0A_Index(pc,d1.w)
+		move.w	plawa_Index(pc,d0.w),d1
+		jmp	plawa_Index(pc,d1.w)
 ; ===========================================================================
-Obj0A_Index:	dc.w Obj0A_Main-Obj0A_Index, Obj0A_Animate-Obj0A_Index
-		dc.w Obj0A_ChkWater-Obj0A_Index, Obj0A_Display-Obj0A_Index
-		dc.w Obj0A_Delete2-Obj0A_Index,	Obj0A_Countdown-Obj0A_Index
-		dc.w Obj0A_AirLeft-Obj0A_Index,	Obj0A_Display-Obj0A_Index
-		dc.w Obj0A_Delete2-Obj0A_Index
+plawa_Index:	dc.w plawa_Main-plawa_Index, plawa_Animate-plawa_Index
+		dc.w plawa_ChkWater-plawa_Index, plawa_Display-plawa_Index
+		dc.w plawa_Delete2-plawa_Index,	plawa_Countdown-plawa_Index
+		dc.w plawa_AirLeft-plawa_Index,	plawa_Display-plawa_Index
+		dc.w plawa_Delete2-plawa_Index
 ; ===========================================================================
 
-Obj0A_Main:				; XREF: Obj0A_Index
+plawa_Main:				; XREF: plawa_Index
 		addq.b	#2,$24(a0)
 		move.l	#Map_awa,4(a0)
 		move.w	#$8348,2(a0)
@@ -25278,11 +25278,11 @@ Obj0A_Main:				; XREF: Obj0A_Index
 		move.b	$28(a0),d0
 		bpl.b	loc_13D00
 		addq.b	#8,$24(a0)
-		move.l	#Map_obj0A,4(a0)
+		move.l	#Map_plawa,4(a0)
 		move.w	#$440,2(a0)
 		andi.w	#$7F,d0
 		move.b	d0,$33(a0)
-		bra.w	Obj0A_Countdown
+		bra.w	plawa_Countdown
 ; ===========================================================================
 
 loc_13D00:
@@ -25290,22 +25290,22 @@ loc_13D00:
 		move.w	8(a0),$30(a0)
 		move.w	#-$88,$12(a0)
 
-Obj0A_Animate:				; XREF: Obj0A_Index
-		lea	(Ani_obj0A).l,a1
+plawa_Animate:				; XREF: plawa_Index
+		lea	(Ani_plawa).l,a1
 		jsr	patchg
 
-Obj0A_ChkWater:				; XREF: Obj0A_Index
+plawa_ChkWater:				; XREF: plawa_Index
 		move.w	($FFFFF646).w,d0
 		cmp.w	$C(a0),d0	; has bubble reached the water surface?
-		bcs.b	Obj0A_Wobble	; if not, branch
+		bcs.b	plawa_Wobble	; if not, branch
 		move.b	#6,$24(a0)
 		addq.b	#7,$1C(a0)
 		cmpi.b	#$D,$1C(a0)
-		beq.b	Obj0A_Display
-		bra.b	Obj0A_Display
+		beq.b	plawa_Display
+		bra.b	plawa_Display
 ; ===========================================================================
 
-Obj0A_Wobble:
+plawa_Wobble:
 		tst.b	($FFFFF7C7).w
 		beq.b	loc_13D44
 		addq.w	#4,$30(a0)
@@ -25314,56 +25314,56 @@ loc_13D44:
 		move.b	$26(a0),d0
 		addq.b	#1,$26(a0)
 		andi.w	#$7F,d0
-		lea	(Obj0A_WobbleData).l,a1
+		lea	(plawa_WobbleData).l,a1
 		move.b	(a1,d0.w),d0
 		ext.w	d0
 		add.w	$30(a0),d0
 		move.w	d0,8(a0)
-		bsr.b	Obj0A_ShowNumber
+		bsr.b	plawa_ShowNumber
 		jsr	speedset2
 		tst.b	1(a0)
-		bpl.b	Obj0A_Delete
+		bpl.b	plawa_Delete
 		jmp	actionsub
 ; ===========================================================================
 
-Obj0A_Delete:
+plawa_Delete:
 		jmp	frameout
 ; ===========================================================================
 
-Obj0A_Display:				; XREF: Obj0A_Index
-		bsr.b	Obj0A_ShowNumber
-		lea	(Ani_obj0A).l,a1
+plawa_Display:				; XREF: plawa_Index
+		bsr.b	plawa_ShowNumber
+		lea	(Ani_plawa).l,a1
 		jsr	patchg
 		jmp	actionsub
 ; ===========================================================================
 
-Obj0A_Delete2:				; XREF: Obj0A_Index
+plawa_Delete2:				; XREF: plawa_Index
 		jmp	frameout
 ; ===========================================================================
 
-Obj0A_AirLeft:				; XREF: Obj0A_Index
+plawa_AirLeft:				; XREF: plawa_Index
 		cmpi.w	#$C,($FFFFFE14).w ; check air remaining
-		bhi.b	Obj0A_Delete3	; if higher than $C, branch
+		bhi.b	plawa_Delete3	; if higher than $C, branch
 		subq.w	#1,$38(a0)
-		bne.b	Obj0A_Display2
+		bne.b	plawa_Display2
 		move.b	#$E,$24(a0)
 		addq.b	#7,$1C(a0)
-		bra.b	Obj0A_Display
+		bra.b	plawa_Display
 ; ===========================================================================
 
-Obj0A_Display2:
-		lea	(Ani_obj0A).l,a1
+plawa_Display2:
+		lea	(Ani_plawa).l,a1
 		jsr	patchg
 		tst.b	1(a0)
-		bpl.b	Obj0A_Delete3
+		bpl.b	plawa_Delete3
 		jmp	actionsub
 ; ===========================================================================
 
-Obj0A_Delete3:
+plawa_Delete3:
 		jmp	frameout
 ; ===========================================================================
 
-Obj0A_ShowNumber:			; XREF: Obj0A_Wobble; Obj0A_Display
+plawa_ShowNumber:			; XREF: plawa_Wobble; plawa_Display
 		tst.w	$38(a0)
 		beq.b	locret_13E1A
 		subq.w	#1,$38(a0)
@@ -25386,7 +25386,7 @@ Obj0A_ShowNumber:			; XREF: Obj0A_Wobble; Obj0A_Display
 locret_13E1A:
 		rts	
 ; ===========================================================================
-Obj0A_WobbleData:
+plawa_WobbleData:
 		dc.b 0, 0, 0, 0, 0, 0,	1, 1, 1, 1, 1, 2, 2, 2,	2, 2, 2
 		dc.b 2,	3, 3, 3, 3, 3, 3, 3, 3,	3, 3, 3, 3, 3, 3, 4, 3
 		dc.b 3,	3, 3, 3, 3, 3, 3, 3, 3,	3, 3, 3, 3, 2, 2, 2, 2
@@ -25398,7 +25398,7 @@ Obj0A_WobbleData:
 		dc.b -2, -2, -2, -2, -1, -1, -1, -1, -1
 ; ===========================================================================
 
-Obj0A_Countdown:			; XREF: Obj0A_Index
+plawa_Countdown:			; XREF: plawa_Index
 		tst.w	$2C(a0)
 		bne.w	loc_13F86
 		cmpi.b	#6,($FFFFD024).w
@@ -25414,32 +25414,32 @@ Obj0A_Countdown:			; XREF: Obj0A_Index
 		move.b	d0,$34(a0)
 		move.w	($FFFFFE14).w,d0 ; check air remaining
 		cmpi.w	#$19,d0
-		beq.b	Obj0A_WarnSound	; play sound if	air is $19
+		beq.b	plawa_WarnSound	; play sound if	air is $19
 		cmpi.w	#$14,d0
-		beq.b	Obj0A_WarnSound
+		beq.b	plawa_WarnSound
 		cmpi.w	#$F,d0
-		beq.b	Obj0A_WarnSound
+		beq.b	plawa_WarnSound
 		cmpi.w	#$C,d0
-		bhi.b	Obj0A_ReduceAir	; if air is above $C, branch
+		bhi.b	plawa_ReduceAir	; if air is above $C, branch
 		bne.b	loc_13F02
 		move.w	#$92,d0
 		jsr	(bgmset).l	; play countdown music
 
 loc_13F02:
 		subq.b	#1,$32(a0)
-		bpl.b	Obj0A_ReduceAir
+		bpl.b	plawa_ReduceAir
 		move.b	$33(a0),$32(a0)
 		bset	#7,$36(a0)
-		bra.b	Obj0A_ReduceAir
+		bra.b	plawa_ReduceAir
 ; ===========================================================================
 
-Obj0A_WarnSound:			; XREF: Obj0A_Countdown
+plawa_WarnSound:			; XREF: plawa_Countdown
 		move.w	#$C2,d0
 		jsr	(soundset).l ;	play "ding-ding" warning sound
 
-Obj0A_ReduceAir:
+plawa_ReduceAir:
 		subq.w	#1,($FFFFFE14).w ; subtract 1 from air remaining
-		bcc.w	Obj0A_GoMakeItem ; if air is above 0, branch
+		bcc.w	plawa_GoMakeItem ; if air is above 0, branch
 		bsr.w	ResumeMusic
 		move.b	#$81,($FFFFF7C8).w ; lock controls
 		move.w	#$B2,d0
@@ -25477,8 +25477,8 @@ loc_13F94:
 		bra.b	loc_13FAC
 ; ===========================================================================
 
-Obj0A_GoMakeItem:			; XREF: Obj0A_ReduceAir
-		bra.b	Obj0A_MakeItem
+plawa_GoMakeItem:			; XREF: plawa_ReduceAir
+		bra.b	plawa_MakeItem
 ; ===========================================================================
 
 loc_13FAC:
@@ -25487,7 +25487,7 @@ loc_13FAC:
 		subq.w	#1,$3A(a0)
 		bpl.w	locret_1408C
 
-Obj0A_MakeItem:
+plawa_MakeItem:
 		jsr	(random).l
 		andi.w	#$F,d0
 		move.w	d0,$3A(a0)
@@ -25557,7 +25557,7 @@ locret_1408C:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-ResumeMusic:				; XREF: awa_Wobble; plwaterchk; Obj0A_ReduceAir
+ResumeMusic:				; XREF: awa_Wobble; plwaterchk; plawa_ReduceAir
 		cmpi.w	#$C,($FFFFFE14).w
 		bhi.b	loc_140AC
 		move.w	#$82,d0		; play LZ music
@@ -25575,14 +25575,14 @@ loc_140AC:
 ; End of function ResumeMusic
 
 ; ===========================================================================
-Ani_obj0A:
-	include "_anim\obj0A.asm"
+Ani_plawa:
+	include "_anim\plawa.asm"
 
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - drowning countdown numbers (LZ)
 ; ---------------------------------------------------------------------------
-Map_obj0A:
-	include "_maps\obj0A.asm"
+Map_plawa:
+	include "_maps\plawa.asm"
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -25619,9 +25619,9 @@ effect_DoStars:
 ; ===========================================================================
 
 effect_Shield:				; XREF: effect_Index
-		tst.b	($FFFFFE2D).w	; does Sonic have invincibility?
+		tst.b	plpower_m	; does Sonic have invincibility?
 		bne.b	effect_RmvShield	; if yes, branch
-		tst.b	($FFFFFE2C).w	; does Sonic have shield?
+		tst.b	plpower_b	; does Sonic have shield?
 		beq.b	effect_Delete	; if not, branch
 		move.w	playerwk+xposi,8(a0)
 		move.w	playerwk+yposi,$C(a0)
@@ -25640,7 +25640,7 @@ effect_Delete:
 ; ===========================================================================
 
 effect_Stars:				; XREF: effect_Index
-		tst.b	($FFFFFE2D).w	; does Sonic have invincibility?
+		tst.b	plpower_m	; does Sonic have invincibility?
 		beq.b	effect_Delete2	; if not, branch
 		move.w	($FFFFF7A8).w,d0
 		move.b	$1C(a0),d1
@@ -28772,7 +28772,7 @@ loc_166E0:
 		bne.b	locret_1675C
 		cmpi.b	#7,$28(a0)
 		bne.b	loc_1670E
-		cmpi.w	#50,($FFFFFE20).w
+		cmpi.w	#50,plring
 		bcs.b	locret_1675C
 
 loc_1670E:
@@ -29439,7 +29439,7 @@ playsave:			; XREF: save_HitLamp
 		move.b	($FFFFFE30).w,($FFFFFE31).w
 		move.w	8(a0),($FFFFFE32).w		; x-position
 		move.w	$C(a0),($FFFFFE34).w		; y-position
-		move.w	($FFFFFE20).w,($FFFFFE36).w 	; rings
+		move.w	plring,($FFFFFE36).w 	; rings
 		move.b	($FFFFFE1B).w,($FFFFFE54).w 	; lives
 		move.l	($FFFFFE22).w,($FFFFFE38).w 	; time
 		move.b	($FFFFF742).w,($FFFFFE3C).w 	; routine counter for dynamic level mod
@@ -29468,9 +29468,9 @@ playload:				; XREF: scr_set
 		move.b	($FFFFFE31).w,($FFFFFE30).w
 		move.w	($FFFFFE32).w,playerwk+xposi
 		move.w	($FFFFFE34).w,playerwk+yposi
-		move.w	($FFFFFE36).w,($FFFFFE20).w
+		move.w	($FFFFFE36).w,plring
 		move.b	($FFFFFE54).w,($FFFFFE1B).w
-		clr.w	($FFFFFE20).w
+		clr.w	plring
 		clr.b	($FFFFFE1B).w
 		move.l	($FFFFFE38).w,($FFFFFE22).w
 		move.b	#59,($FFFFFE25).w
@@ -34557,7 +34557,7 @@ locret_1AF2E:
 ; ===========================================================================
 
 Touch_Enemy:				; XREF: Touch_ChkValue
-		tst.b	($FFFFFE2D).w	; is Sonic invincible?
+		tst.b	plpower_m	; is Sonic invincible?
 		bne.b	loc_1AF40	; if yes, branch
 		cmpi.b	#2,$1C(a0)	; is Sonic rolling?
 		bne.w	Touch_ChkHurt	; if not, branch
@@ -34624,7 +34624,7 @@ loc_1AFDA:				; XREF: Touch_CatKiller
 		bset	#7,$22(a1)
 
 Touch_ChkHurt:				; XREF: Touch_ChkValue
-		tst.b	($FFFFFE2D).w	; is Sonic invincible?
+		tst.b	plpower_m	; is Sonic invincible?
 		beq.b	Touch_Hurt	; if not, branch
 
 loc_1AFE6:				; XREF: Touch_Hurt
@@ -34649,9 +34649,9 @@ Touch_Hurt:				; XREF: Touch_ChkHurt
 
 
 playdamageset:
-		tst.b	($FFFFFE2C).w	; does Sonic have a shield?
+		tst.b	plpower_b	; does Sonic have a shield?
 		bne.b	Hurt_Shield	; if yes, branch
-		tst.w	($FFFFFE20).w	; does Sonic have any rings?
+		tst.w	plring	; does Sonic have any rings?
 		beq.w	Hurt_NoRings	; if not, branch
 		jsr	actwkchk
 		bne.b	Hurt_Shield
@@ -34660,7 +34660,7 @@ playdamageset:
 		move.w	$C(a0),$C(a1)
 
 Hurt_Shield:
-		move.b	#0,($FFFFFE2C).w ; remove shield
+		move.b	#0,plpower_b ; remove shield
 		move.b	#4,$24(a0)
 		bsr.w	jumpcolsub
 		bset	#1,$22(a0)
@@ -34709,7 +34709,7 @@ Hurt_NoRings:
 playdieset:
 		tst.w	editmode	; is debug mode	active?
 		bne.b	Kill_NoDeath	; if yes, branch
-		move.b	#0,($FFFFFE2D).w ; remove invincibility
+		move.b	#0,plpower_m ; remove invincibility
 		move.b	#6,$24(a0)
 		bsr.w	jumpcolsub
 		bset	#1,$22(a0)
@@ -35853,7 +35853,7 @@ play01_ChkCont:
 
 play01_GetCont:
 		jsr	CollectRing
-		cmpi.w	#50,($FFFFFE20).w ; check if you have 50 rings
+		cmpi.w	#50,plring ; check if you have 50 rings
 		bcs.b	play01_NoCont
 		bset	#0,($FFFFFE1B).w
 		bne.b	play01_NoCont
@@ -36664,7 +36664,7 @@ score_init:
 		move.b	#0,actflg(a0)
 		move.b	#0,sprhs(a0)
 score_move:
-		tst.w	($FFFFFE20).w
+		tst.w	plring
 		beq.b	?jump
 		clr.b	patno(a0)
 		jmp		actionsub
@@ -36740,7 +36740,7 @@ scorepat3:
 scoreup:
 		move.b	#1,($FFFFFE1F).w
 		lea		($FFFFFFC0).w,a2
-		lea		($FFFFFE26).w,a3
+		lea		plscore,a3
 		add.l	d0,(a3)
 		move.l	#999999,d1
 		cmp.l	(a3),d1
@@ -36763,7 +36763,7 @@ scoreset:
 		beq.b	?jump
 		clr.b	($FFFFFE1F).w
 		move.l	#$5C800003,d0
-		move.l	($FFFFFE26).w,d1
+		move.l	plscore,d1
 		bsr.w	scorewrt
 ?jump:
 		tst.b	($FFFFFE1D).w
@@ -36774,7 +36774,7 @@ scoreset:
 		clr.b	($FFFFFE1D).w
 		move.l	#$5F400003,d0
 		moveq	#0,d1
-		move.w	($FFFFFE20).w,d1
+		move.w	plring,d1
 		bsr.w	ringwrt
 ?jump2:
 		tst.b	($FFFFFE1E).w
@@ -36842,7 +36842,7 @@ scoreset2:
 		clr.b	($FFFFFE1D).w
 		move.l	#$5F400003,d0
 		moveq	#0,d1
-		move.w	($FFFFFE20).w,d1
+		move.w	plring,d1
 		bsr.w	ringwrt
 ?jump2:
 		move.l	#$5EC00003,d0

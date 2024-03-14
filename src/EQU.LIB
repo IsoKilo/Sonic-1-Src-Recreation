@@ -2,6 +2,15 @@ byte:		equ 1
 word:		equ 2
 long:		equ 4
 
+playerwk:	equ $ffd000
+pl_suu:		equ $fffe12
+
+plring:		equ $fffe20
+plscore:	equ $fffe26
+plpower_b:	equ $fffe2c
+plpower_m:	equ $fffe2d
+plpower_s:	equ $fffe2e
+
 spgamemd:	equ $10
 
 actno:		equ $00

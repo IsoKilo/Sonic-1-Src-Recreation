@@ -29,7 +29,7 @@ score_init:
 		move.b	#0,actflg(a0)
 		move.b	#0,sprhs(a0)
 score_move:
-		tst.w	$fffe20
+		tst.w	plring
 		beq.b	?jump
 		clr.b	patno(a0)
 		jmp		actionsub
@@ -105,7 +105,7 @@ scorepat3:
 scoreup:
 		move.b	#1,$fffe1f
 		lea		$ffffc0,a2
-		lea		$fffe26,a3
+		lea		plscore,a3
 		add.l	d0,(a3)
 		move.l	#999999,d1
 		cmp.l	(a3),d1
@@ -128,7 +128,7 @@ scoreset:
 		beq.b	?jump
 		clr.b	$fffe1f
 		move.l	#$5c800003,d0
-		move.l	$fffe26,d1
+		move.l	plscore,d1
 		bsr.w	scorewrt
 ?jump:
 		tst.b	$fffe1d
@@ -139,7 +139,7 @@ scoreset:
 		clr.b	$fffe1d
 		move.l	#$5f400003,d0
 		moveq	#0,d1
-		move.w	$fffe20,d1
+		move.w	plring,d1
 		bsr.w	ringwrt
 ?jump2:
 		tst.b	$fffe1e
@@ -207,7 +207,7 @@ scoreset2:
 		clr.b	$fffe1d
 		move.l	#$5f400003,d0
 		moveq	#0,d1
-		move.w	$fffe20,d1
+		move.w	plring,d1
 		bsr.w	ringwrt
 ?jump2:
 		move.l	#$5ec00003,d0
