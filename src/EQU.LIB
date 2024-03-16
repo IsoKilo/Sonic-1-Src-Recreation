@@ -1,63 +1,88 @@
-byte:		equ 1
-word:		equ 2
-long:		equ 4
+byte:			equ 1
+word:			equ 2
+long:			equ 4
 
-playerwk:	equ $ffd000
-pl_suu:		equ $fffe12
+actwk:
+playerwk:		equ $ffd000
 
-plring:		equ $fffe20
-plscore:	equ $fffe26
-plpower_b:	equ $fffe2c
-plpower_m:	equ $fffe2d
-plpower_s:	equ $fffe2e
+swdata:			equ $fff602
+swdata1:		equ $fff604
+swdata2:		equ $fff606
 
-spgamemd:	equ $10
+pauseflag:		equ $fff63a
 
-actno:		equ $00
-actflg:		equ $01
-sproffset:	equ $02
-patbase:	equ $04
-xposi:		equ $08
-yposi:		equ $0c
-xspeed:		equ $10
-yspeed:		equ $12
-mspeed:		equ $14
-sprhsize:	equ $16
-sprvsize:	equ $17
-sprhs:		equ $18
-sprpri:		equ $19
-patno:		equ $1a
-patcnt:		equ $1b
-mstno:		equ $1c
-pattim:		equ $1e
-pattimm:	equ $1f
-colino:		equ $20
-colicnt:	equ $21
-cddat:		equ $22
-cdsts:		equ $23
-r_no0:		equ $24
-r_no1:		equ $25
-direc:		equ $26
-userflag:	equ $28
-dummy:		equ $2a
-actfree:	equ $2c
+mizuflag:		equ $fff7ca
 
+emyscorecnt:	equ $fff7d0
+
+gametimer:		equ $fffe04
+
+stageno:		equ $fffe10
+pl_suu:			equ $fffe12
+pl_air:			equ $fffe14
+
+pltimeover_f:	equ $fffe1a
+plring_f2:		equ $fffe1b
+pl_suu_f:		equ $fffe1c
+plring_f:		equ $fffe1d
+pltime_f:		equ $fffe1e
+plscore_f:		equ $fffe1f
+
+plring:			equ $fffe20
+
+plscore:		equ $fffe26
+
+plpower_b:		equ $fffe2c
+plpower_m:		equ $fffe2d
+plpower_s:		equ $fffe2e
+
+extrascore:		equ	$ffffc0
+
+debugflag:		equ $fffffa
+
+*gamemode
+spgamemd:		equ $10
+
+*actwk
+actno:			equ $00
+actflg:			equ $01
+sproffset:		equ $02
+patbase:		equ $04
+xposi:			equ $08
+yposi:			equ $0c
+xspeed:			equ $10
+yspeed:			equ $12
+mspeed:			equ $14
+sprhsize:		equ $16
+sprvsize:		equ $17
+sprhs:			equ $18
+sprpri:			equ $19
+patno:			equ $1a
+patcnt:			equ $1b
+mstno:			equ $1c
+pattim:			equ $1e
+pattimm:		equ $1f
+colino:			equ $20
+colicnt:		equ $21
+cddat:			equ $22
+cdsts:			equ $23
+r_no0:			equ $24
+r_no1:			equ $25
+direc:			equ $26
+userflag:		equ $28
+dummy:			equ $2a
+actfree:		equ $2c
+
+*action
 play00_act:		equ $00
 
-
-
-
-
-
-
-
 play01_act:		equ $09
-*dekisi_act:	equ $0a
+plyawa_act:		equ $0a
 bou_act:		equ $0b
 ben_act:		equ $0c
 gole_act:		equ $0d
-*titlsonic_act:	equ $0e
-*titlspr_act:	equ $0f
+*title_act:		equ $0e	* NOT CONFIRMED
+*title2_act:	equ $0f	* NOT CONFIRMED
 play02_act:		equ $10
 hashi_act:		equ $11
 signal_act:		equ $12
@@ -67,23 +92,23 @@ buranko_act:	equ $15
 yari_act:		equ $16
 thashi_act:		equ $17
 shima_act:		equ $18
-*ball_act:		equ $19
+ball_act:		equ $19
 break_act:		equ $1a
 wave_act:		equ $1b
 bgspr_act:		equ $1c
 switch_act:		equ $1d
 buta_act:		equ $1e
 kani_act:		equ $1f
-*butatama:		equ $20
+*btama:			equ $20	* NOT CONFIRMED
 score_act:		equ $21
 hachi_act:		equ $22
-*hachitama:		equ $23
-*butabakuhatu:	equ $24
+*htama_act:		equ $23	* NOT CONFIRMED
+*bbaku_act:		equ $24	* NOT CONFIRMED
 ring_act:		equ $25
 item_act:		equ $26
-bakuhatu_act:	equ $27
+baku_act:		equ $27
 usagi_act:		equ $28
-*points:		equ $29
+ten_act:		equ $29
 door_act:		equ $2a
 fish_act:		equ $2b
 fish2_act:		equ $2c
@@ -94,7 +119,86 @@ ochi_act:		equ $30
 turi_act:		equ $31
 switch2_act:	equ $32
 box_act:		equ $33
-*haikei_act:	equ $34
+*zone_act:		equ $34	* NOT CONFIRMED
+*fire2_act:		equ $35	* NOT CONFIRMED
+toge_act:		equ $36
+flyring_act:	equ $37
+baria_act:		equ $38
+over_act:		equ $39
+*font_act:		equ $3A	* NOT CONFIRMED
+jyama_act:		equ $3B
+brkabe_act:		equ $3C
+boss1_act:		equ $3D
+masin_act:		equ $3E
+billbomb_act:	equ $3F
+musi_act:		equ $40
+sjump_act:		equ $41
+kamere_act:		equ $42
+aruma_act:		equ $43
+kageb_act:		equ $44
+*htoge_act:		equ $45	* NOT CONFIRMED
+fblock_act:		equ $46
+bobin_act:		equ $47
+*bball_act:		equ $48	* NOT CONFIRMED
+*taki_act:		equ $49	* NOT CONFIRMED
+*plspe_act:		equ $4A * NOT CONFIRMED
+bigring_act:	equ $4B
+myogan_act:		equ $4C
+yogan_act:		equ $4D
+yogan2_act:		equ $4E
+usa_act:		equ $4F
+yado_act:		equ $50
+bryuka_act:		equ $51
+dai_act:		equ $52
+break2_act:		equ $53
+yoganc_act:		equ $54
+bat_act:		equ $55
+dai2_act:		equ $56
+*tekyu_act:		equ $57	* NOT CONFIRMED
+*tekyu2_act:	equ $58	* NOT CONFIRMED
+elev_act:		equ $59
+pedal_act:		equ $5A
+step_act:		equ $5B
+*fgspr_act:		equ $5C	* NOT CONFIRMED
+fun_act:		equ $5D
+sisoo_act:		equ $5E
+brobo_act:		equ $5F
+uni_act:		equ $60
+dai3_act:		equ $61
+kazari_act:		equ $62
+kassya_act:		equ $63
+awa_act:		equ $64
+mizu_act:		equ $65
+mawaru_act:		equ $66
+haguruma_act:	equ $67
+beltcon_act:	equ $68
+pata_act:		equ $69
+noko_act:		equ $6A
+dai4_act:		equ $6B
+yukae_act:		equ $6C
+fire6_act:		equ $6D
+ele_act:		equ $6E
+beltc_act:		equ $6F
+yukai_act:		equ $70
+scoli_act:		equ $71
+*warp_act:		equ $72	* NOT CONFIRMED
+*boss2_act:		equ $73
+*bfire_act:		equ $74
+*boss3_act:		equ $75
+*bdai_act:		equ $76
+*boss4_act:		equ $77
+imo_act:		equ $78
+save_act:		equ $79
+*boss5_act:		equ $7A	* NOT CONFIRMED
+*btekyu_act:	equ $7B	* NOT CONFIRMED
+*ebigring_act:	equ $7C	* NOT CONFIRMED
+bten_act:		equ $7D
+*font2_act:		equ $7E	* NOT CONFIRMED
+*font2spr_act:	equ $7F	* NOT CONFIRMED
+*continue_act:	equ $80	* NOT CONFIRMED
+*play03_act:	equ $81	* NOT CONFIRMED
+
+boss6_act:		equ $85
 
 cd_ball:		equ $02
 cd_jump:		equ $01

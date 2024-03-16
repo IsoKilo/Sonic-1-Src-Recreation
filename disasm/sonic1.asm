@@ -1203,15 +1203,15 @@ bgmset_Unk:
 
 PauseGame:				; XREF: Level_MainLoop; et al
 		nop	
-		tst.b	($FFFFFE12).w	; do you have any lives	left?
+		tst.b	pl_suu	; do you have any lives	left?
 		beq.b	Unpause		; if not, branch
-		tst.w	($FFFFF63A).w	; is game already paused?
+		tst.w	pauseflag	; is game already paused?
 		bne.b	loc_13BE	; if yes, branch
 		btst	#7,swdata1+1 ; is Start button pressed?
 		beq.b	Pause_DoNothing	; if not, branch
 
 loc_13BE:
-		move.w	#1,($FFFFF63A).w ; freeze time
+		move.w	#1,pauseflag ; freeze time
 		move.b	#1,($FFFFF003).w ; pause music
 
 loc_13CA:
@@ -1240,14 +1240,14 @@ loc_1404:				; XREF: PauseGame
 		move.b	#$80,($FFFFF003).w
 
 Unpause:				; XREF: PauseGame
-		move.w	#0,($FFFFF63A).w ; unpause the game
+		move.w	#0,pauseflag ; unpause the game
 
 Pause_DoNothing:			; XREF: PauseGame
 		rts	
 ; ===========================================================================
 
 Pause_SlowMo:				; XREF: PauseGame
-		move.w	#1,($FFFFF63A).w
+		move.w	#1,pauseflag
 		move.b	#$80,($FFFFF003).w
 		rts	
 ; End of function PauseGame
@@ -2099,7 +2099,7 @@ PalCycle_LZ:				; XREF: PalCycle
 		andi.w	#3,d0
 		lsl.w	#3,d0
 		lea	(Pal_LZCyc1).l,a0
-		cmpi.b	#3,($FFFFFE11).w ; check if level is SBZ3
+		cmpi.b	#3,stageno+1 ; check if level is SBZ3
 		bne.b	loc_19C0
 		lea	(Pal_SBZ3Cyc1).l,a0 ; load SBZ3	pallet instead
 
@@ -2112,7 +2112,7 @@ loc_19C0:
 		move.l	4(a0,d0.w),(a1)
 
 loc_19D8:
-		move.w	($FFFFFE04).w,d0
+		move.w	gametimer,d0
 		andi.w	#7,d0
 		move.b	byte_1A3C(pc,d0.w),d0
 		beq.b	locret_1A3A
@@ -2220,7 +2220,7 @@ locret_1AC6:
 
 PalCycle_SBZ:				; XREF: PalCycle
 		lea	(Pal_SBZCycList).l,a2
-		tst.b	($FFFFFE11).w
+		tst.b	stageno+1
 		beq.b	loc_1ADA
 		lea	(Pal_SBZCycList2).l,a2
 
@@ -2258,7 +2258,7 @@ loc_1B06:				; XREF: PalCycle_SBZ
 		bpl.b	locret_1B64
 		lea	(Pal_SBZCyc4).l,a0
 		move.w	#1,($FFFFF634).w
-		tst.b	($FFFFFE11).w
+		tst.b	stageno+1
 		beq.b	loc_1B2E
 		lea	(Pal_SBZCyc10).l,a0
 		move.w	#0,($FFFFF634).w
@@ -3255,7 +3255,7 @@ Title_LoadText:
 		bsr.w	colorset
 		move.b	#$8A,d0		; play title screen music
 		bsr.w	soundset
-		move.b	#0,($FFFFFFFA).w ; disable debug mode
+		move.b	#0,debugflag ; disable debug mode
 		move.w	#$178,($FFFFF614).w ; run title	screen for $178	frames
 		lea	($FFFFD080).w,a1
 		moveq	#0,d0
@@ -3441,7 +3441,7 @@ LevSel_Level_SS:			; XREF: LevelSelect
 		bne.b	LevSel_Level	; if not, branch
 		move.b	#$10,gmmode ; set screen	mode to	$10 (Special Stage)
 		clr.w	stageno	; clear	level
-		move.b	#3,($FFFFFE12).w ; set lives to	3
+		move.b	#3,pl_suu ; set lives to	3
 		moveq	#0,d0
 		move.w	d0,plring ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
@@ -3455,7 +3455,7 @@ LevSel_Level:				; XREF: LevSel_Level_SS
 
 PlayLevel:				; XREF: ROM:00003246j ...
 		move.b	#$C,gmmode ; set	screen mode to $0C (level)
-		move.b	#3,($FFFFFE12).w ; set lives to	3
+		move.b	#3,pl_suu ; set lives to	3
 		moveq	#0,d0
 		move.w	d0,plring ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
@@ -3536,7 +3536,7 @@ loc_3422:
 		clr.b	($FFFFFE16).w	; clear	special	stage number
 
 Demo_Level:
-		move.b	#3,($FFFFFE12).w ; set lives to	3
+		move.b	#3,pl_suu ; set lives to	3
 		moveq	#0,d0
 		move.w	d0,plring ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
@@ -3806,7 +3806,7 @@ Level_ClrVars3:
 		bne.b	Level_LoadPal	; if not, branch
 		move.w	#$8014,(a6)
 		moveq	#0,d0
-		move.b	($FFFFFE11).w,d0
+		move.b	stageno+1,d0
 		add.w	d0,d0
 		lea	(WaterHeight).l,a1 ; load water	height array
 		move.w	(a1,d0.w),d0
@@ -3818,14 +3818,14 @@ Level_ClrVars3:
 		move.b	#1,($FFFFF64C).w ; enable water
 
 Level_LoadPal:
-		move.w	#$1E,($FFFFFE14).w
+		move.w	#$1E,pl_air
 		move	#$2300,sr
 		moveq	#3,d0
 		bsr.w	colorset2	; load Sonic's pallet line
 		cmpi.b	#1,stageno ; is level LZ?
 		bne.b	Level_GetBgm	; if not, branch
 		moveq	#$F,d0		; pallet number	$0F (LZ)
-		cmpi.b	#3,($FFFFFE11).w ; is act number 3?
+		cmpi.b	#3,stageno+1 ; is act number 3?
 		bne.b	Level_WaterPal	; if not, branch
 		moveq	#$10,d0		; pallet number	$10 (SBZ3)
 
@@ -3874,9 +3874,9 @@ loc_3946:
 		bsr.w	scr_set
 		bsr.w	scroll
 		bset	#2,($FFFFF754).w
-		bsr.w	MainLoadBlockLoad ; load block mappings	and pallets
+		bsr.w	mapinit ; load block mappings	and pallets
 		bsr.w	mapwrt
-		jsr	FloorLog_Unk
+		jsr	scdcnv
 		bsr.w	scdset
 		bsr.w	LZWaterEffects
 		move.b	#1,playerwk ; load	Sonic object
@@ -3889,10 +3889,10 @@ Level_ChkDebug:
 		beq.b	Level_ChkWater	; if not, branch
 		btst	#6,swdata1+0 ; is A	button pressed?
 		beq.b	Level_ChkWater	; if not, branch
-		move.b	#1,($FFFFFFFA).w ; enable debug	mode
+		move.b	#1,debugflag ; enable debug	mode
 
 Level_ChkWater:
-		move.w	#0,($FFFFF602).w
+		move.w	#0,swdata+0
 		move.w	#0,swdata1+0
 		cmpi.b	#1,stageno ; is level LZ?
 		bne.b	Level_LoadObj	; if not, branch
@@ -3910,21 +3910,21 @@ Level_LoadObj:
 		bne.b	loc_39E8	; if yes, branch
 		move.w	d0,plring ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
-		move.b	d0,($FFFFFE1B).w ; clear lives counter
+		move.b	d0,plring_f2 ; clear lives counter
 
 loc_39E8:
-		move.b	d0,($FFFFFE1A).w
+		move.b	d0,pltimeover_f
 		move.b	d0,plpower_b ; clear shield
 		move.b	d0,plpower_m ; clear invincibility
 		move.b	d0,plpower_s ; clear speed shoes
 		move.b	d0,($FFFFFE2F).w
 		move.w	d0,editmode
 		move.w	d0,($FFFFFE02).w
-		move.w	d0,($FFFFFE04).w
+		move.w	d0,gametimer
 		bsr.w	OscillateNumInit
-		move.b	#1,($FFFFFE1F).w ; update score	counter
-		move.b	#1,($FFFFFE1D).w ; update rings	counter
-		move.b	#1,($FFFFFE1E).w ; update time counter
+		move.b	#1,plscore_f ; update score	counter
+		move.b	#1,plring_f ; update rings	counter
+		move.b	#1,pltime_f ; update time counter
 		move.w	#0,($FFFFF790).w
 		lea	(Demo_Index).l,a1 ; load demo data
 		moveq	#0,d0
@@ -3954,7 +3954,7 @@ Level_ChkWaterPal:
 		cmpi.b	#1,stageno ; is level LZ/SBZ3?
 		bne.b	Level_Delay	; if not, branch
 		moveq	#$B,d0		; pallet $0B (LZ underwater)
-		cmpi.b	#3,($FFFFFE11).w ; is level SBZ3?
+		cmpi.b	#3,stageno+1 ; is level SBZ3?
 		bne.b	Level_WaterPal2	; if not, branch
 		moveq	#$D,d0		; pallet $0D (SBZ3 underwater)
 
@@ -3999,7 +3999,7 @@ Level_MainLoop:
 		bsr.w	PauseGame
 		move.b	#8,($FFFFF62A).w
 		bsr.w	DelayProgram
-		addq.w	#1,($FFFFFE04).w ; add 1 to level timer
+		addq.w	#1,gametimer ; add 1 to level timer
 		bsr.w	MoveSonicInDemo
 		bsr.w	LZWaterEffects
 		jsr	action
@@ -4121,7 +4121,7 @@ WaterHeight:	incbin	misc\lz_heigh.bin
 
 LZDynamicWater:				; XREF: LZWaterEffects
 		moveq	#0,d0
-		move.b	($FFFFFE11).w,d0
+		move.b	stageno+1,d0
 		add.w	d0,d0
 		move.w	DynWater_Index(pc,d0.w),d0
 		jsr	DynWater_Index(pc,d0.w)
@@ -4341,11 +4341,11 @@ LZWindTunnels:				; XREF: LZWaterEffects
 		bne.w	locret_3F0A	; if yes, branch
 		lea	(LZWind_Data).l,a2
 		moveq	#0,d0
-		move.b	($FFFFFE11).w,d0
+		move.b	stageno+1,d0
 		lsl.w	#3,d0
 		adda.w	d0,a2
 		moveq	#0,d1
-		tst.b	($FFFFFE11).w
+		tst.b	stageno+1
 		bne.b	loc_3E56
 		moveq	#1,d1
 		subq.w	#8,a2
@@ -4380,7 +4380,7 @@ loc_3E90:
 		cmp.w	(a2),d0
 		bcc.b	LZWind_Move
 		moveq	#2,d0
-		cmpi.b	#1,($FFFFFE11).w
+		cmpi.b	#1,stageno+1
 		bne.b	loc_3EBA
 		neg.w	d0
 
@@ -4393,12 +4393,12 @@ LZWind_Move:
 		move.w	#0,$12(a1)
 		move.b	#$F,$1C(a1)	; use floating animation
 		bset	#1,$22(a1)
-		btst	#0,($FFFFF602).w ; is up pressed?
+		btst	#0,swdata+0 ; is up pressed?
 		beq.b	LZWind_MoveDown	; if not, branch
 		subq.w	#1,$C(a1)	; move Sonic up
 
 LZWind_MoveDown:
-		btst	#1,($FFFFF602).w ; is down being pressed?
+		btst	#1,swdata+0 ; is down being pressed?
 		beq.b	locret_3EF2	; if not, branch
 		addq.w	#1,$C(a1)	; move Sonic down
 
@@ -4455,10 +4455,10 @@ loc_3F62:
 		beq.b	LZSlide_Move
 
 loc_3F6A:
-		tst.b	($FFFFF7CA).w
+		tst.b	mizuflag
 		beq.b	locret_3F7A
 		move.w	#5,$3E(a1)
-		clr.b	($FFFFF7CA).w
+		clr.b	mizuflag
 
 locret_3F7A:
 		rts	
@@ -4479,7 +4479,7 @@ loc_3F84:
 loc_3F9A:
 		clr.b	$15(a1)
 		move.b	#$1B,$1C(a1)	; use Sonic's "sliding" animation
-		move.b	#1,($FFFFF7CA).w ; lock	controls (except jumping)
+		move.b	#1,mizuflag ; lock	controls (except jumping)
 		move.b	($FFFFFE0F).w,d0
 		andi.b	#$1F,d0
 		bne.b	locret_3FBE
@@ -4771,14 +4771,14 @@ locret_4272:
 SignpostArtLoad:			; XREF: Level
 		tst.w	editmode	; is debug mode	being used?
 		bne.w	Signpost_Exit	; if yes, branch
-		cmpi.b	#2,($FFFFFE11).w ; is act number 02 (act 3)?
+		cmpi.b	#2,stageno+1 ; is act number 02 (act 3)?
 		beq.b	Signpost_Exit	; if yes, branch
 		move.w	scra_h_posit,d0
 		move.w	($FFFFF72A).w,d1
 		subi.w	#$100,d1
 		cmp.w	d1,d0		; has Sonic reached the	edge of	the level?
 		blt.b	Signpost_Exit	; if not, branch
-		tst.b	($FFFFFE1E).w
+		tst.b	pltime_f
 		beq.b	Signpost_Exit
 		cmp.w	($FFFFF728).w,d1
 		beq.b	Signpost_Exit
@@ -4885,14 +4885,14 @@ SS_ClrNemRam:
 		move.b	1(a1),($FFFFF792).w
 		subq.b	#1,($FFFFF792).w
 		clr.w	plring
-		clr.b	($FFFFFE1B).w
+		clr.b	plring_f2
 		move.w	#0,editmode
 		move.w	#1800,($FFFFF614).w
 		tst.b	($FFFFFFE2).w	; has debug cheat been entered?
 		beq.b	SS_NoDebug	; if not, branch
 		btst	#6,swdata1+0 ; is A	button pressed?
 		beq.b	SS_NoDebug	; if not, branch
-		move.b	#1,($FFFFFFFA).w ; enable debug	mode
+		move.b	#1,debugflag ; enable debug	mode
 
 SS_NoDebug:
 		move.w	($FFFFF60C).w,d0
@@ -4909,7 +4909,7 @@ SS_MainLoop:
 		move.b	#$A,($FFFFF62A).w
 		bsr.w	DelayProgram
 		bsr.w	MoveSonicInDemo
-		move.w	swdata1+0,($FFFFF602).w
+		move.w	swdata1+0,swdata+0
 		jsr	action
 		jsr	patset
 		jsr	SS_ShowLayout
@@ -4939,7 +4939,7 @@ SS_EndLoop:
 		move.b	#$16,($FFFFF62A).w
 		bsr.w	DelayProgram
 		bsr.w	MoveSonicInDemo
-		move.w	swdata1+0,($FFFFF602).w
+		move.w	swdata1+0,swdata+0
 		jsr	action
 		jsr	patset
 		jsr	SS_ShowLayout
@@ -4970,7 +4970,7 @@ loc_47D4:
 		bsr.w	LoadPLC2
 		moveq	#$1B,d0
 		bsr.w	LoadPLC		; load results screen patterns
-		move.b	#1,($FFFFFE1F).w ; update score	counter
+		move.b	#1,plscore_f ; update score	counter
 		move.b	#1,($FFFFF7D6).w ; update ring bonus counter
 		move.w	plring,d0
 		mulu.w	#10,d0		; multiply rings by 10
@@ -5090,7 +5090,7 @@ loc_491C:
 
 
 PalCycle_SS:				; XREF: loc_DA6; SpecialStage
-		tst.w	($FFFFF63A).w
+		tst.w	pauseflag
 		bne.b	locret_49E6
 		subq.w	#1,($FFFFF79C).w
 		bpl.b	locret_49E6
@@ -5381,7 +5381,7 @@ loc_4DF2:
 
 Cont_GotoLevel:				; XREF: Cont_MainLoop
 		move.b	#$C,gmmode ; set	screen mode to $0C (level)
-		move.b	#3,($FFFFFE12).w ; set lives to	3
+		move.b	#3,pl_suu ; set lives to	3
 		moveq	#0,d0
 		move.w	d0,plring ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
@@ -5533,7 +5533,7 @@ Obj81_ChkLand:				; XREF: Obj81_Index
 
 Obj81_ShowFall:				; XREF: Obj81_ChkLand
 		jsr	speedset2
-		jsr	Sonic_Animate
+		jsr	spatset
 		jmp	Loadplaywrtpat
 ; ===========================================================================
 
@@ -5566,7 +5566,7 @@ Obj81_AddSpeed:				; XREF: Obj81_Run
 
 Obj81_ShowRun:				; XREF: Obj81_Run
 		jsr	speedset2
-		jsr	Sonic_Animate
+		jsr	spatset
 		jmp	Loadplaywrtpat
 ; ===========================================================================
 Ani_obj81:
@@ -5634,7 +5634,7 @@ End_ClrRam3:
 		move.w	#$8720,(a6)
 		move.w	#$8ADF,($FFFFF624).w
 		move.w	($FFFFF624).w,(a6)
-		move.w	#$1E,($FFFFFE14).w
+		move.w	#$1E,pl_air
 		move.w	#$600,stageno ; set level	number to 0600 (extra flowers)
 		cmpi.b	#6,($FFFFFE57).w ; do you have all 6 emeralds?
 		beq.b	End_LoadData	; if yes, branch
@@ -5647,7 +5647,7 @@ End_LoadData:
 		bsr.w	scr_set
 		bsr.w	scroll
 		bset	#2,($FFFFF754).w
-		bsr.w	MainLoadBlockLoad
+		bsr.w	mapinit
 		bsr.w	mapwrt
 		move.l	#Col_GHZ,($FFFFF796).w ; load collision	index
 		move	#$2300,sr
@@ -5660,14 +5660,14 @@ End_LoadData:
 		bsr.w	bgmset	; play ending sequence music
 		btst	#6,swdata1+0 ; is button A pressed?
 		beq.b	End_LoadSonic	; if not, branch
-		move.b	#1,($FFFFFFFA).w ; enable debug	mode
+		move.b	#1,debugflag ; enable debug	mode
 
 End_LoadSonic:
 		move.b	#1,playerwk ; load	Sonic object
 		bset	#0,playerwk+cddat ; make	Sonic face left
 		move.b	#1,($FFFFF7CC).w ; lock	controls
-		move.w	#$400,($FFFFF602).w ; move Sonic to the	left
-		move.w	#$F800,($FFFFD014).w ; set Sonic's speed
+		move.w	#$400,swdata+0 ; move Sonic to the	left
+		move.w	#$F800,playerwk+mspeed ; set Sonic's speed
 		move.b	#$21,($FFFFD040).w ; load HUD object
 		jsr	ObjPosLoad
 		jsr	action
@@ -5675,18 +5675,18 @@ End_LoadSonic:
 		moveq	#0,d0
 		move.w	d0,plring
 		move.l	d0,($FFFFFE22).w
-		move.b	d0,($FFFFFE1B).w
+		move.b	d0,plring_f2
 		move.b	d0,plpower_b
 		move.b	d0,plpower_m
 		move.b	d0,plpower_s
 		move.b	d0,($FFFFFE2F).w
 		move.w	d0,editmode
 		move.w	d0,($FFFFFE02).w
-		move.w	d0,($FFFFFE04).w
+		move.w	d0,gametimer
 		bsr.w	OscillateNumInit
-		move.b	#1,($FFFFFE1F).w
-		move.b	#1,($FFFFFE1D).w
-		move.b	#0,($FFFFFE1E).w
+		move.b	#1,plscore_f
+		move.b	#1,plring_f
+		move.b	#0,pltime_f
 		move.w	#1800,($FFFFF614).w
 		move.b	#$18,($FFFFF62A).w
 		bsr.w	DelayProgram
@@ -5704,7 +5704,7 @@ End_MainLoop:
 		bsr.w	PauseGame
 		move.b	#$18,($FFFFF62A).w
 		bsr.w	DelayProgram
-		addq.w	#1,($FFFFFE04).w
+		addq.w	#1,gametimer
 		bsr.w	End_MoveSonic
 		jsr	action
 		bsr.w	scroll
@@ -5734,7 +5734,7 @@ End_AllEmlds:				; XREF: loc_5334
 		bsr.w	PauseGame
 		move.b	#$18,($FFFFF62A).w
 		bsr.w	DelayProgram
-		addq.w	#1,($FFFFFE04).w
+		addq.w	#1,gametimer
 		bsr.w	End_MoveSonic
 		jsr	action
 		bsr.w	scroll
@@ -5777,7 +5777,7 @@ End_MoveSonic:				; XREF: End_MainLoop
 		bcc.b	End_MoveSonExit	; if not, branch
 		addq.b	#2,($FFFFF7D7).w
 		move.b	#1,($FFFFF7CC).w ; lock	player's controls
-		move.w	#$800,($FFFFF602).w ; move Sonic to the	right
+		move.w	#$800,swdata+0 ; move Sonic to the	right
 		rts	
 ; ===========================================================================
 
@@ -5789,8 +5789,8 @@ End_MoveSonic2:				; XREF: End_MoveSonic
 		addq.b	#2,($FFFFF7D7).w
 		moveq	#0,d0
 		move.b	d0,($FFFFF7CC).w
-		move.w	d0,($FFFFF602).w ; stop	Sonic moving
-		move.w	d0,($FFFFD014).w
+		move.w	d0,swdata+0 ; stop	Sonic moving
+		move.w	d0,playerwk+mspeed
 		move.b	#$81,($FFFFF7C8).w
 		move.b	#3,($FFFFD01A).w
 		move.w	#$505,playerwk+mstno ; use "standing" animation
@@ -6155,7 +6155,7 @@ EndingDemoLoad:				; XREF: Credits
 		bcc.b	EndDemo_Exit	; if yes, branch
 		move.w	#$8001,($FFFFFFF0).w ; force demo mode
 		move.b	#8,gmmode ; set game mode to 08 (demo)
-		move.b	#3,($FFFFFE12).w ; set lives to	3
+		move.b	#3,pl_suu ; set lives to	3
 		moveq	#0,d0
 		move.w	d0,plring ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
@@ -7178,7 +7178,7 @@ loc_6656:
 loc_665C:
 		cmpi.w	#$60,($FFFFF73E).w
 		bne.b	loc_6684
-		move.w	($FFFFD014).w,d1
+		move.w	playerwk+mspeed,d1
 		bpl.b	loc_666C
 		neg.w	d1
 
@@ -7951,7 +7951,7 @@ loc_6C82:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-MainLoadBlockLoad:			; XREF: Level; EndingSequence
+mapinit:			; XREF: Level; EndingSequence
 		moveq	#0,d0
 		move.b	stageno,d0
 		lsl.w	#4,d0
@@ -7994,7 +7994,7 @@ MLB_NormalPal:
 
 locret_6D10:
 		rts	
-; End of function MainLoadBlockLoad
+; End of function mapinit
 
 ; ---------------------------------------------------------------------------
 ; Level	layout loading subroutine
@@ -8003,7 +8003,7 @@ locret_6D10:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-LevelLayoutLoad:			; XREF: TitleScreen; MainLoadBlockLoad
+LevelLayoutLoad:			; XREF: TitleScreen; mapinit
 		lea	($FFFFA400).w,a3
 		move.w	#$1FF,d1
 		moveq	#0,d0
@@ -8116,7 +8116,7 @@ Resize_Index:	dc.w Resize_GHZ-Resize_Index, Resize_LZ-Resize_Index
 
 Resize_GHZ:				; XREF: Resize_Index
 		moveq	#0,d0
-		move.b	($FFFFFE11).w,d0
+		move.b	stageno+1,d0
 		add.w	d0,d0
 		move.w	Resize_GHZx(pc,d0.w),d0
 		jmp	Resize_GHZx(pc,d0.w)
@@ -8229,7 +8229,7 @@ Resize_GHZ3end:
 
 Resize_LZ:				; XREF: Resize_Index
 		moveq	#0,d0
-		move.b	($FFFFFE11).w,d0
+		move.b	stageno+1,d0
 		add.w	d0,d0
 		move.w	Resize_LZx(pc,d0.w),d0
 		jmp	Resize_LZx(pc,d0.w)
@@ -8301,7 +8301,7 @@ locret_6F8C:
 
 Resize_MZ:				; XREF: Resize_Index
 		moveq	#0,d0
-		move.b	($FFFFFE11).w,d0
+		move.b	stageno+1,d0
 		add.w	d0,d0
 		move.w	Resize_MZx(pc,d0.w),d0
 		jmp	Resize_MZx(pc,d0.w)
@@ -8449,7 +8449,7 @@ Resize_MZ3end:
 
 Resize_SLZ:				; XREF: Resize_Index
 		moveq	#0,d0
-		move.b	($FFFFFE11).w,d0
+		move.b	stageno+1,d0
 		add.w	d0,d0
 		move.w	Resize_SLZx(pc,d0.w),d0
 		jmp	Resize_SLZx(pc,d0.w)
@@ -8515,7 +8515,7 @@ Resize_SLZ3end:
 
 Resize_SYZ:				; XREF: Resize_Index
 		moveq	#0,d0
-		move.b	($FFFFFE11).w,d0
+		move.b	stageno+1,d0
 		add.w	d0,d0
 		move.w	Resize_SYZx(pc,d0.w),d0
 		jmp	Resize_SYZx(pc,d0.w)
@@ -8596,7 +8596,7 @@ Resize_SYZ3end:
 
 Resize_SBZ:				; XREF: Resize_Index
 		moveq	#0,d0
-		move.b	($FFFFFE11).w,d0
+		move.b	stageno+1,d0
 		add.w	d0,d0
 		move.w	Resize_SBZx(pc,d0.w),d0
 		jmp	Resize_SBZx(pc,d0.w)
@@ -11050,27 +11050,27 @@ usagi_Index:	dc.w usagi_Ending-usagi_Index, loc_912A-usagi_Index
 usagi_VarIndex:	dc.b 0,	5, 2, 3, 6, 3, 4, 5, 4,	1, 0, 1
 
 usagi_Variables:dc.w $FE00, $FC00
-		dc.l Map_usagi
+		dc.l usagipat
 		dc.w $FE00, $FD00	; horizontal speed, vertical speed
-		dc.l Map_usagia		; mappings address
+		dc.l flicpat		; mappings address
 		dc.w $FE80, $FD00
-		dc.l Map_usagi
+		dc.l usagipat
 		dc.w $FEC0, $FE80
-		dc.l Map_usagia
+		dc.l flicpat
 		dc.w $FE40, $FD00
-		dc.l Map_usagib
+		dc.l fbutapat
 		dc.w $FD00, $FC00
-		dc.l Map_usagia
+		dc.l flicpat
 		dc.w $FD80, $FC80
-		dc.l Map_usagib
+		dc.l fbutapat
 
 usagi_EndSpeed:	dc.w $FBC0, $FC00, $FBC0, $FC00, $FBC0,	$FC00, $FD00, $FC00
 		dc.w $FD00, $FC00, $FE80, $FD00, $FE80,	$FD00, $FEC0, $FE80
 		dc.w $FE40, $FD00, $FE00, $FD00, $FD80,	$FC80
 
-usagi_EndMap:	dc.l Map_usagia, Map_usagia, Map_usagia, Map_usagi, Map_usagi
-		dc.l Map_usagi,	Map_usagi, Map_usagia, Map_usagib, Map_usagia
-		dc.l Map_usagib
+usagi_EndMap:	dc.l flicpat, flicpat, flicpat, usagipat, usagipat
+		dc.l usagipat,	usagipat, flicpat, fbutapat, flicpat
+		dc.l fbutapat
 
 usagi_EndVram:	dc.w $5A5, $5A5, $5A5, $553, $553, $573, $573, $585, $593
 		dc.w $565, $5B3
@@ -11454,13 +11454,17 @@ Obj29_Slower:				; XREF: Obj29_Index
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - animals
 ; ---------------------------------------------------------------------------
-Map_usagi:
+usagipat:
+pengpat:
 	include "_maps\usagi.asm"
 
-Map_usagia:
+flicpat:
+azarpat:
+niwapat:
 	include "_maps\usagia.asm"
 
-Map_usagib:
+fbutapat:
+risupat:
 	include "_maps\usagib.asm"
 
 ; ---------------------------------------------------------------------------
@@ -12064,20 +12068,20 @@ ring_Delete:				; XREF: ring_Index
 
 CollectRing:				; XREF: ring_Collect
 		addq.w	#1,plring ; add 1 to rings
-		ori.b	#1,($FFFFFE1D).w ; update the rings counter
+		ori.b	#1,plring_f ; update the rings counter
 		move.w	#$B5,d0		; play ring sound
 		cmpi.w	#100,plring ; do	you have < 100 rings?
 		bcs.b	ring_PlaySnd	; if yes, branch
-		bset	#1,($FFFFFE1B).w ; update lives	counter
+		bset	#1,plring_f2 ; update lives	counter
 		beq.b	loc_9CA4
 		cmpi.w	#200,plring ; do	you have < 200 rings?
 		bcs.b	ring_PlaySnd	; if yes, branch
-		bset	#2,($FFFFFE1B).w ; update lives	counter
+		bset	#2,plring_f2 ; update lives	counter
 		bne.b	ring_PlaySnd
 
 loc_9CA4:
-		addq.b	#1,($FFFFFE12).w ; add 1 to the	number of lives	you have
-		addq.b	#1,($FFFFFE1C).w ; add 1 to the	lives counter
+		addq.b	#1,pl_suu ; add 1 to the	number of lives	you have
+		addq.b	#1,pl_suu_f ; add 1 to the	lives counter
 		move.w	#$88,d0		; play extra life music
 
 ring_PlaySnd:
@@ -12160,8 +12164,8 @@ loc_9D62:
 
 flyring_ResetCounter:			; XREF: flyring_Loop
 		move.w	#0,plring ; reset number	of rings to zero
-		move.b	#$80,($FFFFFE1D).w ; update ring counter
-		move.b	#0,($FFFFFE1B).w
+		move.b	#$80,plring_f ; update ring counter
+		move.b	#0,plring_f2
 		move.w	#$C6,d0
 		jsr	(soundset).l ;	play ring loss sound
 
@@ -12599,8 +12603,8 @@ item2_ChkSonic:
 		bne.b	item2_ChkShoes
 
 ExtraLife:
-		addq.b	#1,($FFFFFE12).w ; add 1 to the	number of lives	you have
-		addq.b	#1,($FFFFFE1C).w ; add 1 to the	lives counter
+		addq.b	#1,pl_suu ; add 1 to the	number of lives	you have
+		addq.b	#1,pl_suu_f ; add 1 to the	lives counter
 		move.w	#$88,d0
 		jmp	(bgmset).l	; play extra life music
 ; ===========================================================================
@@ -12653,14 +12657,14 @@ item2_ChkRings:
 		cmpi.b	#6,d0		; does monitor contain 10 rings?
 		bne.b	item2_ChkS
 		addi.w	#$A,plring ; add	10 rings to the	number of rings	you have
-		ori.b	#1,($FFFFFE1D).w ; update the ring counter
+		ori.b	#1,plring_f ; update the ring counter
 		cmpi.w	#100,plring ; check if you have 100 rings
 		bcs.b	item2_RingSound
-		bset	#1,($FFFFFE1B).w
+		bset	#1,plring_f2
 		beq.w	ExtraLife
 		cmpi.w	#200,plring ; check if you have 200 rings
 		bcs.b	item2_RingSound
-		bset	#2,($FFFFFE1B).w
+		bset	#2,plring_f2
 		beq.w	ExtraLife
 
 item2_RingSound:
@@ -14964,8 +14968,8 @@ Obj34_Loop:
 Obj34_ActNumber:
 		cmpi.b	#7,d0
 		bne.b	Obj34_MakeSprite
-		add.b	($FFFFFE11).w,d0
-		cmpi.b	#3,($FFFFFE11).w
+		add.b	stageno+1,d0
+		cmpi.b	#3,stageno+1
 		bne.b	Obj34_MakeSprite
 		subq.b	#1,d0
 
@@ -15134,7 +15138,7 @@ Obj39_Wait:				; XREF: Obj39_Index
 ; ===========================================================================
 
 Obj39_ChgMode:				; XREF: Obj39_Wait
-		tst.b	($FFFFFE1A).w	; is time over flag set?
+		tst.b	pltimeover_f	; is time over flag set?
 		bne.b	Obj39_ResetLvl	; if yes, branch
 		move.b	#$14,gmmode ; set mode to $14 (continue screen)
 		tst.b	($FFFFFE18).w	; do you have any continues?
@@ -15191,7 +15195,7 @@ Obj3A_Loop:
 		move.b	(a2)+,d0
 		cmpi.b	#6,d0
 		bne.b	loc_C5CA
-		add.b	($FFFFFE11).w,d0 ; add act number to frame number
+		add.b	stageno+1,d0 ; add act number to frame number
 
 loc_C5CA:
 		move.b	d0,$1A(a1)
@@ -15291,7 +15295,7 @@ Obj3A_NextLevel:			; XREF: Obj3A_Index
 		move.b	stageno,d0
 		andi.w	#7,d0
 		lsl.w	#3,d0
-		move.b	($FFFFFE11).w,d1
+		move.b	stageno+1,d1
 		andi.w	#3,d1
 		add.w	d1,d1
 		add.w	d1,d0
@@ -18249,7 +18253,7 @@ gole_Touch:				; XREF: gole_Index
 		bcc.b	locret_EBBA	; if not, branch
 		move.w	#$CF,d0
 		jsr	(bgmset).l	; play signpost	sound
-		clr.b	($FFFFFE1E).w	; stop time counter
+		clr.b	pltime_f	; stop time counter
 		move.w	($FFFFF72A).w,($FFFFF728).w ; lock screen position
 		addq.b	#2,$24(a0)
 
@@ -18312,7 +18316,7 @@ gole_SonicRun:				; XREF: gole_Index
 		btst	#1,playerwk+cddat
 		bne.b	loc_EC70
 		move.b	#1,($FFFFF7CC).w ; lock	controls
-		move.w	#$800,($FFFFF602).w ; make Sonic run to	the right
+		move.w	#$800,swdata+0 ; make Sonic run to	the right
 
 loc_EC70:
 		tst.b	playerwk
@@ -18338,7 +18342,7 @@ GotThroughAct:				; XREF: masin_EndAct
 		bne.b	locret_ECEE
 		move.w	($FFFFF72A).w,($FFFFF728).w
 		clr.b	plpower_m	; disable invincibility
-		clr.b	($FFFFFE1E).w	; stop time counter
+		clr.b	pltime_f	; stop time counter
 		move.b	#$3A,($FFFFD5C0).w
 		moveq	#$10,d0
 		jsr	(LoadPLC2).l	; load title card patterns
@@ -19007,7 +19011,7 @@ usa:					; XREF: act_tbl
 
 
 yado_ChkWall:				; XREF: yado_FixToFloor
-		move.w	($FFFFFE04).w,d0
+		move.w	gametimer,d0
 		add.w	d7,d0
 		andi.w	#3,d0
 		bne.b	loc_F836
@@ -19467,7 +19471,7 @@ bryuka_Main:				; XREF: bryuka_Index
 		move.b	$28(a0),$1A(a0)
 
 bryuka_Solid:				; XREF: bryuka_Index
-		move.w	($FFFFF7D0).w,$34(a0)
+		move.w	emyscorecnt,$34(a0)
 		move.b	playerwk+mstno,$32(a0) ;	load Sonic's animation number
 		move.w	#$1B,d1
 		move.w	#$10,d2
@@ -19484,7 +19488,7 @@ locret_FCFC:
 bryuka_Smash:				; XREF: bryuka_Solid
 		cmpi.b	#2,$32(a0)	; is Sonic rolling/jumping?
 		bne.b	locret_FCFC	; if not, branch
-		move.w	$34(a0),($FFFFF7D0).w
+		move.w	$34(a0),emyscorecnt
 		bset	#2,$22(a1)
 		move.b	#$E,$16(a1)
 		move.b	#7,$17(a1)
@@ -19502,11 +19506,11 @@ bryuka_Smash:				; XREF: bryuka_Solid
 		bsr.w	SmashObject
 		bsr.w	actwkchk
 		bne.b	bryuka_Display
-		move.b	#$29,0(a1)	; load points object
+		move.b	#ten_act,0(a1)	; load points object
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
-		move.w	($FFFFF7D0).w,d2
-		addq.w	#2,($FFFFF7D0).w
+		move.w	emyscorecnt,d2
+		addq.w	#2,emyscorecnt
 		cmpi.w	#6,d2
 		bcs.b	bryuka_Bonus
 		moveq	#6,d2
@@ -19514,7 +19518,7 @@ bryuka_Smash:				; XREF: bryuka_Solid
 bryuka_Bonus:
 		moveq	#0,d0
 		move.w	bryuka_Points(pc,d2.w),d0
-		cmpi.w	#$20,($FFFFF7D0).w ; have 16 blocks been smashed?
+		cmpi.w	#$20,emyscorecnt ; have 16 blocks been smashed?
 		bcs.b	loc_FD98	; if not, branch
 		move.w	#1000,d0	; give higher points for 16th block
 		moveq	#10,d2
@@ -21397,7 +21401,7 @@ loc_11114:
 ; ===========================================================================
 
 water_Animate:				; XREF: loc_11114
-		tst.w	($FFFFF63A).w	; is the game paused?
+		tst.w	pauseflag	; is the game paused?
 		bne.b	water_Display	; if yes, branch
 		move.b	#0,$32(a0)	; resume animation
 		subq.b	#3,$1A(a0)	; use normal frames
@@ -22853,7 +22857,7 @@ kassya_Display:				; XREF: loc_1236A
 ; ===========================================================================
 
 loc_1236A:				; XREF: kassya
-		cmpi.b	#2,($FFFFFE11).w
+		cmpi.b	#2,stageno+1
 		bne.b	loc_12378
 		cmpi.w	#-$80,d0
 		bcc.b	kassya_Display
@@ -22983,7 +22987,7 @@ loc_124C2:				; XREF: kassya_Index
 ; ===========================================================================
 
 loc_124DE:				; XREF: kassya_Index
-		move.w	($FFFFFE04).w,d0
+		move.w	gametimer,d0
 		andi.w	#3,d0
 		bne.b	loc_124FC
 		moveq	#1,d1
@@ -23508,7 +23512,7 @@ play00_Main:				; XREF: play00_Index
 		move.w	#$80,($FFFFF764).w ; Sonic's deceleration
 
 play00_Control:				; XREF: play00_Index
-		tst.w	($FFFFFFFA).w	; is debug cheat enabled?
+		tst.w	debugflag	; is debug cheat enabled?
 		beq.b	loc_12C58	; if not, branch
 		btst	#4,swdata1+1 ; is button C pressed?
 		beq.b	loc_12C58	; if not, branch
@@ -23520,7 +23524,7 @@ play00_Control:				; XREF: play00_Index
 loc_12C58:
 		tst.b	($FFFFF7CC).w	; are controls locked?
 		bne.b	loc_12C64	; if yes, branch
-		move.w	swdata1+0,($FFFFF602).w ; enable joypad control
+		move.w	swdata1+0,swdata+0 ; enable joypad control
 
 loc_12C64:
 		btst	#0,($FFFFF7C8).w ; are controls	locked?
@@ -23544,7 +23548,7 @@ loc_12C7E:
 		move.b	$1D(a0),$1C(a0)
 
 loc_12CA6:
-		bsr.w	Sonic_Animate
+		bsr.w	spatset
 		tst.b	($FFFFF7C8).w
 		bmi.b	loc_12CB6
 		jsr	pcol
@@ -23584,7 +23588,7 @@ play00_ChkInvin:
 		bne.b	play00_ChkShoes
 		tst.b	($FFFFF7AA).w
 		bne.b	play00_RmvInvin
-		cmpi.w	#$C,($FFFFFE14).w
+		cmpi.w	#$C,pl_air
 		bcs.b	play00_RmvInvin
 		moveq	#0,d0
 		move.b	stageno,d0
@@ -23698,8 +23702,8 @@ play00_MdNormal:				; XREF: play00_Modes
 		bsr.w	Sonic_Jump
 		bsr.w	Sonic_SlopeResist
 		bsr.w	Sonic_Move
-		bsr.w	Sonic_Roll
-		bsr.w	Sonic_LevelBound
+		bsr.w	ballchk
+		bsr.w	limitchk
 		jsr	speedset2
 		bsr.w	Sonic_AnglePos
 		bsr.w	Sonic_SlopeRepel
@@ -23707,9 +23711,9 @@ play00_MdNormal:				; XREF: play00_Modes
 ; ===========================================================================
 
 play00_MdJump:				; XREF: play00_Modes
-		bsr.w	Sonic_JumpHeight
-		bsr.w	Sonic_ChgJumpDir
-		bsr.w	Sonic_LevelBound
+		bsr.w	jumpchk2
+		bsr.w	jumpmove
+		bsr.w	limitchk
 		jsr	speedset
 		btst	#6,$22(a0)
 		beq.b	loc_12E5C
@@ -23723,9 +23727,9 @@ loc_12E5C:
 
 play00_MdRoll:				; XREF: play00_Modes
 		bsr.w	Sonic_Jump
-		bsr.w	Sonic_RollRepel
-		bsr.w	Sonic_RollSpeed
-		bsr.w	Sonic_LevelBound
+		bsr.w	ballchkRepel
+		bsr.w	ballchkSpeed
+		bsr.w	limitchk
 		jsr	speedset2
 		bsr.w	Sonic_AnglePos
 		bsr.w	Sonic_SlopeRepel
@@ -23733,9 +23737,9 @@ play00_MdRoll:				; XREF: play00_Modes
 ; ===========================================================================
 
 play00_MdJump2:				; XREF: play00_Modes
-		bsr.w	Sonic_JumpHeight
-		bsr.w	Sonic_ChgJumpDir
-		bsr.w	Sonic_LevelBound
+		bsr.w	jumpchk2
+		bsr.w	jumpmove
+		bsr.w	limitchk
 		jsr	speedset
 		btst	#6,$22(a0)
 		beq.b	loc_12EA6
@@ -23756,16 +23760,16 @@ Sonic_Move:				; XREF: play00_MdNormal
 		move.w	($FFFFF760).w,d6
 		move.w	($FFFFF762).w,d5
 		move.w	($FFFFF764).w,d4
-		tst.b	($FFFFF7CA).w
+		tst.b	mizuflag
 		bne.w	loc_12FEE
 		tst.w	$3E(a0)
 		bne.w	play00_ResetScr
-		btst	#2,($FFFFF602).w ; is left being pressed?
+		btst	#2,swdata+0 ; is left being pressed?
 		beq.b	play00_NotLeft	; if not, branch
 		bsr.w	plwalk_l
 
 play00_NotLeft:
-		btst	#3,($FFFFF602).w ; is right being pressed?
+		btst	#3,swdata+0 ; is right being pressed?
 		beq.b	play00_NotRight	; if not, branch
 		bsr.w	plwalk_r
 
@@ -23826,7 +23830,7 @@ loc_12F70:
 ; ===========================================================================
 
 Sonic_LookUp:
-		btst	#0,($FFFFF602).w ; is up being pressed?
+		btst	#0,swdata+0 ; is up being pressed?
 		beq.b	Sonic_Duck	; if not, branch
 		move.b	#7,$1C(a0)	; use "looking up" animation
 		cmpi.w	#$C8,($FFFFF73E).w
@@ -23836,7 +23840,7 @@ Sonic_LookUp:
 ; ===========================================================================
 
 Sonic_Duck:
-		btst	#1,($FFFFF602).w ; is down being pressed?
+		btst	#1,swdata+0 ; is down being pressed?
 		beq.b	play00_ResetScr	; if not, branch
 		move.b	#8,$1C(a0)	; use "ducking"	animation
 		cmpi.w	#8,($FFFFF73E).w
@@ -23855,7 +23859,7 @@ loc_12FBE:
 		subq.w	#2,($FFFFF73E).w ; move	screen back to default
 
 loc_12FC2:
-		move.b	($FFFFF602).w,d0
+		move.b	swdata+0,d0
 		andi.b	#$C,d0		; is left/right	pressed?
 		bne.b	loc_12FEE	; if yes, branch
 		move.w	$14(a0),d0
@@ -24043,25 +24047,25 @@ locret_1314E:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_RollSpeed:			; XREF: play00_MdRoll
+ballchkSpeed:			; XREF: play00_MdRoll
 		move.w	($FFFFF760).w,d6
 		asl.w	#1,d6
 		move.w	($FFFFF762).w,d5
 		asr.w	#1,d5
 		move.w	($FFFFF764).w,d4
 		asr.w	#2,d4
-		tst.b	($FFFFF7CA).w
+		tst.b	mizuflag
 		bne.w	loc_131CC
 		tst.w	$3E(a0)
 		bne.b	loc_13188
-		btst	#2,($FFFFF602).w ; is left being pressed?
+		btst	#2,swdata+0 ; is left being pressed?
 		beq.b	loc_1317C	; if not, branch
-		bsr.w	Sonic_RollLeft
+		bsr.w	ballchkLeft
 
 loc_1317C:
-		btst	#3,($FFFFF602).w ; is right being pressed?
+		btst	#3,swdata+0 ; is right being pressed?
 		beq.b	loc_13188	; if not, branch
-		bsr.w	Sonic_RollRight
+		bsr.w	ballchkRight
 
 loc_13188:
 		move.w	$14(a0),d0
@@ -24076,7 +24080,7 @@ loc_13198:
 		bra.b	loc_131AA
 ; ===========================================================================
 
-loc_1319E:				; XREF: Sonic_RollSpeed
+loc_1319E:				; XREF: ballchkSpeed
 		add.w	d5,d0
 		bcc.b	loc_131A6
 		move.w	#0,d0
@@ -24113,13 +24117,13 @@ loc_131F0:
 loc_131FA:
 		move.w	d1,$10(a0)
 		bra.w	loc_1300C
-; End of function Sonic_RollSpeed
+; End of function ballchkSpeed
 
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_RollLeft:				; XREF: Sonic_RollSpeed
+ballchkLeft:				; XREF: ballchkSpeed
 		move.w	$14(a0),d0
 		beq.b	loc_1320A
 		bpl.b	loc_13218
@@ -24138,13 +24142,13 @@ loc_13218:
 loc_13220:
 		move.w	d0,$14(a0)
 		rts	
-; End of function Sonic_RollLeft
+; End of function ballchkLeft
 
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_RollRight:			; XREF: Sonic_RollSpeed
+ballchkRight:			; XREF: ballchkSpeed
 		move.w	$14(a0),d0
 		bmi.b	loc_1323A
 		bclr	#0,$22(a0)
@@ -24160,7 +24164,7 @@ loc_1323A:
 loc_13242:
 		move.w	d0,$14(a0)
 		rts	
-; End of function Sonic_RollRight
+; End of function ballchkRight
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	change Sonic's direction while jumping
@@ -24169,14 +24173,14 @@ loc_13242:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_ChgJumpDir:			; XREF: play00_MdJump; play00_MdJump2
+jumpmove:			; XREF: play00_MdJump; play00_MdJump2
 		move.w	($FFFFF760).w,d6
 		move.w	($FFFFF762).w,d5
 		asl.w	#1,d5
 		btst	#4,$22(a0)
 		bne.b	play00_ResetScr2
 		move.w	$10(a0),d0
-		btst	#2,($FFFFF602).w ; is left being pressed?
+		btst	#2,swdata+0 ; is left being pressed?
 		beq.b	loc_13278	; if not, branch
 		bset	#0,$22(a0)
 		sub.w	d5,d0
@@ -24187,7 +24191,7 @@ Sonic_ChgJumpDir:			; XREF: play00_MdJump; play00_MdJump2
 		move.w	d1,d0
 
 loc_13278:
-		btst	#3,($FFFFF602).w ; is right being pressed?
+		btst	#3,swdata+0 ; is right being pressed?
 		beq.b	play00_JumpMove	; if not, branch
 		bclr	#0,$22(a0)
 		add.w	d5,d0
@@ -24234,7 +24238,7 @@ loc_132CE:
 
 locret_132D2:
 		rts	
-; End of function Sonic_ChgJumpDir
+; End of function jumpmove
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -24261,7 +24265,7 @@ locret_13302:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_LevelBound:			; XREF: play00_MdNormal; et al
+limitchk:			; XREF: play00_MdNormal; et al
 		move.l	8(a0),d1
 		move.w	$10(a0),d0
 		ext.l	d0
@@ -24307,56 +24311,42 @@ Boundary_Sides:
 		move.w	#0,$10(a0)	; stop Sonic moving
 		move.w	#0,$14(a0)
 		bra.b	loc_13336
-; End of function Sonic_LevelBound
+; End of function limitchk
 
-; ---------------------------------------------------------------------------
-; Subroutine allowing Sonic to roll when he's moving
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-Sonic_Roll:				; XREF: play00_MdNormal
-		tst.b	($FFFFF7CA).w
-		bne.b	play00_NoRoll
-		move.w	$14(a0),d0
-		bpl.b	loc_13392
+ballchk:
+		tst.b	mizuflag
+		bne.b	?jump1
+		move.w	mspeed(a0),d0
+		bpl.b	?jump
 		neg.w	d0
-
-loc_13392:
-		cmpi.w	#$80,d0		; is Sonic moving at $80 speed or faster?
-		bcs.b	play00_NoRoll	; if not, branch
-		move.b	($FFFFF602).w,d0
-		andi.b	#$C,d0		; is left/right	being pressed?
-		bne.b	play00_NoRoll	; if yes, branch
-		btst	#1,($FFFFF602).w ; is down being pressed?
-		bne.b	play00_ChkRoll	; if yes, branch
-
-play00_NoRoll:
+?jump:
+		cmpi.w	#$80,d0
+		bcs.b	?jump1
+		move.b	swdata+0,d0
+		andi.b	#$C,d0
+		bne.b	?jump1
+		btst.b	#1,swdata+0
+		bne.b	ballset
+?jump1:
 		rts	
-; ===========================================================================
 
-play00_ChkRoll:
-		btst	#2,$22(a0)	; is Sonic already rolling?
-		beq.b	play00_DoRoll	; if not, branch
-		rts	
-; ===========================================================================
-
-play00_DoRoll:
-		bset	#2,$22(a0)
-		move.b	#$E,$16(a0)
-		move.b	#7,$17(a0)
-		move.b	#2,$1C(a0)	; use "rolling"	animation
-		addq.w	#5,$C(a0)
+ballset:
+		btst.b	#cd_ball,cddat(a0)
+		beq.b	?jump
+		rts
+?jump:
+		bset.b	#cd_ball,cddat(a0)
+		move.b	#14,sprhsize(a0)
+		move.b	#7,sprvsize(a0)
+		move.b	#2,mstno(a0)
+		addq.w	#5,yposi(a0)
 		move.w	#$BE,d0
-		jsr	(soundset).l ;	play rolling sound
-		tst.w	$14(a0)
-		bne.b	locret_133E8
-		move.w	#$200,$14(a0)
-
-locret_133E8:
-		rts	
-; End of function Sonic_Roll
+		jsr		soundset
+		tst.w	mspeed(a0)
+		bne.b	?jump2
+		move.w	#$200,mspeed(a0)
+?jump2:
+		rts
 
 ; ---------------------------------------------------------------------------
 ; Subroutine allowing Sonic to jump
@@ -24421,7 +24411,7 @@ loc_13490:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_JumpHeight:			; XREF: play00_MdJump; play00_MdJump2
+jumpchk2:			; XREF: play00_MdJump; play00_MdJump2
 		tst.b	$3C(a0)
 		beq.b	loc_134C4
 		move.w	#-$400,d1
@@ -24432,7 +24422,7 @@ Sonic_JumpHeight:			; XREF: play00_MdJump; play00_MdJump2
 loc_134AE:
 		cmp.w	$12(a0),d1
 		ble.b	locret_134C2
-		move.b	($FFFFF602).w,d0
+		move.b	swdata+0,d0
 		andi.b	#$70,d0		; is A,	B or C pressed?
 		bne.b	locret_134C2	; if yes, branch
 		move.w	d1,$12(a0)
@@ -24448,7 +24438,7 @@ loc_134C4:
 
 locret_134D2:
 		rts	
-; End of function Sonic_JumpHeight
+; End of function jumpchk2
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	slow Sonic walking up a	slope
@@ -24491,7 +24481,7 @@ locret_13508:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_RollRepel:			; XREF: play00_MdRoll
+ballchkRepel:			; XREF: play00_MdRoll
 		move.b	$26(a0),d0
 		addi.b	#$60,d0
 		cmpi.b	#-$40,d0
@@ -24521,7 +24511,7 @@ loc_13540:
 
 locret_13544:
 		rts	
-; End of function Sonic_RollRepel
+; End of function ballchkRepel
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	push Sonic down	a slope
@@ -24826,7 +24816,7 @@ loc_137AE:
 
 loc_137E4:
 		move.b	#0,$3C(a0)
-		move.w	#0,($FFFFF7D0).w
+		move.w	#0,emyscorecnt
 		rts	
 ; End of function jumpcolsub
 
@@ -24844,9 +24834,9 @@ play00_Hurt:				; XREF: play00_Index
 
 loc_1380C:
 		bsr.w	Sonic_HurtStop
-		bsr.w	Sonic_LevelBound
+		bsr.w	limitchk
 		bsr.w	Sonic_RecordPos
-		bsr.w	Sonic_Animate
+		bsr.w	spatset
 		bsr.w	Loadplaywrtpat
 		jmp	actionsub
 
@@ -24886,7 +24876,7 @@ play00_Death:				; XREF: play00_Index
 		bsr.w	GameOver
 		jsr	speedset
 		bsr.w	Sonic_RecordPos
-		bsr.w	Sonic_Animate
+		bsr.w	spatset
 		bsr.w	Loadplaywrtpat
 		jmp	actionsub
 
@@ -24900,15 +24890,15 @@ GameOver:				; XREF: play00_Death
 		bcc.w	locret_13900
 		move.w	#-$38,$12(a0)
 		addq.b	#2,$24(a0)
-		clr.b	($FFFFFE1E).w	; stop time counter
-		addq.b	#1,($FFFFFE1C).w ; update lives	counter
-		subq.b	#1,($FFFFFE12).w ; subtract 1 from number of lives
+		clr.b	pltime_f	; stop time counter
+		addq.b	#1,pl_suu_f ; update lives	counter
+		subq.b	#1,pl_suu ; subtract 1 from number of lives
 		bne.b	loc_138D4
 		move.w	#0,$3A(a0)
 		move.b	#$39,($FFFFD080).w ; load GAME object
 		move.b	#$39,($FFFFD0C0).w ; load OVER object
 		move.b	#1,($FFFFD0DA).w ; set OVER object to correct frame
-		clr.b	($FFFFFE1A).w
+		clr.b	pltimeover_f
 
 loc_138C2:
 		move.w	#$8F,d0
@@ -24919,7 +24909,7 @@ loc_138C2:
 
 loc_138D4:
 		move.w	#60,$3A(a0)	; set time delay to 1 second
-		tst.b	($FFFFFE1A).w	; is TIME OVER tag set?
+		tst.b	pltimeover_f	; is TIME OVER tag set?
 		beq.b	locret_13900	; if not, branch
 		move.w	#0,$3A(a0)
 		move.b	#$39,($FFFFD080).w ; load TIME object
@@ -24971,9 +24961,9 @@ loc_13926:
 		lea	($FFFFA400).w,a1
 		move.b	(a1,d0.w),d1	; d1 is	the 256x256 tile Sonic is currently on
 		cmp.b	($FFFFF7AE).w,d1
-		beq.w	play00_ChkRoll
+		beq.w	ballset
 		cmp.b	($FFFFF7AF).w,d1
-		beq.w	play00_ChkRoll
+		beq.w	ballset
 		cmp.b	($FFFFF7AC).w,d1
 		beq.b	loc_13976
 		cmp.b	($FFFFF7AD).w,d1
@@ -25032,7 +25022,7 @@ locret_139C2:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_Animate:				; XREF: play00_Control; et al
+spatset:				; XREF: play00_Control; et al
 		lea	(SonicAniData).l,a1
 		moveq	#0,d0
 		move.b	$1C(a0),d0
@@ -25198,7 +25188,7 @@ loc_13B26:
 		andi.b	#$FC,1(a0)
 		or.b	d1,1(a0)
 		bra.w	SAnim_Do2
-; End of function Sonic_Animate
+; End of function spatset
 
 ; ===========================================================================
 SonicAniData:
@@ -25342,7 +25332,7 @@ plawa_Delete2:				; XREF: plawa_Index
 ; ===========================================================================
 
 plawa_AirLeft:				; XREF: plawa_Index
-		cmpi.w	#$C,($FFFFFE14).w ; check air remaining
+		cmpi.w	#$C,pl_air ; check air remaining
 		bhi.b	plawa_Delete3	; if higher than $C, branch
 		subq.w	#1,$38(a0)
 		bne.b	plawa_Display2
@@ -25412,7 +25402,7 @@ plawa_Countdown:			; XREF: plawa_Index
 		jsr	(random).l
 		andi.w	#1,d0
 		move.b	d0,$34(a0)
-		move.w	($FFFFFE14).w,d0 ; check air remaining
+		move.w	pl_air,d0 ; check air remaining
 		cmpi.w	#$19,d0
 		beq.b	plawa_WarnSound	; play sound if	air is $19
 		cmpi.w	#$14,d0
@@ -25438,7 +25428,7 @@ plawa_WarnSound:			; XREF: plawa_Countdown
 		jsr	(soundset).l ;	play "ding-ding" warning sound
 
 plawa_ReduceAir:
-		subq.w	#1,($FFFFFE14).w ; subtract 1 from air remaining
+		subq.w	#1,pl_air ; subtract 1 from air remaining
 		bcc.w	plawa_GoMakeItem ; if air is above 0, branch
 		bsr.w	ResumeMusic
 		move.b	#$81,($FFFFF7C8).w ; lock controls
@@ -25514,7 +25504,7 @@ loc_13FF2:
 		move.w	d0,$C(a1)
 		jsr	(random).l
 		move.b	d0,$26(a1)
-		move.w	($FFFFFE04).w,d0
+		move.w	gametimer,d0
 		andi.b	#3,d0
 		bne.b	loc_14082
 		move.b	#$E,$28(a1)
@@ -25524,7 +25514,7 @@ loc_13FF2:
 loc_1403E:
 		btst	#7,$36(a0)
 		beq.b	loc_14082
-		move.w	($FFFFFE14).w,d2
+		move.w	pl_air,d2
 		lsr.w	#1,d2
 		jsr	(random).l
 		andi.w	#3,d0
@@ -25558,7 +25548,7 @@ locret_1408C:
 
 
 ResumeMusic:				; XREF: awa_Wobble; plwaterchk; plawa_ReduceAir
-		cmpi.w	#$C,($FFFFFE14).w
+		cmpi.w	#$C,pl_air
 		bhi.b	loc_140AC
 		move.w	#$82,d0		; play LZ music
 		cmpi.w	#$103,stageno ; check if level is	0103 (SBZ3)
@@ -25569,7 +25559,7 @@ loc_140A6:
 		jsr	(bgmset).l
 
 loc_140AC:
-		move.w	#$1E,($FFFFFE14).w
+		move.w	#$1E,pl_air
 		clr.b	($FFFFD372).w
 		rts	
 ; End of function ResumeMusic
@@ -26573,14 +26563,7 @@ loc_14C3C:
 		rts	
 ; End of function FindWall2
 
-; ---------------------------------------------------------------------------
-; Unused floor/wall subroutine - logs something	to do with collision
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-FloorLog_Unk:				; XREF: Level
+scdcnv:
 		rts	
 
 		lea	(CollArray1).l,a1
@@ -26611,16 +26594,16 @@ loc_14C6A:
 
 		lea	(CollArray1).l,a1
 		lea	(CollArray2).l,a2
-		bsr.b	FloorLog_Unk2
+		bsr.b	scdcnv2
 		lea	(CollArray1).l,a1
 		lea	(CollArray1).l,a2
 
-; End of function FloorLog_Unk
+; End of function scdcnv
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-FloorLog_Unk2:				; XREF: FloorLog_Unk
+scdcnv2:				; XREF: scdcnv
 		move.w	#$FFF,d3
 
 loc_14CA6:
@@ -26668,7 +26651,7 @@ loc_14CD6:
 
 		rts	
 
-; End of function FloorLog_Unk2
+; End of function scdcnv2
 
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -27636,7 +27619,7 @@ pata_Display:
 ; ===========================================================================
 
 pata_Spinner:				; XREF: pata_Index
-		move.w	($FFFFFE04).w,d0
+		move.w	gametimer,d0
 		and.w	$36(a0),d0
 		bne.b	pata_Delay
 		move.b	#1,$34(a0)
@@ -27769,7 +27752,7 @@ noko_Animate01:
 loc_15A46:
 		tst.b	1(a0)
 		bpl.b	locret_15A60
-		move.w	($FFFFFE04).w,d0
+		move.w	gametimer,d0
 		andi.w	#$F,d0
 		bne.b	locret_15A60
 		move.w	#$B0,d0
@@ -28278,7 +28261,7 @@ yukae_Main:				; XREF: yukae_Index
 		move.w	d1,$38(a0)
 
 loc_16068:				; XREF: yukae_Index
-		move.w	($FFFFFE04).w,d0
+		move.w	gametimer,d0
 		sub.w	$36(a0),d0
 		and.w	$38(a0),d0
 		bne.b	yukae_Animate
@@ -28374,7 +28357,7 @@ ele_Main:				; XREF: ele_Index
 		move.w	d0,$34(a0)
 
 ele_Shock:				; XREF: ele_Index
-		move.w	($FFFFFE04).w,d0
+		move.w	gametimer,d0
 		and.w	$34(a0),d0
 		bne.b	ele_Animate
 		move.b	#1,$1C(a0)	; run "shocking" animation
@@ -28427,7 +28410,7 @@ beltc_Display:
 ; ===========================================================================
 
 loc_1629A:
-		cmpi.b	#2,($FFFFFE11).w ; check if act	is 3
+		cmpi.b	#2,stageno+1 ; check if act	is 3
 		bne.b	beltc_Act1or2	; if not, branch
 		cmpi.w	#-$80,d0
 		bcc.b	beltc_Display
@@ -29440,7 +29423,7 @@ playsave:			; XREF: save_HitLamp
 		move.w	8(a0),($FFFFFE32).w		; x-position
 		move.w	$C(a0),($FFFFFE34).w		; y-position
 		move.w	plring,($FFFFFE36).w 	; rings
-		move.b	($FFFFFE1B).w,($FFFFFE54).w 	; lives
+		move.b	plring_f2,($FFFFFE54).w 	; lives
 		move.l	($FFFFFE22).w,($FFFFFE38).w 	; time
 		move.b	($FFFFF742).w,($FFFFFE3C).w 	; routine counter for dynamic level mod
 		move.w	($FFFFF72E).w,($FFFFFE3E).w 	; lower y-boundary of level
@@ -29469,9 +29452,9 @@ playload:				; XREF: scr_set
 		move.w	($FFFFFE32).w,playerwk+xposi
 		move.w	($FFFFFE34).w,playerwk+yposi
 		move.w	($FFFFFE36).w,plring
-		move.b	($FFFFFE54).w,($FFFFFE1B).w
+		move.b	($FFFFFE54).w,plring_f2
 		clr.w	plring
-		clr.b	($FFFFFE1B).w
+		clr.b	plring_f2
 		move.l	($FFFFFE38).w,($FFFFFE22).w
 		move.b	#59,($FFFFFE25).w
 		subq.b	#1,($FFFFFE24).w
@@ -31990,7 +31973,7 @@ loc_18FDC:
 		clr.b	$3C(a2)
 		move.l	a0,-(sp)
 		lea	(a2),a0
-		jsr	play00_ChkRoll
+		jsr	ballset
 		movea.l	(sp)+,a0
 		move.b	#2,$24(a2)
 		move.w	#$CC,d0
@@ -33596,11 +33579,11 @@ loc_1A216:
 		cmpi.w	#$2790,playerwk+xposi
 		blt.b	loc_1A23A
 		move.b	#1,($FFFFF7CC).w
-		move.w	#0,($FFFFF602).w
-		clr.w	($FFFFD014).w
+		move.w	#0,swdata+0
+		clr.w	playerwk+mspeed
 		tst.w	$12(a0)
 		bpl.b	loc_1A248
-		move.w	#$100,($FFFFF602).w
+		move.w	#$100,swdata+0
 
 loc_1A23A:
 		cmpi.w	#$27E0,playerwk+xposi
@@ -34272,10 +34255,10 @@ masin_Switched:				; XREF: masin_Index
 		addq.w	#8,$C(a0)
 		move.b	#$A,$24(a0)
 		move.w	#$3C,$1E(a0)
-		clr.b	($FFFFFE1E).w	; stop time counter
+		clr.b	pltime_f	; stop time counter
 		clr.b	($FFFFF7AA).w	; lock screen position
 		move.b	#1,($FFFFF7CC).w ; lock	controls
-		move.w	#$800,($FFFFF602).w ; make Sonic run to	the right
+		move.w	#$800,swdata+0 ; make Sonic run to	the right
 		clr.b	$25(a0)
 		bclr	#3,playerwk+cddat
 		bset	#1,playerwk+cddat
@@ -34581,8 +34564,8 @@ locret_1AF68:
 Touch_KillEnemy:
 		bset	#7,$22(a1)
 		moveq	#0,d0
-		move.w	($FFFFF7D0).w,d0
-		addq.w	#2,($FFFFF7D0).w ; add 2 to item bonus counter
+		move.w	emyscorecnt,d0
+		addq.w	#2,emyscorecnt ; add 2 to item bonus counter
 		cmpi.w	#6,d0
 		bcs.b	loc_1AF82
 		moveq	#6,d0
@@ -34590,7 +34573,7 @@ Touch_KillEnemy:
 loc_1AF82:
 		move.w	d0,$3E(a1)
 		move.w	Enemy_Points(pc,d0.w),d0
-		cmpi.w	#$20,($FFFFF7D0).w ; have 16 enemies been destroyed?
+		cmpi.w	#$20,emyscorecnt ; have 16 enemies been destroyed?
 		bcs.b	loc_1AF9C	; if not, branch
 		move.w	#1000,d0	; fix bonus to 10000
 		move.w	#$A,$3E(a1)
@@ -34695,7 +34678,7 @@ Hurt_Sound:
 ; ===========================================================================
 
 Hurt_NoRings:
-		tst.w	($FFFFFFFA).w	; is debug mode	cheat on?
+		tst.w	debugflag	; is debug mode	cheat on?
 		bne.w	Hurt_Shield	; if yes, branch
 ; End of function playdamageset
 
@@ -35417,7 +35400,7 @@ play01_Main:				; XREF: play01_Index
 		bset	#1,$22(a0)
 
 play01_ChkDebug:				; XREF: play01_Index
-		tst.w	($FFFFFFFA).w	; is debug mode	cheat enabled?
+		tst.w	debugflag	; is debug mode	cheat enabled?
 		beq.b	play01_NoDebug	; if not, branch
 		btst	#4,swdata1+1 ; is button B pressed?
 		beq.b	play01_NoDebug	; if not, branch
@@ -35457,24 +35440,24 @@ play01_Display:				; XREF: play01_OnWall
 		move.w	rotdir,d0
 		add.w	rotspd,d0
 		move.w	d0,rotdir
-		jsr	Sonic_Animate
+		jsr	spatset
 		rts	
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
 play01_Move:				; XREF: play01_OnWall; play01_InAir
-		btst	#2,($FFFFF602).w ; is left being pressed?
+		btst	#2,swdata+0 ; is left being pressed?
 		beq.b	play01_ChkRight	; if not, branch
 		bsr.w	play01_MoveLeft
 
 play01_ChkRight:
-		btst	#3,($FFFFF602).w ; is right being pressed?
+		btst	#3,swdata+0 ; is right being pressed?
 		beq.b	loc_1BA78	; if not, branch
 		bsr.w	play01_MoveRight
 
 loc_1BA78:
-		move.b	($FFFFF602).w,d0
+		move.b	swdata+0,d0
 		andi.b	#$C,d0
 		bne.b	loc_1BAA8
 		move.w	$14(a0),d0
@@ -35627,7 +35610,7 @@ nullsub_2:				; XREF: play01_InAir
 		move.w	#-$400,d1
 		cmp.w	$12(a0),d1
 		ble.b	locret_1BBB4
-		move.b	($FFFFF602).w,d0
+		move.b	swdata+0,d0
 		andi.b	#$70,d0
 		bne.b	locret_1BBB4
 		move.w	d1,$12(a0)
@@ -35681,7 +35664,7 @@ loc_1BC12:
 		move.w	rotdir,d0
 		add.w	rotspd,d0
 		move.w	d0,rotdir
-		jsr	Sonic_Animate
+		jsr	spatset
 		jsr	Loadplaywrtpat
 		bsr.w	SS_FixCamera
 		jmp	actionsub
@@ -35693,7 +35676,7 @@ play01_Exit2:				; XREF: play01_Index
 		move.b	#$C,gmmode
 
 loc_1BC40:
-		jsr	Sonic_Animate
+		jsr	spatset
 		jsr	Loadplaywrtpat
 		bsr.w	SS_FixCamera
 		jmp	actionsub
@@ -35855,7 +35838,7 @@ play01_GetCont:
 		jsr	CollectRing
 		cmpi.w	#50,plring ; check if you have 50 rings
 		bcs.b	play01_NoCont
-		bset	#0,($FFFFFE1B).w
+		bset	#0,plring_f2
 		bne.b	play01_NoCont
 		addq.b	#1,($FFFFFE18).w ; add 1 to number of continues
 		move.w	#$BF,d0
@@ -35875,8 +35858,8 @@ play01_Chk1Up:
 		move.l	a1,4(a2)
 
 play01_Get1Up:
-		addq.b	#1,($FFFFFE12).w ; add 1 to number of lives
-		addq.b	#1,($FFFFFE1C).w ; add 1 to lives counter
+		addq.b	#1,pl_suu ; add 1 to number of lives
+		addq.b	#1,pl_suu_f ; add 1 to lives counter
 		move.w	#$88,d0
 		jsr	(bgmset).l	; play extra life music
 		moveq	#0,d4
@@ -36123,7 +36106,7 @@ play02:					; XREF: act_tbl
 
 
 efectwrt:				; XREF: Demo_Time; loc_F54
-		tst.w	($FFFFF63A).w	; is the game paused?
+		tst.w	pauseflag	; is the game paused?
 		bne.b	AniArt_Pause	; if yes, branch
 		lea	($C00000).l,a6
 		bsr.w	AniArt_GiantRing
@@ -36647,995 +36630,8 @@ loc_1C518:
 
 ; ===========================================================================
 
-score:
-		moveq	#0,d0
-		move.b	r_no0(a0),d0
-		move.w	score_move_tbl(pc,d0.w),d1
-		jmp		score_move_tbl(pc,d1.w)
-score_move_tbl:
-		dc.w	score_init-score_move_tbl
-		dc.w	score_move-score_move_tbl
-score_init:
-		addq.b	#word,r_no0(a0)
-		move.w	#$0090,xposi(a0)
-		move.w	#$0108,xposi+2(a0)
-		move.l	#scorepat,patbase(a0)
-		move.w	#$06cA,sproffset(a0)
-		move.b	#0,actflg(a0)
-		move.b	#0,sprhs(a0)
-score_move:
-		tst.w	plring
-		beq.b	?jump
-		clr.b	patno(a0)
-		jmp		actionsub
-?jump:
-		moveq	#0,d0
-		btst.b	#3,($FFFFFE05).w
-		bne.b	?jump0
-		addq.w	#1,d0
-		cmpi.b	#9,($FFFFFE23).w
-		bne.b	?jump0
-		addq.w	#2,d0
-?jump0:
-		move.b	d0,patno(a0)
-		jmp	actionsub
-
-scorepat:
-		dc.w	scorepat0-scorepat
-		dc.w	scorepat1-scorepat
-		dc.w	scorepat2-scorepat
-		dc.w	scorepat3-scorepat
-scorepat0:
-		dc.b	10
-		dc.b	$80,$0d,$80,$00,$00
-		dc.b	$80,$0d,$80,$18,$20
-		dc.b	$80,$0d,$80,$20,$40
-		dc.b	$90,$0d,$80,$10,$00
-		dc.b	$90,$0d,$80,$28,$28
-		dc.b	$a0,$0d,$80,$08,$00
-		dc.b	$a0,$01,$80,$00,$20
-		dc.b	$a0,$09,$80,$30,$30
-		dc.b	$40,$05,$81,$0a,$00
-		dc.b	$40,$0d,$81,$0e,$10
-		dc.b	0
-scorepat1:
-		dc.b	10
-		dc.b	$80,$0d,$80,$00,$00
-		dc.b	$80,$0d,$80,$18,$20
-		dc.b	$80,$0d,$80,$20,$40
-		dc.b	$90,$0d,$80,$10,$00
-		dc.b	$90,$0d,$80,$28,$28
-		dc.b	$a0,$0d,$a0,$08,$00
-		dc.b	$a0,$01,$a0,$00,$20
-		dc.b	$a0,$09,$80,$30,$30
-		dc.b	$40,$05,$81,$0a,$00
-		dc.b	$40,$0d,$81,$0e,$10
-		dc.b	0
-scorepat2:
-		dc.b	10
-		dc.b	$80, $D, $80, 0, 0
-		dc.b	$80, $D, $80, $18,	$20
-		dc.b	$80, $D, $80, $20,	$40
-		dc.b	$90, $D, $A0, $10,	0
-		dc.b	$90, $D, $80, $28,	$28
-		dc.b	$A0, $D, $80, 8, 0
-		dc.b	$A0, 1, $80, 0, $20
-		dc.b	$A0, 9, $80, $30, $30
-		dc.b	$40, 5, $81, $A, 0
-		dc.b	$40, $D, $81, $E, $10
-		dc.b	0
-scorepat3:
-		dc.b	10
-		dc.b	$80,$0d,$80,$00,$00
-		dc.b	$80,$0d,$80,$18,$20
-		dc.b	$80,$0d,$80,$20,$40
-		dc.b	$90,$0d,$a0,$10,$00
-		dc.b	$90,$0d,$80,$28,$28
-		dc.b	$a0,$0d,$a0,$08,$00
-		dc.b	$a0,$01,$a0,$00,$20
-		dc.b	$a0,$09,$80,$30,$30
-		dc.b	$40,$05,$81,$0a,$00
-		dc.b	$40,$0d,$81,$0e,$10
-
-scoreup:
-		move.b	#1,($FFFFFE1F).w
-		lea		($FFFFFFC0).w,a2
-		lea		plscore,a3
-		add.l	d0,(a3)
-		move.l	#999999,d1
-		cmp.l	(a3),d1
-		bhi.w	?jump
-		move.l	d1,(a3)
-		move.l	d1,(a2)
-?jump:
-		move.l	(a3),d0
-		cmp.l	(a2),d0
-		bcs.w	?jumpus
-		move.l	d0,(a2)
-?jumpus:
-?jump0:
-		rts
-
-scoreset:
-		tst.w	($FFFFFFFA).w
-		bne.w	scoreset2
-		tst.b	($FFFFFE1F).w
-		beq.b	?jump
-		clr.b	($FFFFFE1F).w
-		move.l	#$5C800003,d0
-		move.l	plscore,d1
-		bsr.w	scorewrt
-?jump:
-		tst.b	($FFFFFE1D).w
-		beq.b	?jump2
-		bpl.b	?jump1
-		bsr.w	ringinit
-?jump1:
-		clr.b	($FFFFFE1D).w
-		move.l	#$5F400003,d0
-		moveq	#0,d1
-		move.w	plring,d1
-		bsr.w	ringwrt
-?jump2:
-		tst.b	($FFFFFE1E).w
-		beq.b	?jump4
-		tst.w	($FFFFF63A).w
-		bne.b	?jump4
-		lea		($FFFFFE22).w,a1
-		cmpi.l	#$93B3B,(a1)+
-		beq.b	?timeover
-		addq.b	#1,-(a1)
-		cmpi.b	#60,(a1)
-		bcs.b	?jump4
-		move.b	#0,(a1)
-		addq.b	#1,-(a1)
-		cmpi.b	#60,(a1)
-		bcs.b	?jump3
-		move.b	#0,(a1)
-		addq.b	#1,-(a1)
-		cmpi.b	#9,(a1)
-		bcs.b	?jump3
-		move.b	#9,(a1)
-?jump3:
-		move.l	#$5E400003,d0
-		moveq	#0,d1
-		move.b	($FFFFFE23).w,d1
-		bsr.w	timewrt
-		move.l	#$5EC00003,d0
-		moveq	#0,d1
-		move.b	($FFFFFE24).w,d1
-		bsr.w	timewrt0
-?jump4:
-		tst.b	($FFFFFE1C).w
-		beq.b	?jump5
-		clr.b	($FFFFFE1C).w
-		bsr.w	playsuuwrt
-?jump5:
-		tst.b	($FFFFF7D6).w
-		beq.b	?jump6
-		clr.b	($FFFFF7D6).w
-		move.l	#$6E000002,($C00004).l
-		moveq	#0,d1
-		move.w	($FFFFF7D2).w,d1
-		bsr.w	bonuswrt
-		moveq	#0,d1
-		move.w	($FFFFF7D4).w,d1
-		bsr.w	bonuswrt
-?jump6:
-		rts	
-
-?timeover:
-		clr.b	($FFFFFE1E).w
-		lea		playerwk,a0
-		movea.l	a0,a2
-		bsr.w	playdieset
-		move.b	#1,($FFFFFE1A).w
-		rts
-
-scoreset2:
-		bsr.w	posiwrt
-		tst.b	($FFFFFE1D).w
-		beq.b	?jump2
-		bpl.b	?jump1
-		bsr.w	ringinit
-?jump1:
-		clr.b	($FFFFFE1D).w
-		move.l	#$5F400003,d0
-		moveq	#0,d1
-		move.w	plring,d1
-		bsr.w	ringwrt
-?jump2:
-		move.l	#$5EC00003,d0
-		moveq	#0,d1
-		move.b	($FFFFF62C).w,d1
-		bsr.w	timewrt0
-		tst.b	($FFFFFE1C).w
-		beq.b	?jump3
-		clr.b	($FFFFFE1C).w
-		bsr.w	playsuuwrt
-?jump3:
-		tst.b	($FFFFF7D6).w
-		beq.b	?jump4
-		clr.b	($FFFFF7D6).w
-		move.l	#$6E000002,($C00004).l
-		moveq	#0,d1
-		move.w	($FFFFF7D2).w,d1
-		bsr.w	bonuswrt
-		moveq	#0,d1
-		move.w	($FFFFF7D4).w,d1
-		bsr.w	bonuswrt
-?jump4:
-		rts	
-
-ringinit:
-		move.l	#$5F400003,($C00004).l
-		lea		ringinittbl(pc),a2
-		move.w	#2,d2
-		bra.b	scoreinitsub
-
-scoreinit:
-		lea		($C00000).l,a6
-		bsr.w	playsuuwrt
-		move.l	#$5C400003,($C00004).l
-		lea		scoreinittbl(pc),a2
-		move.w	#$E,d2
-scoreinitsub:
-		lea		scorewrtcg(pc),a1
-?loop:
-		move.w	#$F,d1
-		move.b	(a2)+,d0
-		bmi.b	?spaceset
-		ext.w	d0
-		lsl.w	#5,d0
-		lea	(a1,d0.w),a3
-?loop1:
-		move.l	(a3)+,(a6)
-		dbra	d1,?loop1
-?jump:
-		dbra	d2,?loop
-		rts
-
-?loop2:
-?spaceset:
-		move.l	#0,(a6)
-		dbra	d1,?loop2
-		bra.b	?jump
-
-scoreinittbl:	dc.b 22,$ff,$ff,$ff,$ff,$ff,$ff,0,0,20,0,0
-ringinittbl:	dc.b $ff,$ff,0,0
-
-posiwrt:
-		move.l	#$5C400003,($C00004).l
-		move.w	scra_h_posit,d1
-		swap	d1
-		move.w	playerwk+xposi,d1
-		bsr.b	hexwrtw
-		move.w	scra_v_posit,d1
-		swap	d1
-		move.w	playerwk+yposi,d1
-hexwrtw:
-		moveq	#7,d6
-		lea		(ascii).l,a1
-?loop:
-		rol.w	#4,d1
-		move.w	d1,d2
-		andi.w	#$F,d2
-		cmpi.w	#$A,d2
-		bcs.b	?jump
-		addq.w	#7,d2
-?jump:
-		lsl.w	#5,d2
-		lea		(a1,d2.w),a3
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		swap	d1
-		dbra	d6,?loop
-		rts
-
-ringwrt:
-		lea		(subtbl2).l,a2
-		moveq	#2,d6
-		bra.b	scorewrt2
-scorewrt:
-		lea		(subtbl).l,a2
-		moveq	#5,d6
-scorewrt2:
-		moveq	#0,d4
-		lea		scorewrtcg(pc),a1
-?loop:
-		moveq	#0,d2
-		move.l	(a2)+,d3
-?jump2:
-		sub.l	d3,d1
-		bcs.b	?jump3
-		addq.w	#1,d2
-		bra.b	?jump2
-?jump3:
-		add.l	d3,d1
-		tst.w	d2
-		beq.b	?jump4
-		move.w	#1,d4
-?jump4:
-		tst.w	d4
-		beq.b	?jump5
-		lsl.w	#6,d2
-		move.l	d0,4(a6)
-		lea		(a1,d2.w),a3
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-?jump5:
-		addi.l	#$400000,d0
-		dbra	d6,?loop
-		rts
-
-contwrt:
-		move.l	#$5F800003,($C00004).l
-		lea		($C00000).l,a6
-		lea		(subtbl1).l,a2
-		moveq	#1,d6
-		moveq	#0,d4
-		lea		scorewrtcg(pc),a1
-?loop:
-		moveq	#0,d2
-		move.l	(a2)+,d3
-?jump2:
-		sub.l	d3,d1
-		bcs.b	?jump3
-		addq.w	#1,d2
-		bra.b	?jump2
-?jump3:
-		add.l	d3,d1
-		lsl.w	#6,d2
-		lea		(a1,d2.w),a3
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		dbra	d6,?loop
-		rts
-
-subtbl:		dc.l	100000
-subtbl4:	dc.l	10000
-subtbl3:	dc.l	1000
-subtbl2:	dc.l	100
-subtbl1:	dc.l	10
-timewrt1:	dc.l	1
-
-timewrt:
-		lea		(timewrt1).l,a2
-		moveq	#0,d6
-		bra.b	?jump
-timewrt0:
-		lea		(subtbl1).l,a2
-		moveq	#1,d6
-?jump:
-		moveq	#0,d4
-		lea		scorewrtcg(pc),a1
-?loop:
-		moveq	#0,d2
-		move.l	(a2)+,d3
-?jump2:
-		sub.l	d3,d1
-		bcs.b	?jump3
-		addq.w	#1,d2
-		bra.b	?jump2
-?jump3:
-		add.l	d3,d1
-		tst.w	d2
-		beq.b	?jump4
-		move.w	#1,d4
-?jump4:
-		lsl.w	#6,d2
-		move.l	d0,4(a6)
-		lea		(a1,d2.w),a3
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		addi.l	#$400000,d0
-		dbra	d6,?loop
-		rts
-
-bonuswrt:
-		lea		(subtbl3).l,a2
-		moveq	#3,d6
-		moveq	#0,d4
-		lea		scorewrtcg(pc),a1
-?loop:
-		moveq	#0,d2
-		move.l	(a2)+,d3
-?jump2:
-		sub.l	d3,d1
-		bcs.b	?jump3
-		addq.w	#1,d2
-		bra.b	?jump2
-?jump3:
-		add.l	d3,d1
-		tst.w	d2
-		beq.b	?jump4
-		move.w	#1,d4
-?jump4:
-		tst.w	d4
-		beq.b	?jump7
-		lsl.w	#6,d2
-		lea		(a1,d2.w),a3
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-?jump5:
-		dbra	d6,?loop
-*?jump6:
-		rts	
-?jump7:
-		moveq	#$F,d5
-?loop2:
-		move.l	#0,(a6)
-		dbra	d5,?loop2
-		bra.b	?jump5
-
-playsuuwrt:
-		move.l	#$7BA00003,d0
-		moveq	#0,d1
-		move.b	($FFFFFE12).w,d1
-		lea		(subtbl1).l,a2
-		moveq	#1,d6
-		moveq	#0,d4
-		lea		playsuucg(pc),a1
-?loop:
-		move.l	d0,4(a6)
-		moveq	#0,d2
-		move.l	(a2)+,d3
-?jump2:
-		sub.l	d3,d1
-		bcs.b	?jump3
-		addq.w	#1,d2
-		bra.b	?jump2
-?jump3:
-		add.l	d3,d1
-		tst.w	d2
-		beq.b	?jump4
-		move.w	#1,d4
-?jump4:
-		tst.w	d4
-		beq.b	?jump7
-?jump5:
-		lsl.w	#5,d2
-		lea		(a1,d2.w),a3
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-		move.l	(a3)+,(a6)
-?jump6:
-		addi.l	#$400000,d0
-		dbra	d6,?loop
-		rts	
-
-?jump7:
-		tst.w	d6
-		beq.b	?jump5
-		moveq	#7,d5
-?loop2:
-		move.l	#0,(a6)
-		dbra	d5,?loop2
-		bra.b	?jump6
-
-scorewrtcg:
-		incbin	'ART\SCOREWRT.CGX'
-playsuucg:
-		incbin	'ART\PLAYSUU.CGX'
-
-;------------------------------------------------------------------------------
-edit:
-		moveq	#0,d0
-		move.b	editmode,d0
-		move.w	edit_move_tbl(pc,d0.w),d1
-		jmp		edit_move_tbl(pc,d1.w)
-edit_move_tbl:	dc.w editinit-edit_move_tbl
-		dc.w editmove-edit_move_tbl
-editinit:
-		addq.b	#2,editmode
-		move.w	scralim_up,editstack
-		move.w	scralim_n_down,editstack2
-		move.w	#$0000,scralim_up
-		move.w	#$0720,scralim_n_down
-		andi.w	#$07ff,playerwk+yposi
-		andi.w	#$07ff,scra_v_posit
-		andi.w	#$03ff,scrb_v_posit
-		move.b	#0,patno(a0)
-		move.b	#0,mstno(a0)
-		cmpi.b	#spgamemd,gmmode
-		bne.b	?jump0
-*		move.b	#7-1,stageno
-		move.w	#0,rotspd
-		move.w	#0,rotdir
-		moveq	#6,d0
-		bra.b	?jump1
-?jump0:
-		moveq	#0,d0
-		move.b	stageno,d0
-
-?jump1:
-		lea		edittbl,a2
-		add.w	d0,d0
-		adda.w	(a2,d0.w),a2
-		move.w	(a2)+,d6
-		cmp.b	editno,d6
-		bhi.b	?jump
-		move.b	#0,editno
-
-?jump:
-		bsr.w	editpatchg
-		move.b	#12,edittimer
-		move.b	#1,edittimer+1
-
-editmove:
-		moveq	#7-1,d0
-		cmpi.b	#spgamemd,gmmode
-		beq.b	?jump
-		moveq	#0,d0
-		move.b	stageno,d0
-
-?jump:
-		lea		edittbl,a2
-		add.w	d0,d0
-		adda.w	(a2,d0.w),a2
-		move.w	(a2)+,d6
-		bsr.w	editwalk
-*		bsr.w	dirsprset
-		jmp	actionsub
-editwalk:
-		moveq	#0,d4
-		move.w	#1,d1
-		move.b	swdata1+1,d4
-		andi.w	#$0f,d4
-		bne.b	?jump0
-		move.b	swdata1+0,d0
-		andi.w	#$0f,d0
-		bne.b	?jump
-		move.b	#12,edittimer
-		move.b	#$0f,edittimer+1
-		bra.w	?lend
-?jump:
-		subq.b	#1,edittimer
-		bne.b	?jump1
-		move.b	#1,edittimer
-		addq.b	#1,edittimer+1
-*		cmpi.b	#255,edittimer+1
-		bne.b	?jump0
-		move.b	#255,edittimer+1
-
-?jump0:
-		move.b	swdata1+0,d4
-
-?jump1:
-		moveq	#0,d1
-		move.b	edittimer+1,d1
-		addq.w	#1,d1
-		swap	d1
-		asr.l	#4,d1
-		move.l	yposi(a0),d2
-		move.l	xposi(a0),d3
-		btst.l	#0,d4						*swdata+0
-		beq.b	?jump2
-		sub.l	d1,d2						*yposi
-		bcc.b	?jump2
-		moveq	#0,d2
-
-?jump2:
-		btst.l	#1,d4						*swdata+0
-		beq.b	?jump3
-		add.l	d1,d2						*yposi
-		cmpi.l	#$7ff0000,d2
-		bcs.b	?jump3
-		move.l	#$7ff0000,d2
-
-?jump3:
-		btst.l	#2,d4						*swdata+0
-		beq.b	?jump4
-		sub.l	d1,d3						*xposi
-		bcc.b	?jump4
-		moveq	#0,d3
-
-?jump4:
-		btst.l	#3,d4						*swdata+0
-		beq.b	?jump5
-		add.l	d1,d3						*xposi
-?jump5:
-		move.l	d2,yposi(a0)
-		move.l	d3,xposi(a0)
-?lend:
-		btst.b	#6,swdata1+0
-		beq.b	?jump7
-		btst.b	#5,swdata1+1				* c button check
-		beq.b	?jump77
-		subq.b	#1,editno
-		bcc.b	?jump6
-		add.b	d6,editno
-		bra.b	?jump6
-?jump77:
-		btst.b	#6,swdata1+1
-		beq.b	?jump7
-		addq.b	#1,editno
-		cmp.b	editno,d6
-		bhi.b	?jump6
-		move.b	#0,editno
-?jump6:
-		bra.w	editpatchg
-?jump7:
-		btst.b	#5,swdata1+1				* c button check
-		beq.b	?jump8
-		jsr	actwkchk
-		bne.b	?worknai					;z=0:ok z=1:no
-		move.w	xposi(a0),xposi(a1)
-		move.w	yposi(a0),yposi(a1)
-		move.b	patbase(a0),actno(a1)
-		move.b	actflg(a0),actflg(a1)
-		move.b	actflg(a0),cddat(a1)
-		andi.b	#$7f,cddat(a1)
-		moveq	#0,d0
-		move.b	editno,d0
-		lsl.w	#3,d0
-		move.b	4(a2,d0.w),userflag(a1)
-		rts
-?worknai:
-?jump8:
-		btst.b	#4,swdata1+1				* b button check
-		beq.b	?jump9
-		moveq	#0,d0
-		move.w	d0,editmode
-		move.l	#playpat,playerwk+patbase
-		move.w	#$0780,playerwk+sproffset
-		move.b	d0,playerwk+mstno
-		move.w	d0,xposi+2(a0)
-		move.w	d0,yposi+2(a0)
-		move.w	editstack,scralim_up
-		move.w	editstack2,scralim_n_down
-		cmpi.b	#spgamemd,gmmode
-		bne.b	?jump9
-		clr.w	rotdir
-		move.w	#$040,rotspd
-		move.l	#playpat,playerwk+patbase
-		move.w	#$0780,playerwk+sproffset
-		move.b	#$02,playerwk+mstno
-		bset.b	#cd_ball,playerwk+cddat
-		bset.b	#cd_jump,playerwk+cddat
-?jump9:
-		rts	
-editpatchg:
-		moveq	#0,d0
-		move.b	editno,d0
-		lsl.w	#3,d0
-		move.l	0(a2,d0.w),patbase(a0)
-		move.w	6(a2,d0.w),sproffset(a0)
-		move.b	5(a2,d0.w),patno(a0)
-*		move.b	4(a2,d0.w),userflag(a0)
-		rts	
-
-dcblw	macro	\1,\2,\3,\4,\5
-	dc.l	(\1)*$1000000+(\2)
-	dc.w	(\4)+(\5)*$100
-	dc.w	(\3)
-	endm
-
-edittbl:
-		dc.w	edit1tbl-edittbl
-		dc.w	edit2tbl-edittbl
-		dc.w	edit3tbl-edittbl
-		dc.w	edit4tbl-edittbl
-		dc.w	edit5tbl-edittbl
-		dc.w	edit6tbl-edittbl
-		dc.w	edit7tbl-edittbl
-edit1tbl:
-	dc.w	16
-	dcblw	ring_act,ringpat,$27b2,0,$00
-	dcblw	item_act,itempat,$0680,0,$00
-	dcblw	$1F,kanipat,$0400,0,$00
-	dcblw	$22,hachipat,$0444,0,$00
-	dcblw	$2B,Map_fish,$047b,0,$00
-	dcblw	$36,togepat,$051b,0,$00
-	dcblw	$18,shimapat2,$4000,0,$00
-	dcblw	$3B,jyamapat,$63d0,0,$00
-	dcblw	$40,musipat,$04f0,0,$00
-	dcblw	$41,sjumppat,$0523,0,$00
-	dcblw	$42,kamerepat,$249b,0,$00
-	dcblw	$44,kagebpat,$434c,0,$00
-	dcblw	$19,Map_obj48,$43aa,0,$00
-	dcblw	$79,savepat,$07a0,0,$01
-	dcblw	$4B,Map_obj4B,$0240,0,$00
-	dcblw	$7D,btenpat,$84B6,1,$01
-
-edit2tbl:
-	dc.w 25
-	dcblw	$25,ringpat,$27b2,0,$00
-	dcblw	$26,itempat,$0680,0,$00
-	dc.l Map_obj41+$41000000
-	dc.b 0,	0, 5, $23
-	dc.l Map_obj2C+$2C000000
-	dc.b 8,	0, $24,	$86
-	dc.l Map_obj2D+$2D000000
-	dc.b 0,	2, $84,	$A6
-	dc.l Map_obj16+$16000000
-	dc.b 0,	0, 3, $CC
-	dc.l Map_obj16+$16000000
-	dc.b 2,	3, 3, $CC
-	dc.l Map_obj33+$33000000
-	dc.b 0,	0, $43,	$DE
-	dc.l Map_obj32+$32000000
-	dc.b 0,	0, 5, $13
-	dc.l Map_obj36+$36000000
-	dc.b 0,	0, 5, $1B
-	dc.l Map_obj52a+$52000000
-	dc.b 4,	0, $43,	$BC
-	dc.l Map_obj61+$61000000
-	dc.b 1,	0, $43,	$E6
-	dc.l Map_obj61+$61000000
-	dc.b $13, 1, $43, $E6
-	dc.l Map_obj61+$61000000
-	dc.b 5,	0, $43,	$E6
-	dc.l Map_obj62+$62000000
-	dc.b 0,	0, $44,	$3E
-	dc.l Map_obj61+$61000000
-	dc.b $27, 2, $43, $E6
-	dc.l Map_obj61+$61000000
-	dc.b $30, 3, $43, $E6
-	dc.l Map_obj63+$63000000
-	dc.b $7F, 0, 3,	$F6
-	dc.l Map_obj60+$60000000
-	dc.b 0,	0, 4, $67
-	dc.l Map_obj64+$64000000
-	dc.b $84, $13, $83, $48
-	dc.l Map_obj65+$65000000
-	dc.b 2,	2, $C2,	$59
-	dc.l Map_obj65+$65000000
-	dc.b 9,	9, $C2,	$59
-	dc.l Map_obj0B+$B000000
-	dc.b 0,	0, $43,	$DE
-	dc.l Map_obj0C+$C000000
-	dc.b 2,	0, $43,	$28
-	dcblw	$79,savepat,$07a0,0,$01
-
-edit3tbl:
-	dc.w 18
-	dcblw	$25,ringpat,$27b2,0,$00
-	dcblw	$26,itempat,$0680,0,$00
-	dc.l Map_obj22+$22000000
-	dc.b 0,	0, 4, $44
-	dc.l Map_obj36+$36000000
-	dc.b 0,	0, 5, $1B
-	dc.l Map_obj41+$41000000
-	dc.b 0,	0, 5, $23
-	dc.l Map_obj14+$13000000
-	dc.b 0,	0, 3, $45
-	dc.l Map_obj46+$46000000
-	dc.b 0,	0, $40,	0
-	dc.l Map_obj4C+$4C000000
-	dc.b 0,	0, $63,	$A8
-	dc.l Map_obj4E+$4E000000
-	dc.b 0,	0, $63,	$A8
-	dc.l Map_obj33+$33000000
-	dc.b 0,	0, $42,	$B8
-	dc.l Map_obj50+$50000000
-	dc.b 0,	0, $24,	$7B
-	dc.l Map_obj51+$51000000
-	dc.b 0,	0, $42,	$B8
-	dc.l Map_obj52+$52000000
-	dc.b 0,	0, 2, $B8
-	dc.l Map_obj53+$53000000
-	dc.b 0,	0, $62,	$B8
-	dc.l Map_obj54+$54000000
-	dc.b 0,	0, $86,	$80
-	dc.l Map_obj55+$55000000
-	dc.b 0,	0, 4, $B8
-	dc.l Map_obj78+$78000000
-	dc.b 0,	0, $24,	$FF
-	dcblw	$79,savepat,$07a0,0,$01
-
-edit4tbl:
-	dc.w 15
-	dcblw	$25,ringpat,$27b2,0,$00
-	dcblw	$26,itempat,$0680,0,$00
-	dc.l Map_obj59+$59000000
-	dc.b 0,	0, $40,	0
-	dc.l Map_obj53+$53000000
-	dc.b 0,	2, $44,	$E0
-	dc.l Map_obj18b+$18000000
-	dc.b 0,	0, $40,	0
-	dc.l Map_obj5A+$5A000000
-	dc.b 0,	0, $40,	0
-	dc.l Map_obj5B+$5B000000
-	dc.b 0,	0, $40,	0
-	dc.l Map_obj5D+$5D000000
-	dc.b 0,	0, $43,	$A0
-	dc.l Map_obj5E+$5E000000
-	dc.b 0,	0, 3, $74
-	dc.l Map_obj41+$41000000
-	dc.b 0,	0, 5, $23
-	dc.l Map_obj14+$13000000
-	dc.b 0,	0, 4, $80
-	dc.l Map_obj1C+$1C000000
-	dc.b 0,	0, $44,	$D8
-	dc.l Map_obj5F+$5F000000
-	dc.b 0,	0, 4, 0
-	dc.l Map_obj60+$60000000
-	dc.b 0,	0, $24,	$29
-	dcblw	$79,savepat,$07a0,0,$01
-
-edit5tbl:
-	dc.w 15
-	dcblw	$25,ringpat,$27b2,0,$00
-	dcblw	$26,itempat,$0680,0,$00
-	dc.l Map_obj36+$36000000
-	dc.b 0,	0, 5, $1B
-	dc.l Map_obj41+$41000000
-	dc.b 0,	0, 5, $23
-	dc.l Map_obj43+$43000000
-	dc.b 0,	0, 4, $B8
-	dc.l Map_obj12+$12000000
-	dc.b 0,	0, 0, 0
-	dc.l Map_obj47+$47000000
-	dc.b 0,	0, 3, $80
-	dc.l Map_obj1F+$1F000000
-	dc.b 0,	0, 4, 0
-	dc.l Map_obj22+$22000000
-	dc.b 0,	0, 4, $44
-	dc.l Map_obj50+$50000000
-	dc.b 0,	0, $24,	$7B
-	dc.l Map_obj18a+$18000000
-	dc.b 0,	0, $40,	0
-	dc.l Map_obj56+$56000000
-	dc.b 0,	0, $40,	0
-	dc.l Map_obj32+$32000000
-	dc.b 0,	0, 5, $13
-	dc.l Map_obj78+$78000000
-	dc.b 0,	0, $24,	$FF
-	dcblw	$79,savepat,$07a0,0,$01
-
-edit6tbl:
-	dc.w 29
-	dcblw	$25,ringpat,$27b2,0,$00
-	dcblw	$26,itempat,$0680,0,$00
-	dc.l Map_obj5F+$5F000000
-	dc.b 0,	0, 4, 0
-	dc.l Map_obj60+$60000000
-	dc.b 0,	0, 4, $29
-	dc.l Map_obj78+$78000000
-	dc.b 0,	0, $22,	$B0
-	dc.l Map_obj15b+$15000000
-	dc.b 7,	2, $43,	$91
-	dc.l Map_obj67+$67000000
-	dc.b $E0, 0, $C3, $44
-	dc.l Map_obj52+$52000000
-	dc.b $28, 2, $22, $C0
-	dc.l Map_obj32+$32000000
-	dc.b 0,	0, 5, $13
-	dc.l Map_obj69+$69000000
-	dc.b 3,	0, $44,	$92
-	dc.l Map_obj69a+$69000000
-	dc.b $83, 0, 4,	$DF
-	dc.l Map_obj6A+$6A000000
-	dc.b 2,	0, $43,	$B5
-	dc.l Map_obj53+$53000000
-	dc.b 0,	0, $43,	$F5
-	dc.l Map_obj52+$52000000
-	dc.b $39, 3, $44, $60
-	dc.l Map_obj6B+$6B000000
-	dc.b 0,	0, $22,	$C0
-	dc.l Map_obj2A+$2A000000
-	dc.b 0,	0, $42,	$E8
-	dc.l Map_obj6B+$6B000000
-	dc.b $13, 1, $22, $C0
-	dc.l Map_obj6A+$6A000000
-	dc.b 1,	0, $43,	$B5
-	dc.l Map_obj6B+$6B000000
-	dc.b $24, 1, $22, $C0
-	dc.l Map_obj6A+$6A000000
-	dc.b 4,	2, $43,	$B5
-	dc.l Map_obj6B+$6B000000
-	dc.b $34, 1, $22, $C0
-	dc.l Map_obj6C+$6C000000
-	dc.b 0,	0, $44,	$C3
-	dc.l Map_obj6D+$6D000000
-	dc.b $64, 0, $83, $D9
-	dc.l Map_obj6D+$6D000000
-	dc.b $64, $B, $83, $D9
-	dc.l Map_obj6E+$6E000000
-	dc.b 4,	0, 4, $7E
-	dc.l Map_obj70+$70000000
-	dc.b 0,	0, $42,	$F0
-	dc.l Map_obj71+$71000000
-	dc.b $11, 0, $86, $80
-	dc.l Map_obj1E+$1E000000
-	dc.b 4,	0, $23,	2
-	dcblw	$79,savepat,$07a0,0,$01
-
-edit7tbl:
-	dc.w 13
-	dcblw	$25,ringpat,$27b2,0,$00
-	dc.l Map_obj47+$47000000
-	dc.b 0,	0, 3, $80
-	dc.l Map_obj28a+$28000000
-	dc.b $A, 0, 5, $A0
-	dc.l Map_obj28a+$28000000
-	dc.b $B, 0, 5, $A0
-	dc.l Map_obj28a+$28000000
-	dc.b $C, 0, 5, $A0
-	dc.l Map_obj28+$28000000
-	dc.b $D, 0, 5, $53
-	dc.l Map_obj28+$28000000
-	dc.b $E, 0, 5, $53
-	dc.l Map_obj28+$28000000
-	dc.b $F, 0, 5, $73
-	dc.l Map_obj28+$28000000
-	dc.b $10, 0, 5,	$73
-	dc.l Map_obj28a+$28000000
-	dc.b $11, 0, 5,	$85
-	dc.l Map_obj28b+$28000000
-	dc.b $12, 0, 5,	$93
-	dc.l Map_obj28a+$28000000
-	dc.b $13, 0, 5,	$65
-	dc.l Map_obj28b+$28000000
-	dc.b $14, 0, 5,	$B3
+		include	"SCORE.ASM"
+		include	"EDIT.ASM"
 
 ; ---------------------------------------------------------------------------
 ; Main level load blocks

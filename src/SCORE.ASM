@@ -52,59 +52,63 @@ scorepat:
 		dc.w	scorepat3-scorepat
 scorepat0:
 		dc.b	10
-		dc.b	$80,$0d,$80,$00,$00
-		dc.b	$80,$0d,$80,$18,$20
-		dc.b	$80,$0d,$80,$20,$40
-		dc.b	$90,$0d,$80,$10,$00
-		dc.b	$90,$0d,$80,$28,$28
-		dc.b	$a0,$0d,$80,$08,$00
-		dc.b	$a0,$01,$80,$00,$20
-		dc.b	$a0,$09,$80,$30,$30
-		dc.b	$40,$05,$81,$0a,$00
-		dc.b	$40,$0d,$81,$0e,$10
+		dc.b	$80,$0d,$80,$00,$00	;1:
+		dc.b	$80,$0d,$80,$18,$20	;2:
+		dc.b	$80,$0d,$80,$20,$40	;3:
+		dc.b	$90,$0d,$80,$10,$00	;4:
+		dc.b	$90,$0d,$80,$28,$28	;5:
+		dc.b	$a0,$0d,$80,$08,$00	;6:
+		dc.b	$a0,$01,$80,$00,$20	;7:
+		dc.b	$a0,$09,$80,$30,$30	;8:
+		dc.b	$40,$05,$81,$0a,$00	;9:
+		dc.b	$40,$0d,$81,$0e,$10	;10:
 		dc.b	0
 scorepat1:
 		dc.b	10
-		dc.b	$80,$0d,$80,$00,$00
-		dc.b	$80,$0d,$80,$18,$20
-		dc.b	$80,$0d,$80,$20,$40
-		dc.b	$90,$0d,$80,$10,$00
-		dc.b	$90,$0d,$80,$28,$28
-		dc.b	$a0,$0d,$a0,$08,$00
-		dc.b	$a0,$01,$a0,$00,$20
-		dc.b	$a0,$09,$80,$30,$30
-		dc.b	$40,$05,$81,$0a,$00
-		dc.b	$40,$0d,$81,$0e,$10
+		dc.b	$80,$0d,$80,$00,$00	;1:
+		dc.b	$80,$0d,$80,$18,$20	;2:
+		dc.b	$80,$0d,$80,$20,$40	;3:
+		dc.b	$90,$0d,$80,$10,$00	;4:
+		dc.b	$90,$0d,$80,$28,$28	;5:
+		dc.b	$a0,$0d,$a0,$08,$00	;6:
+		dc.b	$a0,$01,$a0,$00,$20	;7:
+		dc.b	$a0,$09,$80,$30,$30	;8:
+		dc.b	$40,$05,$81,$0a,$00	;9:
+		dc.b	$40,$0d,$81,$0e,$10	;10:
 		dc.b	0
 scorepat2:
 		dc.b	10
-		dc.b	$80,$0d,$80,$00,$00
-		dc.b	$80,$0d,$80,$18,$20
-		dc.b	$80,$0d,$80,$20,$40
-		dc.b	$90,$0d,$a0,$10,$00
-		dc.b	$90,$0d,$80,$28,$28
-		dc.b	$a0,$0d,$80,$08,$00
-		dc.b	$a0,$01,$80,$00,$20
-		dc.b	$a0,$09,$80,$30,$30
-		dc.b	$40,$05,$81,$0a,$00
-		dc.b	$40,$0d,$81,$0e,$10
+		dc.b	$80,$0d,$80,$00,$00	;1:
+		dc.b	$80,$0d,$80,$18,$20	;2:
+		dc.b	$80,$0d,$80,$20,$40	;3:
+		dc.b	$90,$0d,$a0,$10,$00	;4:
+		dc.b	$90,$0d,$80,$28,$28	;5:
+		dc.b	$a0,$0d,$80,$08,$00	;6:
+		dc.b	$a0,$01,$80,$00,$20	;7:
+		dc.b	$a0,$09,$80,$30,$30	;8:
+		dc.b	$40,$05,$81,$0a,$00	;9:
+		dc.b	$40,$0d,$81,$0e,$10	;10:
 		dc.b	0
 scorepat3:
 		dc.b	10
-		dc.b	$80,$0d,$80,$00,$00
-		dc.b	$80,$0d,$80,$18,$20
-		dc.b	$80,$0d,$80,$20,$40
-		dc.b	$90,$0d,$a0,$10,$00
-		dc.b	$90,$0d,$80,$28,$28
-		dc.b	$a0,$0d,$a0,$08,$00
-		dc.b	$a0,$01,$a0,$00,$20
-		dc.b	$a0,$09,$80,$30,$30
-		dc.b	$40,$05,$81,$0a,$00
-		dc.b	$40,$0d,$81,$0e,$10
+		dc.b	$80,$0d,$80,$00,$00	;1:
+		dc.b	$80,$0d,$80,$18,$20	;2:
+		dc.b	$80,$0d,$80,$20,$40	;3:
+		dc.b	$90,$0d,$a0,$10,$00	;4:
+		dc.b	$90,$0d,$80,$28,$28	;5:
+		dc.b	$a0,$0d,$a0,$08,$00	;6:
+		dc.b	$a0,$01,$a0,$00,$20	;7:
+		dc.b	$a0,$09,$80,$30,$30	;8:
+		dc.b	$40,$05,$81,$0a,$00	;9:
+		dc.b	$40,$0d,$81,$0e,$10	;10:
+
+;------------------------------------------------------------------------------
+		align
+;------------------------------------------------------------------------------
 
 scoreup:
-		move.b	#1,$fffe1f
-		lea		$ffffc0,a2
+		move.b	#1,plscore_f
+		lea		extrascore,a2
 		lea		plscore,a3
 		add.l	d0,(a3)
 		move.l	#999999,d1
@@ -122,29 +126,29 @@ scoreup:
 		rts
 
 scoreset:
-		tst.w	$fffffa
+		tst.w	debugflag
 		bne.w	scoreset2
-		tst.b	$fffe1f
+		tst.b	plscore_f
 		beq.b	?jump
-		clr.b	$fffe1f
+		clr.b	plscore_f
 		move.l	#$5c800003,d0
 		move.l	plscore,d1
 		bsr.w	scorewrt
 ?jump:
-		tst.b	$fffe1d
+		tst.b	plring_f
 		beq.b	?jump2
 		bpl.b	?jump1
 		bsr.w	ringinit
 ?jump1:
-		clr.b	$fffe1d
+		clr.b	plring_f
 		move.l	#$5f400003,d0
 		moveq	#0,d1
 		move.w	plring,d1
 		bsr.w	ringwrt
 ?jump2:
-		tst.b	$fffe1e
+		tst.b	pltime_f
 		beq.b	?jump4
-		tst.w	$fff63a
+		tst.w	pauseflag
 		bne.b	?jump4
 		lea		$fffe22,a1
 		cmpi.l	#$93b3b,(a1)+
@@ -171,9 +175,9 @@ scoreset:
 		move.b	$fffe24,d1
 		bsr.w	timewrt0
 ?jump4:
-		tst.b	$fffe1c
+		tst.b	pl_suu_f
 		beq.b	?jump5
-		clr.b	$fffe1c
+		clr.b	pl_suu_f
 		bsr.w	playsuuwrt
 ?jump5:
 		tst.b	$fff7d6
@@ -190,21 +194,21 @@ scoreset:
 		rts	
 
 ?timeover:
-		clr.b	$fffe1e
+		clr.b	pltime_f
 		lea		playerwk,a0
 		movea.l	a0,a2
 		bsr.w	playdieset
-		move.b	#1,$fffe1a
+		move.b	#1,pltimeover_f
 		rts
 
 scoreset2:
 		bsr.w	posiwrt
-		tst.b	$fffe1d
+		tst.b	plring_f
 		beq.b	?jump2
 		bpl.b	?jump1
 		bsr.w	ringinit
 ?jump1:
-		clr.b	$fffe1d
+		clr.b	plring_f
 		move.l	#$5f400003,d0
 		moveq	#0,d1
 		move.w	plring,d1
@@ -214,9 +218,9 @@ scoreset2:
 		moveq	#0,d1
 		move.b	$fff62c,d1
 		bsr.w	timewrt0
-		tst.b	$fffe1c
+		tst.b	pl_suu_f
 		beq.b	?jump3
-		clr.b	$fffe1c
+		clr.b	pl_suu_f
 		bsr.w	playsuuwrt
 ?jump3:
 		tst.b	$fff7d6
@@ -498,7 +502,7 @@ bonuswrt:
 playsuuwrt:
 		move.l	#$7ba00003,d0
 		moveq	#0,d1
-		move.b	$fffe12,d1
+		move.b	pl_suu,d1
 		lea		subtbl1,a2
 		moveq	#1,d6
 		moveq	#0,d4
@@ -549,3 +553,8 @@ scorewrtcg:
 		incbin	'ART\SCOREWRT.CGX'
 playsuucg:
 		incbin	'ART\PLAYSUU.CGX'
+
+;------------------------------------------------------------------------------
+		align
+;------------------------------------------------------------------------------
+		end
