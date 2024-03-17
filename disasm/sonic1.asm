@@ -246,24 +246,15 @@ MainGameLoop:
 ; ---------------------------------------------------------------------------
 
 GameModeArray:
-		bra.w	SegaScreen	; Sega Screen ($00)
-; ===========================================================================
-		bra.w	TitleScreen	; Title	Screen ($04)
-; ===========================================================================
-		bra.w	game		; Demo Mode ($08)
-; ===========================================================================
-		bra.w	game		; Normal Level ($0C)
-; ===========================================================================
-		bra.w	SpecialStage	; Special Stage	($10)
-; ===========================================================================
-		bra.w	ContinueScreen	; Continue Screen ($14)
-; ===========================================================================
-		bra.w	EndingSequence	; End of game sequence ($18)
-; ===========================================================================
-		bra.w	Credits		; Credits ($1C)
-; ===========================================================================
+		bra.w	SegaScreen
+		bra.w	TitleScreen
+		bra.w	game
+		bra.w	game
+		bra.w	SpecialStage
+		bra.w	ContinueScreen
+		bra.w	EndingSequence
+		bra.w	Credits
 		rts	
-; ===========================================================================
 
 CheckSumError:
 		bsr.w	VDPSetupGame
@@ -2924,19 +2915,12 @@ loc_29AC:
 		rts	
 ; End of function DelayProgram
 
-; ---------------------------------------------------------------------------
-; Subroutine to	generate a pseudo-random number	in d0
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
 
 random:
-		move.l	($FFFFF636).w,d1
-		bne.b	loc_29C0
-		move.l	#$2A6D365A,d1
-
-loc_29C0:
+		move.l	ranum,d1
+		bne.b	?jump
+		move.l	#$2a6d365a,d1
+?jump:
 		move.l	d1,d0
 		asl.l	#2,d1
 		add.l	d0,d1
@@ -2947,13 +2931,8 @@ loc_29C0:
 		add.w	d1,d0
 		move.w	d0,d1
 		swap	d1
-		move.l	d1,($FFFFF636).w
-		rts	
-; End of function random
-
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
+		move.l	d1,ranum
+		rts
 
 sinset:				; XREF: SS_BGAnimate; et al
 		andi.w	#$FF,d0
@@ -2963,13 +2942,10 @@ sinset:				; XREF: SS_BGAnimate; et al
 		subi.w	#$80,d0
 		move.w	Sine_Data(pc,d0.w),d0
 		rts	
-; End of function sinset
-
-; ===========================================================================
 
 Sine_Data:	incbin	misc\sinewave.bin	; values for a 360º sine wave
 
-; ===========================================================================
+
 		movem.l	d1-d2,-(sp)
 		move.w	d0,d1
 		swap	d1
@@ -3235,7 +3211,7 @@ Title_LoadText:
 		bsr.w	scrinit
 		lea	($C00004).l,a5
 		lea	($C00000).l,a6
-		lea	($FFFFF708).w,a3
+		lea	scrb_h_posit,a3
 		lea	($FFFFA440).w,a4
 		move.w	#$6000,d2
 		bsr.w	mapwrt2
@@ -4723,39 +4699,39 @@ Osc_Data2:	dc.w 2,	$10		; XREF: OscillateNumDo
 
 
 syspatchg:			; XREF: Level
-		subq.b	#1,($FFFFFEC0).w
+		subq.b	#1,sys_pattim
 		bpl.b	loc_421C
-		move.b	#$B,($FFFFFEC0).w
-		subq.b	#1,($FFFFFEC1).w
-		andi.b	#7,($FFFFFEC1).w
+		move.b	#$B,sys_pattim
+		subq.b	#1,sys_patno
+		andi.b	#7,sys_patno
 
 loc_421C:
-		subq.b	#1,($FFFFFEC2).w
+		subq.b	#1,sys_pattim2
 		bpl.b	loc_4232
-		move.b	#7,($FFFFFEC2).w
-		addq.b	#1,($FFFFFEC3).w
-		andi.b	#3,($FFFFFEC3).w
+		move.b	#7,sys_pattim2
+		addq.b	#1,sys_patno2
+		andi.b	#3,sys_patno2
 
 loc_4232:
-		subq.b	#1,($FFFFFEC4).w
+		subq.b	#1,sys_pattim3
 		bpl.b	loc_4250
-		move.b	#7,($FFFFFEC4).w
-		addq.b	#1,($FFFFFEC5).w
-		cmpi.b	#6,($FFFFFEC5).w
+		move.b	#7,sys_pattim3
+		addq.b	#1,sys_patno3
+		cmpi.b	#6,sys_patno3
 		bcs.b	loc_4250
-		move.b	#0,($FFFFFEC5).w
+		move.b	#0,sys_patno3
 
 loc_4250:
-		tst.b	($FFFFFEC6).w
+		tst.b	sys_pattim4
 		beq.b	locret_4272
 		moveq	#0,d0
-		move.b	($FFFFFEC6).w,d0
-		add.w	($FFFFFEC8).w,d0
-		move.w	d0,($FFFFFEC8).w
+		move.b	sys_pattim4,d0
+		add.w	sys_ringtimer,d0
+		move.w	d0,sys_ringtimer
 		rol.w	#7,d0
 		andi.w	#3,d0
-		move.b	d0,($FFFFFEC7).w
-		subq.b	#1,($FFFFFEC6).w
+		move.b	d0,sys_patno4
+		subq.b	#1,sys_pattim4
 
 locret_4272:
 		rts	
@@ -5209,13 +5185,13 @@ loc_4BF6:
 		bcc.b	loc_4C4E
 		cmpi.w	#6,d0
 		bne.b	loc_4C10
-		addq.w	#1,($FFFFF718).w
+		addq.w	#1,scrz_h_posit
 		addq.w	#1,scrb_v_posit
 		move.w	scrb_v_posit,($FFFFF618).w
 
 loc_4C10:
 		moveq	#0,d0
-		move.w	($FFFFF708).w,d0
+		move.w	scrb_h_posit,d0
 		neg.w	d0
 		swap	d0
 		lea	(byte_4CCC).l,a1
@@ -5242,7 +5218,7 @@ loc_4C26:
 loc_4C4E:				; XREF: SS_BGAnimate
 		cmpi.w	#$C,d0
 		bne.b	loc_4C74
-		subq.w	#1,($FFFFF718).w
+		subq.w	#1,scrz_h_posit
 		lea	($FFFFAB00).w,a3
 		move.l	#$18000,d2
 		moveq	#6,d1
@@ -5260,7 +5236,7 @@ loc_4C74:
 
 loc_4C7E:
 		lea	($FFFFCC00).w,a1
-		move.w	($FFFFF718).w,d0
+		move.w	scrz_h_posit,d0
 		neg.w	d0
 		swap	d0
 		moveq	#0,d3
@@ -6476,7 +6452,7 @@ scr_set:				; XREF: TitleScreen; Level; EndingSequence
 		move.w	d0,d1
 		add.w	d0,d0
 		add.w	d1,d0
-		lea	LevelSizeArray(pc,d0.w),a0 ; load level	boundaries
+		lea	limittbl(pc,d0.w),a0 ; load level	boundaries
 		move.w	(a0)+,d0
 		move.w	d0,($FFFFF730).w
 		move.l	(a0)+,d0
@@ -6496,7 +6472,7 @@ scr_set:				; XREF: TitleScreen; Level; EndingSequence
 ; ---------------------------------------------------------------------------
 ; Level size array and ending start location array
 ; ---------------------------------------------------------------------------
-LevelSizeArray:	incbin	misc\lvl_size.bin
+limittbl:	incbin	misc\lvl_size.bin
 		even
 
 EndingStLocArray:
@@ -6613,10 +6589,10 @@ BgScrollSpeed:				; XREF: scr_set
 		tst.b	($FFFFFE30).w
 		bne.b	loc_6206
 		move.w	d0,scrb_v_posit
-		move.w	d0,($FFFFF714).w
-		move.w	d1,($FFFFF708).w
-		move.w	d1,($FFFFF710).w
-		move.w	d1,($FFFFF718).w
+		move.w	d0,scrc_v_posit
+		move.w	d1,scrb_h_posit
+		move.w	d1,scrc_h_posit
+		move.w	d1,scrz_h_posit
 
 loc_6206:
 		moveq	#0,d2
@@ -6661,7 +6637,7 @@ BgScroll_SYZ:				; XREF: BgScroll_Index
 		add.l	d2,d0
 		asr.l	#8,d0
 		move.w	d0,scrb_v_posit
-		move.w	d0,($FFFFF714).w
+		move.w	d0,scrc_v_posit
 		rts	
 ; ===========================================================================
 
@@ -6675,13 +6651,13 @@ BgScroll_SBZ:				; XREF: BgScroll_Index
 
 BgScroll_End:				; XREF: BgScroll_Index
 		move.w	#$1E,scrb_v_posit
-		move.w	#$1E,($FFFFF714).w
+		move.w	#$1E,scrc_v_posit
 		rts	
 ; ===========================================================================
-		move.w	#$A8,($FFFFF708).w
+		move.w	#$A8,scrb_h_posit
 		move.w	#$1E,scrb_v_posit
-		move.w	#-$40,($FFFFF710).w
-		move.w	#$1E,($FFFFF714).w
+		move.w	#-$40,scrc_h_posit
+		move.w	#$1E,scrc_v_posit
 		rts
 
 ; ---------------------------------------------------------------------------
@@ -6707,10 +6683,10 @@ loc_628E:
 		bsr.w	scrchk
 		move.w	scra_h_posit,($FFFFF61A).w
 		move.w	scra_v_posit,($FFFFF616).w
-		move.w	($FFFFF708).w,($FFFFF61C).w
+		move.w	scrb_h_posit,($FFFFF61C).w
 		move.w	scrb_v_posit,($FFFFF618).w
-		move.w	($FFFFF718).w,($FFFFF620).w
-		move.w	($FFFFF71C).w,($FFFFF61E).w
+		move.w	scrz_h_posit,($FFFFF620).w
+		move.w	scrz_v_posit,($FFFFF61E).w
 		moveq	#0,d0
 		move.b	stageno,d0
 		add.w	d0,d0
@@ -6749,7 +6725,7 @@ Deform_GHZ:				; XREF: Deform_Index
 		lsr.w	#5,d0
 		neg.w	d0
 		addi.w	#$26,d0
-		move.w	d0,($FFFFF714).w
+		move.w	d0,scrc_v_posit
 		move.w	d0,d4
 		bsr.w	ScrollBlock3
 		move.w	scrb_v_posit,($FFFFF618).w
@@ -6763,20 +6739,20 @@ Deform_GHZ:				; XREF: Deform_Index
 loc_633C:
 		neg.w	d0
 		swap	d0
-		move.w	($FFFFF708).w,d0
+		move.w	scrb_h_posit,d0
 		neg.w	d0
 
 loc_6346:
 		move.l	d0,(a1)+
 		dbra	d1,loc_6346
 		move.w	#$27,d1
-		move.w	($FFFFF710).w,d0
+		move.w	scrc_h_posit,d0
 		neg.w	d0
 
 loc_6356:
 		move.l	d0,(a1)+
 		dbra	d1,loc_6356
-		move.w	($FFFFF710).w,d0
+		move.w	scrc_h_posit,d0
 		addi.w	#0,d0
 		move.w	scra_h_posit,d2
 		addi.w	#-$200,d2
@@ -6823,7 +6799,7 @@ Deform_LZ:				; XREF: Deform_Index
 		move.w	scra_h_posit,d0
 		neg.w	d0
 		swap	d0
-		move.w	($FFFFF708).w,d0
+		move.w	scrb_h_posit,d0
 		neg.w	d0
 
 loc_63C6:
@@ -6861,7 +6837,7 @@ Deform_MZ:				; XREF: Deform_Index
 		add.w	d1,d0
 
 loc_6402:
-		move.w	d0,($FFFFF714).w
+		move.w	d0,scrc_v_posit
 		bsr.w	ScrollBlock3
 		move.w	scrb_v_posit,($FFFFF618).w
 		lea	($FFFFCC00).w,a1
@@ -6869,7 +6845,7 @@ loc_6402:
 		move.w	scra_h_posit,d0
 		neg.w	d0
 		swap	d0
-		move.w	($FFFFF708).w,d0
+		move.w	scrb_h_posit,d0
 		neg.w	d0
 
 loc_6426:
@@ -7012,7 +6988,7 @@ Deform_SYZ:				; XREF: Deform_Index
 		move.w	scra_h_posit,d0
 		neg.w	d0
 		swap	d0
-		move.w	($FFFFF708).w,d0
+		move.w	scrb_h_posit,d0
 		neg.w	d0
 
 loc_653C:
@@ -7043,7 +7019,7 @@ Deform_SBZ:				; XREF: Deform_Index
 		move.w	scra_h_posit,d0
 		neg.w	d0
 		swap	d0
-		move.w	($FFFFF708).w,d0
+		move.w	scrb_h_posit,d0
 		neg.w	d0
 
 loc_6576:
@@ -7301,10 +7277,10 @@ locret_6766:
 
 
 ScrollBlock1:				; XREF: Deform_GHZ; et al
-		move.l	($FFFFF708).w,d2
+		move.l	scrb_h_posit,d2
 		move.l	d2,d0
 		add.l	d4,d0
-		move.l	d0,($FFFFF708).w
+		move.l	d0,scrb_h_posit
 		move.l	d0,d1
 		swap	d1
 		andi.w	#$10,d1
@@ -7351,10 +7327,10 @@ locret_67D0:
 
 
 ScrollBlock2:				; XREF: Deform_SLZ
-		move.l	($FFFFF708).w,d2
+		move.l	scrb_h_posit,d2
 		move.l	d2,d0
 		add.l	d4,d0
-		move.l	d0,($FFFFF708).w
+		move.l	d0,scrb_h_posit
 		move.l	scrb_v_posit,d3
 		move.l	d3,d0
 		add.l	d5,d0
@@ -7410,19 +7386,19 @@ locret_6842:
 
 
 ScrollBlock4:				; XREF: Deform_GHZ
-		move.w	($FFFFF710).w,d2
-		move.w	($FFFFF714).w,d3
+		move.w	scrc_h_posit,d2
+		move.w	scrc_v_posit,d3
 		move.w	($FFFFF73A).w,d0
 		ext.l	d0
 		asl.l	#7,d0
-		add.l	d0,($FFFFF710).w
-		move.w	($FFFFF710).w,d0
+		add.l	d0,scrc_h_posit
+		move.w	scrc_h_posit,d0
 		andi.w	#$10,d0
 		move.b	($FFFFF74E).w,d1
 		eor.b	d1,d0
 		bne.b	locret_6884
 		eori.b	#$10,($FFFFF74E).w
-		move.w	($FFFFF710).w,d0
+		move.w	scrc_h_posit,d0
 		sub.w	d2,d0
 		bpl.b	loc_687E
 		bset	#2,($FFFFF758).w
@@ -7444,12 +7420,12 @@ sub_6886:				; XREF: loc_C44
 		lea	($C00004).l,a5
 		lea	($C00000).l,a6
 		lea	($FFFFF756).w,a2
-		lea	($FFFFF708).w,a3
+		lea	scrb_h_posit,a3
 		lea	($FFFFA440).w,a4
 		move.w	#$6000,d2
 		bsr.w	sub_6954
 		lea	($FFFFF758).w,a2
-		lea	($FFFFF710).w,a3
+		lea	scrc_h_posit,a3
 		bra.w	sub_69F4
 ; End of function sub_6886
 
@@ -7916,7 +7892,7 @@ mapwrt:			; XREF: Level; EndingSequence
 		lea	($FFFFA400).w,a4
 		move.w	#$4000,d2
 		bsr.b	mapwrt2
-		lea	($FFFFF708).w,a3
+		lea	scrb_h_posit,a3
 		lea	($FFFFA440).w,a4
 		move.w	#$6000,d2
 ; End of function mapwrt
@@ -9604,7 +9580,7 @@ thashi_Action:				; XREF: thashi_Index
 
 
 thashi_RotateSpikes:			; XREF: thashi_Action; thashi_Display
-		move.b	($FFFFFEC1).w,d0
+		move.b	sys_patno,d0
 		move.b	#0,$20(a0)	; make object harmless
 		add.b	$3E(a0),d0
 		andi.b	#7,d0
@@ -10734,7 +10710,7 @@ buta_Main:				; XREF: buta_Index
 		move.b	#5,$20(a0)
 		move.b	#$C,$19(a0)
 		bsr.w	speedset
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	locret_8BAC
 		add.w	d1,$C(a0)
@@ -10818,7 +10794,7 @@ Obj20_Bounce:				; XREF: Obj20_Index
 		jsr	speedset
 		tst.w	$12(a0)
 		bmi.b	Obj20_ChkExplode
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	Obj20_ChkExplode
 		add.w	d1,$C(a0)
@@ -11029,23 +11005,34 @@ byte_8F1C:	dc.b 1
 ; Object 28 - animals
 ; ---------------------------------------------------------------------------
 
-usagi:					; XREF: act_tbl
+usagi:
 		moveq	#0,d0
-		move.b	$24(a0),d0
-		move.w	usagi_Index(pc,d0.w),d1
-		jmp	usagi_Index(pc,d1.w)
-; ===========================================================================
-usagi_Index:	dc.w usagi_Ending-usagi_Index, loc_912A-usagi_Index
-		dc.w loc_9184-usagi_Index, loc_91C0-usagi_Index
-		dc.w loc_9184-usagi_Index, loc_9184-usagi_Index
-		dc.w loc_9184-usagi_Index, loc_91C0-usagi_Index
-		dc.w loc_9184-usagi_Index, loc_9240-usagi_Index
-		dc.w loc_9260-usagi_Index, loc_9260-usagi_Index
-		dc.w loc_9280-usagi_Index, loc_92BA-usagi_Index
-		dc.w loc_9314-usagi_Index, loc_9332-usagi_Index
-		dc.w loc_9314-usagi_Index, loc_9332-usagi_Index
-		dc.w loc_9314-usagi_Index, loc_9370-usagi_Index
-		dc.w loc_92D6-usagi_Index
+		move.b	r_no0(a0),d0
+		move.w	usagi_move_tbl(pc,d0.w),d1
+		jmp		usagi_move_tbl(pc,d1.w)
+
+usagi_move_tbl:
+		dc.w	usagiinit-usagi_move_tbl
+		dc.w	usagimove0-usagi_move_tbl
+		dc.w	usagimove1-usagi_move_tbl
+		dc.w	usagimove2-usagi_move_tbl
+		dc.w	usagimove1-usagi_move_tbl
+		dc.w	usagimove1-usagi_move_tbl
+		dc.w	usagimove1-usagi_move_tbl
+		dc.w	usagimove2-usagi_move_tbl
+		dc.w	usagimove1-usagi_move_tbl
+		dc.w	usagimove3-usagi_move_tbl
+		dc.w	usagimove4-usagi_move_tbl
+		dc.w	usagimove4-usagi_move_tbl
+		dc.w	usagimove5-usagi_move_tbl
+		dc.w	usagimove6-usagi_move_tbl
+		dc.w	usagimove7-usagi_move_tbl
+		dc.w	usagimove8-usagi_move_tbl
+		dc.w	usagimove7-usagi_move_tbl
+		dc.w	usagimove8-usagi_move_tbl
+		dc.w	usagimove7-usagi_move_tbl
+		dc.w	usagimove9-usagi_move_tbl
+		dc.w	usagimove10-usagi_move_tbl
 
 usagi_VarIndex:	dc.b 0,	5, 2, 3, 6, 3, 4, 5, 4,	1, 0, 1
 
@@ -11068,15 +11055,18 @@ usagi_EndSpeed:	dc.w $FBC0, $FC00, $FBC0, $FC00, $FBC0,	$FC00, $FD00, $FC00
 		dc.w $FD00, $FC00, $FE80, $FD00, $FE80,	$FD00, $FEC0, $FE80
 		dc.w $FE40, $FD00, $FE00, $FD00, $FD80,	$FC80
 
-usagi_EndMap:	dc.l flicpat, flicpat, flicpat, usagipat, usagipat
-		dc.l usagipat,	usagipat, flicpat, fbutapat, flicpat
-		dc.l fbutapat
+usagi_EndMap:
+		dc.l	flicpat,flicpat,flicpat,usagipat,usagipat
+		dc.l	pengpat,pengpat,azarpat,fbutapat,niwapat
+		dc.l	risupat
 
-usagi_EndVram:	dc.w $5A5, $5A5, $5A5, $553, $553, $573, $573, $585, $593
-		dc.w $565, $5B3
+usagi_EndVram:
+		dc.w	$05a5,$05a5,$05a5,$0553,$0553
+		dc.w	$0573,$0573,$0585,$0593,$0565
+		dc.w	$05b3
 ; ===========================================================================
 
-usagi_Ending:				; XREF: usagi_Index
+usagiinit:				; XREF: usagi_move_tbl
 		tst.b	$28(a0)		; did animal come from a destroyed enemy?
 		beq.w	usagi_FromEnemy	; if yes, branch
 		moveq	#0,d0
@@ -11101,7 +11091,7 @@ usagi_Ending:				; XREF: usagi_Index
 		bra.w	actionsub
 ; ===========================================================================
 
-usagi_FromEnemy:			; XREF: usagi_Ending
+usagi_FromEnemy:			; XREF: usagiinit
 		addq.b	#2,$24(a0)
 		bsr.w	random
 		andi.w	#1,d0
@@ -11153,13 +11143,13 @@ loc_911C:
 		bra.w	actionsub
 ; ===========================================================================
 
-loc_912A:				; XREF: usagi_Index
+usagimove0:				; XREF: usagi_move_tbl
 		tst.b	1(a0)
 		bpl.w	frameout
 		bsr.w	speedset
 		tst.w	$12(a0)
 		bmi.b	loc_9180
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	loc_9180
 		add.w	d1,$C(a0)
@@ -11181,13 +11171,13 @@ loc_9180:
 		bra.w	actionsub
 ; ===========================================================================
 
-loc_9184:				; XREF: usagi_Index
+usagimove1:				; XREF: usagi_move_tbl
 		bsr.w	speedset
 		move.b	#1,$1A(a0)
 		tst.w	$12(a0)
 		bmi.b	loc_91AE
 		move.b	#0,$1A(a0)
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	loc_91AE
 		add.w	d1,$C(a0)
@@ -11201,12 +11191,12 @@ loc_91AE:
 		bra.w	actionsub
 ; ===========================================================================
 
-loc_91C0:				; XREF: usagi_Index
+usagimove2:				; XREF: usagi_move_tbl
 		bsr.w	speedset2
 		addi.w	#$18,$12(a0)
 		tst.w	$12(a0)
 		bmi.b	loc_91FC
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	loc_91FC
 		add.w	d1,$C(a0)
@@ -11233,7 +11223,7 @@ loc_9212:
 		bra.w	actionsub
 ; ===========================================================================
 
-loc_9224:				; XREF: usagi_Index
+loc_9224:				; XREF: usagi_move_tbl
 		move.w	8(a0),d0
 		sub.w	playerwk+xposi,d0
 		bcs.b	loc_923C
@@ -11246,7 +11236,7 @@ loc_923C:
 		bra.w	actionsub
 ; ===========================================================================
 
-loc_9240:				; XREF: usagi_Index
+usagimove3:				; XREF: usagi_move_tbl
 		tst.b	1(a0)
 		bpl.w	frameout
 		subq.w	#1,$36(a0)
@@ -11258,20 +11248,20 @@ loc_925C:
 		bra.w	actionsub
 ; ===========================================================================
 
-loc_9260:				; XREF: usagi_Index
+usagimove4:				; XREF: usagi_move_tbl
 		bsr.w	sub_9404
 		bcc.b	loc_927C
 		move.w	$32(a0),$10(a0)
 		move.w	$34(a0),$12(a0)
 		move.b	#$E,$24(a0)
-		bra.w	loc_91C0
+		bra.w	usagimove2
 ; ===========================================================================
 
 loc_927C:
 		bra.w	loc_9224
 ; ===========================================================================
 
-loc_9280:				; XREF: usagi_Index
+usagimove5:				; XREF: usagi_move_tbl
 		bsr.w	sub_9404
 		bpl.b	loc_92B6
 		clr.w	$10(a0)
@@ -11290,22 +11280,22 @@ loc_92B6:
 		bra.w	loc_9224
 ; ===========================================================================
 
-loc_92BA:				; XREF: usagi_Index
+usagimove6:				; XREF: usagi_move_tbl
 		bsr.w	sub_9404
 		bpl.b	loc_9310
 		move.w	$32(a0),$10(a0)
 		move.w	$34(a0),$12(a0)
 		move.b	#4,$24(a0)
-		bra.w	loc_9184
+		bra.w	usagimove1
 ; ===========================================================================
 
-loc_92D6:				; XREF: usagi_Index
+usagimove10:				; XREF: usagi_move_tbl
 		bsr.w	speedset
 		move.b	#1,$1A(a0)
 		tst.w	$12(a0)
 		bmi.b	loc_9310
 		move.b	#0,$1A(a0)
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	loc_9310
 		not.b	$29(a0)
@@ -11321,7 +11311,7 @@ loc_9310:
 		bra.w	loc_9224
 ; ===========================================================================
 
-loc_9314:				; XREF: usagi_Index
+usagimove7:				; XREF: usagi_move_tbl
 		bsr.w	sub_9404
 		bpl.b	loc_932E
 		clr.w	$10(a0)
@@ -11334,7 +11324,7 @@ loc_932E:
 		bra.w	loc_9224
 ; ===========================================================================
 
-loc_9332:				; XREF: usagi_Index
+usagimove8:				; XREF: usagi_move_tbl
 		bsr.w	sub_9404
 		bpl.b	loc_936C
 		bsr.w	speedset
@@ -11342,7 +11332,7 @@ loc_9332:				; XREF: usagi_Index
 		tst.w	$12(a0)
 		bmi.b	loc_936C
 		move.b	#0,$1A(a0)
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	loc_936C
 		neg.w	$10(a0)
@@ -11354,14 +11344,14 @@ loc_936C:
 		bra.w	loc_9224
 ; ===========================================================================
 
-loc_9370:				; XREF: usagi_Index
+usagimove9:				; XREF: usagi_move_tbl
 		bsr.w	sub_9404
 		bpl.b	loc_93C0
 		bsr.w	speedset2
 		addi.w	#$18,$12(a0)
 		tst.w	$12(a0)
 		bmi.b	loc_93AA
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	loc_93AA
 		not.b	$29(a0)
@@ -11389,7 +11379,7 @@ loc_93C4:
 		tst.w	$12(a0)
 		bmi.b	locret_93EA
 		move.b	#0,$1A(a0)
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	locret_93EA
 		add.w	d1,$C(a0)
@@ -11419,41 +11409,34 @@ sub_9404:
 		rts	
 ; End of function sub_9404
 
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Object 29 - points that appear when you destroy something
-; ---------------------------------------------------------------------------
-
-Obj29:					; XREF: act_tbl
+;------------------------------------------------------------------------------
+ten:
 		moveq	#0,d0
-		move.b	$24(a0),d0
-		move.w	Obj29_Index(pc,d0.w),d1
-		jsr	Obj29_Index(pc,d1.w)
+		move.b	r_no0(a0),d0
+		move.w	ten_move_tbl(pc,d0.w),d1
+		jsr		ten_move_tbl(pc,d1.w)
 		bra.w	actionsub
-; ===========================================================================
-Obj29_Index:	dc.w Obj29_Main-Obj29_Index
-		dc.w Obj29_Slower-Obj29_Index
-; ===========================================================================
 
-Obj29_Main:				; XREF: Obj29_Index
-		addq.b	#2,$24(a0)
-		move.l	#Map_obj29,4(a0)
-		move.w	#$2797,2(a0)
-		move.b	#4,1(a0)
-		move.b	#1,$18(a0)
-		move.b	#8,$19(a0)
-		move.w	#-$300,$12(a0)	; move object upwards
+ten_move_tbl:
+		dc.w	ten_init-ten_move_tbl
+		dc.w	ten_move-ten_move_tbl
 
-Obj29_Slower:				; XREF: Obj29_Index
-		tst.w	$12(a0)		; is object moving?
-		bpl.w	frameout	; if not, branch
+ten_init:
+		addq.b	#word,r_no0(a0)
+		move.l	#tenpat,patbase(a0)
+		move.w	#$2797,sproffset(a0)
+		move.b	#4,actflg(a0)
+		move.b	#1,sprhs(a0)
+		move.b	#8,sprpri(a0)
+		move.w	#-768,yspeed(a0)
+
+ten_move:
+		tst.w	yspeed(a0)
+		bpl.w	frameout
 		bsr.w	speedset2
-		addi.w	#$18,$12(a0)	; reduce object	speed
+		addi.w	#24,yspeed(a0)
 		rts	
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Sprite mappings - animals
-; ---------------------------------------------------------------------------
+
 usagipat:
 pengpat:
 	include "_maps\usagi.asm"
@@ -11467,31 +11450,54 @@ fbutapat:
 risupat:
 	include "_maps\usagib.asm"
 
-; ---------------------------------------------------------------------------
-; Sprite mappings - points that	appear when you	destroy	something
-; ---------------------------------------------------------------------------
-Map_obj29:
-	include "_maps\obj29.asm"
+tenpat:
+		dc.w	tenpat0-tenpat
+		dc.w	tenpat1-tenpat
+		dc.w	tenpat2-tenpat
+		dc.w	tenpat3-tenpat
+		dc.w	tenpat4-tenpat
+		dc.w	tenpat5-tenpat
+		dc.w	tenpat6-tenpat
+tenpat0:
+		dc.b	1
+		dc.b	$fc,$04,$00,$00,$f8	;1:
+tenpat1:
+		dc.b	1
+		dc.b	$fc,$04,$00,$02,$f8	;1:
+tenpat2:
+		dc.b	1
+		dc.b	$fc,$04,$00,$04,$f8	;1:
+tenpat3:
+		dc.b	1
+		dc.b	$fc,$08,$00,$06,$f8	;1:
+tenpat4:
+		dc.b	1
+		dc.b	$fc,$00,$00,$06,$fc	;1:
+tenpat5:
+		dc.b	2
+		dc.b	$fc,$08,$00,$06,$f4	;1:
+		dc.b	$fc,$04,$00,$07,$01	;2:
+tenpat6:
+		dc.b	2
+		dc.b	$fc,$08,$00,$06,$f4	;1:
+		dc.b	$fc,$04,$00,$07,$06	;2:
 
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Object 1F - Crabmeat enemy (GHZ, SYZ)
-; ---------------------------------------------------------------------------
+;------------------------------------------------------------------------------
+		align
+;------------------------------------------------------------------------------
 
 kani:					; XREF: act_tbl
 		moveq	#0,d0
 		move.b	$24(a0),d0
 		move.w	kani_Index(pc,d0.w),d1
 		jmp	kani_Index(pc,d1.w)
-; ===========================================================================
-kani_Index:	dc.w kani_Main-kani_Index
-		dc.w kani_Action-kani_Index
-		dc.w kani_Delete-kani_Index
-		dc.w kani_BallMain-kani_Index
-		dc.w kani_BallMove-kani_Index
-; ===========================================================================
-
-kani_Main:				; XREF: kani_Index
+kani_Index:
+		dc.w	kani_Main-kani_Index
+		dc.w	kani_Action-kani_Index
+		dc.w	kani_Delete-kani_Index
+		dc.w	kani_BallMain-kani_Index
+		dc.w	kani_BallMove-kani_Index
+kani_Main:
 		move.b	#$10,$16(a0)
 		move.b	#8,$17(a0)
 		move.l	#kanipat,4(a0)
@@ -11501,7 +11507,7 @@ kani_Main:				; XREF: kani_Index
 		move.b	#6,$20(a0)
 		move.b	#$15,$19(a0)
 		bsr.w	speedset
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	locret_955A
 		add.w	d1,$C(a0)
@@ -11588,7 +11594,7 @@ kani_WalkOnFloor:			; XREF: kani_Index2
 		subi.w	#$20,d3
 
 loc_9640:
-		jsr	ObjHitFloor2
+		jsr	emycol_d2
 		cmpi.w	#-8,d1
 		blt.b	loc_966E
 		cmpi.w	#$C,d1
@@ -11597,7 +11603,7 @@ loc_9640:
 ; ===========================================================================
 
 loc_9654:				; XREF: kani_WalkOnFloor
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		add.w	d1,$C(a0)
 		move.b	d3,$26(a0)
 		bsr.w	kani_SetAni
@@ -12030,7 +12036,7 @@ loc_9C0E:
 		bne.w	frameout
 
 ring_Animate:				; XREF: ring_Index
-		move.b	($FFFFFEC3).w,$1A(a0) ;	set frame
+		move.b	sys_patno2,$1A(a0) ;	set frame
 		bsr.w	actionsub
 		move.w	$32(a0),d0
 		andi.w	#$FF80,d0
@@ -12055,7 +12061,7 @@ ring_Collect:				; XREF: ring_Index
 		bset	d1,2(a2,d0.w)
 
 ring_Sparkle:				; XREF: ring_Index
-		lea	(Ani_ring).l,a1
+		lea	(ringchg).l,a1
 		bsr.w	patchg
 		bra.w	actionsub
 ; ===========================================================================
@@ -12095,52 +12101,46 @@ ring_PlaySnd:
 
 flyring:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
-		move.w	flyring_Index(pc,d0.w),d1
-		jmp	flyring_Index(pc,d1.w)
-; ===========================================================================
-flyring_Index:	dc.w flyring_CountRings-flyring_Index
-		dc.w flyring_Bounce-flyring_Index
-		dc.w flyring_Collect-flyring_Index
-		dc.w flyring_Sparkle-flyring_Index
-		dc.w flyring_Delete-flyring_Index
-; ===========================================================================
-
-flyring_CountRings:			; XREF: flyring_Index
+		move.b	r_no0(a0),d0
+		move.w	flyring_move_tbl(pc,d0.w),d1
+		jmp		flyring_move_tbl(pc,d1.w)
+flyring_move_tbl:
+		dc.w	flyringinit-flyring_move_tbl
+		dc.w	flyringmove-flyring_move_tbl
+		dc.w	flyringget-flyring_move_tbl
+		dc.w	flyringdie-flyring_move_tbl
+		dc.w	flyringerase-flyring_move_tbl
+flyringinit:
 		movea.l	a0,a1
 		moveq	#0,d5
-		move.w	plring,d5 ; check number	of rings you have
+		move.w	plring,d5
 		moveq	#32,d0
-		cmp.w	d0,d5		; do you have 32 or more?
-		bcs.b	loc_9CDE	; if not, branch
-		move.w	d0,d5		; if yes, set d5 to 32
-
-loc_9CDE:
+		cmp.w	d0,d5
+		bcs.b	?jump0
+		move.w	d0,d5
+?jump0:
 		subq.w	#1,d5
 		move.w	#$288,d4
-		bra.b	flyring_MakeRings
-; ===========================================================================
-
-flyring_Loop:
+		bra.b	?jump1
+?loop:
 		bsr.w	actwkchk
-		bne.w	flyring_ResetCounter
-
-flyring_MakeRings:			; XREF: flyring_CountRings
-		move.b	#$37,0(a1)	; load bouncing	ring object
-		addq.b	#2,$24(a1)
-		move.b	#8,$16(a1)
-		move.b	#8,$17(a1)
-		move.w	8(a0),8(a1)
-		move.w	$C(a0),$C(a1)
-		move.l	#ringpat,4(a1)
-		move.w	#$27B2,2(a1)
-		move.b	#4,1(a1)
-		move.b	#3,$18(a1)
-		move.b	#$47,$20(a1)
-		move.b	#8,$19(a1)
-		move.b	#-1,($FFFFFEC6).w
+		bne.w	?jump3
+?jump1:
+		move.b	#flyring_act,actno(a1)
+		addq.b	#word,r_no0(a1)
+		move.b	#8,sprvsize(a1)
+		move.b	#8,sprhsize(a1)
+		move.w	xposi(a0),xposi(a1)
+		move.w	yposi(a0),yposi(a1)
+		move.l	#ringpat,patbase(a1)
+		move.w	#$27b2,sproffset(a1)
+		move.b	#4,actflg(a1)
+		move.b	#3,sprhs(a1)
+		move.b	#$47,colino(a1)
+		move.b	#8,sprpri(a1)
+		move.b	#-1,sys_pattim4
 		tst.w	d4
-		bmi.b	loc_9D62
+		bmi.b	?jump2
 		move.w	d4,d0
 		bsr.w	sinset
 		move.w	d4,d2
@@ -12150,68 +12150,61 @@ flyring_MakeRings:			; XREF: flyring_CountRings
 		move.w	d0,d2
 		move.w	d1,d3
 		addi.b	#$10,d4
-		bcc.b	loc_9D62
+		bcc.b	?jump2
 		subi.w	#$80,d4
-		bcc.b	loc_9D62
+		bcc.b	?jump2
 		move.w	#$288,d4
-
-loc_9D62:
-		move.w	d2,$10(a1)
-		move.w	d3,$12(a1)
+?jump2:
+		move.w	d2,xspeed(a1)
+		move.w	d3,yspeed(a1)
 		neg.w	d2
 		neg.w	d4
-		dbra	d5,flyring_Loop	; repeat for number of rings (max 31)
-
-flyring_ResetCounter:			; XREF: flyring_Loop
-		move.w	#0,plring ; reset number	of rings to zero
-		move.b	#$80,plring_f ; update ring counter
+		dbra	d5,?loop
+?jump3:
+		move.w	#0,plring
+		move.b	#$80,plring_f
 		move.b	#0,plring_f2
 		move.w	#$C6,d0
-		jsr	(soundset).l ;	play ring loss sound
-
-flyring_Bounce:				; XREF: flyring_Index
-		move.b	($FFFFFEC7).w,$1A(a0)
+		jsr		soundset
+flyringmove:
+		move.b	sys_patno4,patno(a0)
 		bsr.w	speedset2
-		addi.w	#$18,$12(a0)
-		bmi.b	flyring_ChkDel
+		addi.w	#$18,yspeed(a0)
+		bmi.b	?jump
 		move.b	($FFFFFE0F).w,d0
 		add.b	d7,d0
 		andi.b	#3,d0
-		bne.b	flyring_ChkDel
-		jsr	ObjHitFloor
+		bne.b	?jump
+		jsr		emycol_d
 		tst.w	d1
-		bpl.b	flyring_ChkDel
-		add.w	d1,$C(a0)
-		move.w	$12(a0),d0
+		bpl.b	?jump
+		add.w	d1,yposi(a0)
+		move.w	yspeed(a0),d0
 		asr.w	#2,d0
-		sub.w	d0,$12(a0)
-		neg.w	$12(a0)
-
-flyring_ChkDel:				; XREF: flyring_Bounce
-		tst.b	($FFFFFEC6).w
-		beq.b	flyring_Delete
+		sub.w	d0,yspeed(a0)
+		neg.w	yspeed(a0)
+?jump:
+		tst.b	sys_pattim4
+		beq.b	flyringerase
 		move.w	($FFFFF72E).w,d0
 		addi.w	#$E0,d0
-		cmp.w	$C(a0),d0	; has object moved below level boundary?
-		bcs.b	flyring_Delete	; if yes, branch
+		cmp.w	yposi(a0),d0
+		bcs.b	flyringerase
 		bra.w	actionsub
-; ===========================================================================
 
-flyring_Collect:				; XREF: flyring_Index
-		addq.b	#2,$24(a0)
-		move.b	#0,$20(a0)
-		move.b	#1,$18(a0)
+flyringget:
+		addq.b	#2,r_no0(a0)
+		move.b	#0,colino(a0)
+		move.b	#1,sprhs(a0)
 		bsr.w	CollectRing
-
-flyring_Sparkle:				; XREF: flyring_Index
-		lea	(Ani_ring).l,a1
+flyringdie:
+		lea		ringchg,a1
 		bsr.w	patchg
 		bra.w	actionsub
-; ===========================================================================
 
-flyring_Delete:				; XREF: flyring_Index
+flyringerase:
 		bra.w	frameout
-; ===========================================================================
+
 ; ---------------------------------------------------------------------------
 ; Object 4B - giant ring for entry to special stage
 ; ---------------------------------------------------------------------------
@@ -12249,7 +12242,7 @@ Obj4B_Okay:				; XREF: Obj4B_Main
 		move.w	#$C40,($FFFFF7BE).w
 
 Obj4B_Animate:				; XREF: Obj4B_Index
-		move.b	($FFFFFEC3).w,$1A(a0)
+		move.b	sys_patno2,$1A(a0)
 		move.w	8(a0),d0
 		andi.w	#$FF80,d0
 		move.w	scra_h_posit,d1
@@ -12355,7 +12348,7 @@ Obj7C_End:				; XREF: Obj7C_Collect
 Obj7C_Delete:				; XREF: Obj7C_Index
 		bra.w	frameout
 ; ===========================================================================
-Ani_ring:
+ringchg:
 	include "_anim\ring.asm"
 
 ; ---------------------------------------------------------------------------
@@ -12442,7 +12435,7 @@ loc_A1BC:				; XREF: item_Solid
 
 item_Fall:				; XREF: item_Solid
 		bsr.w	speedset
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.w	item_Animate
 		add.w	d1,$C(a0)
@@ -13152,14 +13145,14 @@ mogura_Move:				; XREF: mogura_Index2
 		subi.w	#$18,d3
 
 loc_AD6A:
-		jsr	ObjHitFloor2
+		jsr	emycol_d2
 		cmpi.w	#$C,d1
 		bge.b	loc_AD84
 		rts	
 ; ===========================================================================
 
 loc_AD78:				; XREF: mogura_Move
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		add.w	d1,$C(a0)
 		rts	
 ; ===========================================================================
@@ -13186,7 +13179,7 @@ mogura_Jump:				; XREF: mogura_Index2
 		addi.w	#$18,$12(a0)
 		bmi.b	locret_ADF0
 		move.b	#3,$1C(a0)
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	locret_ADF0
 		add.w	d1,$C(a0)
@@ -14667,7 +14660,7 @@ loc_C056:
 		btst	#1,$22(a0)
 		beq.b	loc_C0A0
 		addi.w	#$18,$12(a0)
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.w	loc_C09E
 		add.w	d1,$C(a0)
@@ -14801,7 +14794,7 @@ loc_C1AA:
 		bne.b	loc_C1F2
 		bsr.w	speedset2
 		addi.w	#$18,$12(a0)
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.w	locret_C1F0
 		add.w	d1,$C(a0)
@@ -14889,7 +14882,7 @@ loc_C294:
 		tst.b	$28(a0)
 		bmi.b	locret_C2E4
 		move.w	d0,-(sp)
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		move.w	(sp)+,d0
 		cmpi.w	#4,d1
 		ble.b	loc_C2E0
@@ -16047,84 +16040,69 @@ togepat:
 	include "_maps\toge.asm"
 
 ; ===========================================================================
-; ---------------------------------------------------------------------------
-; Object 3B - purple rock (GHZ)
-; ---------------------------------------------------------------------------
 
-jyama:					; XREF: act_tbl
+jyama:
 		moveq	#0,d0
-		move.b	$24(a0),d0
-		move.w	jyama_Index(pc,d0.w),d1
-		jmp	jyama_Index(pc,d1.w)
-; ===========================================================================
-jyama_Index:	dc.w jyama_Main-jyama_Index
-		dc.w jyama_Solid-jyama_Index
-; ===========================================================================
-
-jyama_Main:				; XREF: jyama_Index
-		addq.b	#2,$24(a0)
-		move.l	#jyamapat,4(a0)
-		move.w	#$63D0,2(a0)
-		move.b	#4,1(a0)
-		move.b	#$13,$19(a0)
-		move.b	#4,$18(a0)
-
-jyama_Solid:				; XREF: jyama_Index
-		move.w	#$1B,d1
-		move.w	#$10,d2
-		move.w	#$10,d3
-		move.w	8(a0),d4
+		move.b	r_no0(a0),d0
+		move.w	jyama_move_tbl(pc,d0.w),d1
+		jmp		jyama_move_tbl(pc,d1.w)
+jyama_move_tbl:
+		dc.w	jyamainit-jyama_move_tbl
+		dc.w	jyamamove-jyama_move_tbl
+jyamainit:
+		addq.b	#word,r_no0(a0)
+		move.l	#jyamapat,patbase(a0)
+		move.w	#$63d0,sproffset(a0)
+		move.b	#4,actflg(a0)
+		move.b	#19,sprpri(a0)
+		move.b	#4,sprhs(a0)
+jyamamove:
+		move.w	#27,d1
+		move.w	#16,d2
+		move.w	#16,d3
+		move.w	xposi(a0),d4
 		bsr.w	hitchk
 		bsr.w	actionsub
-		move.w	8(a0),d0
-		andi.w	#$FF80,d0
+		move.w	xposi(a0),d0
+		andi.w	#$ff80,d0
 		move.w	scra_h_posit,d1
 		subi.w	#$80,d1
-		andi.w	#$FF80,d1
+		andi.w	#$ff80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
 		bhi.w	frameout
 		rts	
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Object 49 - waterfall	sound effect (GHZ)
-; ---------------------------------------------------------------------------
 
-Obj49:					; XREF: act_tbl
+taki:
 		moveq	#0,d0
-		move.b	$24(a0),d0
-		move.w	Obj49_Index(pc,d0.w),d1
-		jmp	Obj49_Index(pc,d1.w)
-; ===========================================================================
-Obj49_Index:	dc.w Obj49_Main-Obj49_Index
-		dc.w Obj49_PlaySnd-Obj49_Index
-; ===========================================================================
+		move.b	r_no0(a0),d0
+		move.w	taki_move_tbl(pc,d0.w),d1
+		jmp		taki_move_tbl(pc,d1.w)
+taki_move_tbl:
+		dc.w	takiinit-taki_move_tbl
+		dc.w	takimove-taki_move_tbl
+takiinit:
+		addq.b	#word,r_no0(a0)
+		move.b	#4,actflg(a0)
 
-Obj49_Main:				; XREF: Obj49_Index
-		addq.b	#2,$24(a0)
-		move.b	#4,1(a0)
-
-Obj49_PlaySnd:				; XREF: Obj49_Index
+takimove:
 		move.b	($FFFFFE0F).w,d0
 		andi.b	#$3F,d0
-		bne.b	Obj49_ChkDel
+		bne.b	?jump
 		move.w	#$D0,d0
-		jsr	(soundset).l ;	play waterfall sound
+		jsr		soundset
 
-Obj49_ChkDel:
-		move.w	8(a0),d0
-		andi.w	#$FF80,d0
+?jump:
+		move.w	xposi(a0),d0
+		andi.w	#$ff80,d0
 		move.w	scra_h_posit,d1
 		subi.w	#$80,d1
-		andi.w	#$FF80,d1
+		andi.w	#$ff80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
 		bhi.w	frameout
-		rts	
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Sprite mappings - purple rock	(GHZ)
-; ---------------------------------------------------------------------------
+		rts
+
 jyamapat:
 	include "_maps\jyama.asm"
 
@@ -16339,11 +16317,11 @@ act_tbl:
 		dc.l	hashi,signal,mfire,fire,buranko,yari,thashi,shima
 		dc.l	Obj19,break,water,bgspr,switch,buta,kani,Obj20
 		dc.l	score,hachi,Obj23,Obj24,ring,item,bakuhatu,usagi
-		dc.l	Obj29,door,fish,fish2,mogura,item2,yuka,ochi
+		dc.l	ten,door,fish,fish2,mogura,item2,yuka,ochi
 		dc.l	turi,switch2,box,Obj34,Obj35,toge,flyring,effect
 		dc.l	Obj39,Obj3A,jyama,brkabe,boss1,masin,Obj3F,musi
 		dc.l	sjump,kamere,aruma,kageb,Obj45,fblock,bobin,btama
-		dc.l	Obj49,Obj4A,Obj4B,myogan,yogan,yogan2,usa,yado
+		dc.l	taki,Obj4A,Obj4B,myogan,yogan,yogan2,usa,yado
 		dc.l	bryuka,dai,break2,yoganc,bat,dai2,Obj57,Obj58
 		dc.l	elev,pedal,step,Obj5C,fun,sisoo,brobo,uni
 		dc.l	dai3,kazari,kassya,awa,mizu,mawaru,haguruma,beltcon
@@ -16436,9 +16414,9 @@ loc_D646:
 
 ; ===========================================================================
 BldSpr_ScrPos:	dc.l 0			; blank
-		dc.l $FFF700		; main screen x-position
-		dc.l $FFF708		; background x-position	1
-		dc.l $FFF718		; background x-position	2
+		dc.l scra_h_posit		; main screen x-position
+		dc.l scrb_h_posit		; background x-position	1
+		dc.l scrz_h_posit		; background x-position	2
 ; ---------------------------------------------------------------------------
 ; Subroutine to	convert	mappings (etc) to proper Megadrive sprites
 ; ---------------------------------------------------------------------------
@@ -17331,7 +17309,7 @@ kamere_Fall:				; XREF: kamere_Type00
 
 loc_DE42:
 		bsr.w	speedset
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		tst.w	d1		; has newtron hit the floor?
 		bpl.b	locret_DE86	; if not, branch
 		add.w	d1,$C(a0)
@@ -17355,7 +17333,7 @@ locret_DE86:
 
 kamere_MatchFloor:			; XREF: kamere_Index2
 		bsr.w	speedset2
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		cmpi.w	#-8,d1
 		blt.b	loc_DEA2
 		cmpi.w	#$C,d1
@@ -17438,7 +17416,7 @@ aruma_Main:				; XREF: aruma_Index
 		move.b	#$E,$16(a0)
 		move.b	#8,$17(a0)
 		bsr.w	speedset
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		tst.w	d1
 		bpl.b	locret_E052
 		add.w	d1,$C(a0)	; match	roller's position with the floor
@@ -17525,7 +17503,7 @@ loc_E0F8:
 aruma_ChkJump:				; XREF: aruma_Index2
 		bsr.w	aruma_Stop
 		bsr.w	speedset2
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		cmpi.w	#-8,d1
 		blt.b	aruma_Jump
 		cmpi.w	#$C,d1
@@ -17548,7 +17526,7 @@ aruma_MatchFloor:			; XREF: aruma_Index2
 		bsr.w	speedset
 		tst.w	$12(a0)
 		bmi.b	locret_E150
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		tst.w	d1
 		bpl.b	locret_E150
 		add.w	d1,$C(a0)	; match	Roller's position with the floor
@@ -17806,7 +17784,7 @@ locret_E452:
 
 fire_Type05:				; XREF: fire_TypeIndex
 		bclr	#1,$22(a0)
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		tst.w	d1
 		bpl.b	locret_E474
 		move.b	#8,$28(a0)
@@ -18027,7 +18005,7 @@ loc_E8A8:
 fblock_Type03:				; XREF: fblock_TypeIndex
 		bsr.w	speedset2
 		addi.w	#$18,$12(a0)	; increase falling speed
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		tst.w	d1		; has the block	hit the	floor?
 		bpl.w	locret_E8EE	; if not, branch
 		add.w	d1,$C(a0)
@@ -18880,7 +18858,7 @@ musi_Main:				; XREF: musi_Index
 		move.b	#8,$17(a0)
 		move.b	#$C,$20(a0)
 		bsr.w	speedset
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	locret_F68A
 		add.w	d1,$C(a0)	; match	object's position with the floor
@@ -18952,7 +18930,7 @@ locret_F70A:
 
 musi_FixToFloor:			; XREF: musi_Index2
 		bsr.w	speedset2
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		cmpi.w	#-8,d1
 		blt.b	musi_Pause
 		cmpi.w	#$C,d1
@@ -19064,7 +19042,7 @@ yado_Main:				; XREF: yado_Index
 		move.b	#8,$17(a0)
 		move.b	#$CC,$20(a0)
 		bsr.w	speedset
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		tst.w	d1
 		bpl.b	locret_F89E
 		add.w	d1,$C(a0)	; match	object's position with the floor
@@ -19105,7 +19083,7 @@ locret_F8E2:
 
 yado_FixToFloor:			; XREF: yado_Index2
 		bsr.w	speedset2
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		cmpi.w	#-8,d1
 		blt.b	yado_Pause
 		cmpi.w	#$C,d1
@@ -19710,7 +19688,7 @@ dai_05_End:
 dai_Type06:				; XREF: dai_TypeIndex
 		bsr.w	speedset2
 		addi.w	#$18,$12(a0)	; make the platform fall
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		tst.w	d1		; has platform hit the floor?
 		bpl.w	locret_FFA0	; if not, branch
 		add.w	d1,$C(a0)
@@ -21485,7 +21463,7 @@ bou_MoveDown:
 		move.w	d0,$C(a1)
 
 bou_LetGo:
-		move.b	($FFFFF603).w,d0
+		move.b	swdata+1,d0
 		andi.w	#$70,d0
 		beq.b	bou_Display
 
@@ -22623,7 +22601,7 @@ loc_120D6:
 dai3_Type02:				; XREF: dai3_TypeIndex
 		bsr.w	speedset2
 		addq.w	#8,$12(a0)	; make object fall
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		tst.w	d1
 		bpl.w	locret_12106
 		addq.w	#1,d1
@@ -22686,7 +22664,7 @@ loc_12162:				; XREF: dai3_Type07
 
 loc_1216A:
 		add.w	d0,$C(a0)	; make the block sink with water level
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		tst.w	d1
 		bpl.w	locret_1217E
 		addq.w	#1,d1
@@ -23699,7 +23677,7 @@ loc_12E0E:
 ; ---------------------------------------------------------------------------
 
 play00_MdNormal:				; XREF: play00_Modes
-		bsr.w	Sonic_Jump
+		bsr.w	jumpchk
 		bsr.w	Sonic_SlopeResist
 		bsr.w	Sonic_Move
 		bsr.w	ballchk
@@ -23720,13 +23698,13 @@ play00_MdJump:				; XREF: play00_Modes
 		subi.w	#$28,$12(a0)
 
 loc_12E5C:
-		bsr.w	Sonic_JumpAngle
+		bsr.w	jumpchkAngle
 		bsr.w	Sonic_Floor
 		rts	
 ; ===========================================================================
 
 play00_MdRoll:				; XREF: play00_Modes
-		bsr.w	Sonic_Jump
+		bsr.w	jumpchk
 		bsr.w	ballchkRepel
 		bsr.w	ballchkSpeed
 		bsr.w	limitchk
@@ -23746,7 +23724,7 @@ play00_MdJump2:				; XREF: play00_Modes
 		subi.w	#$28,$12(a0)
 
 loc_12EA6:
-		bsr.w	Sonic_JumpAngle
+		bsr.w	jumpchkAngle
 		bsr.w	Sonic_Floor
 		rts	
 ; ---------------------------------------------------------------------------
@@ -23806,7 +23784,7 @@ play00_NotRight:
 ; ===========================================================================
 
 Sonic_Balance:
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		cmpi.w	#$C,d1
 		blt.b	Sonic_LookUp
 		cmpi.b	#3,$36(a0)
@@ -24336,8 +24314,8 @@ ballset:
 		rts
 ?jump:
 		bset.b	#cd_ball,cddat(a0)
-		move.b	#14,sprhsize(a0)
-		move.b	#7,sprvsize(a0)
+		move.b	#14,sprvsize(a0)
+		move.b	#7,sprhsize(a0)
 		move.b	#2,mstno(a0)
 		addq.w	#5,yposi(a0)
 		move.w	#$BE,d0
@@ -24355,34 +24333,34 @@ ballset:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_Jump:				; XREF: play00_MdNormal; play00_MdRoll
-		move.b	($FFFFF603).w,d0
+jumpchk:				; XREF: play00_MdNormal; play00_MdRoll
+		move.b	swdata+1,d0
 		andi.b	#$70,d0		; is A,	B or C pressed?
 		beq.w	locret_1348E	; if not, branch
 		moveq	#0,d0
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		addi.b	#$80,d0
 		bsr.w	sub_14D48
 		cmpi.w	#6,d1
 		blt.w	locret_1348E
-		move.w	#$680,d2
-		btst	#6,$22(a0)
+		move.w	#$0680,d2
+		btst.b	#cd_die,cddat(a0)
 		beq.b	loc_1341C
 		move.w	#$380,d2
 
 loc_1341C:
 		moveq	#0,d0
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		subi.b	#$40,d0
-		jsr	(sinset).l
+		jsr		sinset
 		muls.w	d2,d1
 		asr.l	#8,d1
-		add.w	d1,$10(a0)	; make Sonic jump
+		add.w	d1,xpeed(a0)	; make Sonic jump
 		muls.w	d2,d0
 		asr.l	#8,d0
-		add.w	d0,$12(a0)	; make Sonic jump
-		bset	#1,$22(a0)
-		bclr	#5,$22(a0)
+		add.w	d0,yspeed(a0)	; make Sonic jump
+		bset	#cd_jump,cddat(a0)
+		bclr	#cd_push,cddat(a0)
 		addq.l	#4,sp
 		move.b	#1,$3C(a0)
 		clr.b	$38(a0)
@@ -24395,17 +24373,17 @@ loc_1341C:
 		move.b	#$E,$16(a0)
 		move.b	#7,$17(a0)
 		move.b	#2,$1C(a0)	; use "jumping"	animation
-		bset	#2,$22(a0)
-		addq.w	#5,$C(a0)
+		bset	#cd_ball,cddat(a0)
+		addq.w	#5,yposi(a0)
 
 locret_1348E:
 		rts	
 ; ===========================================================================
 
 loc_13490:
-		bset	#4,$22(a0)
+		bset	#4,cddat(a0)
 		rts	
-; End of function Sonic_Jump
+; End of function jumpchk
 
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -24557,7 +24535,7 @@ loc_13582:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_JumpAngle:			; XREF: play00_MdJump; play00_MdJump2
+jumpchkAngle:			; XREF: play00_MdJump; play00_MdJump2
 		move.b	$26(a0),d0	; get Sonic's angle
 		beq.b	locret_135A2	; if already 0,	branch
 		bpl.b	loc_13598	; if higher than 0, branch
@@ -24580,7 +24558,7 @@ loc_1359E:
 
 locret_135A2:
 		rts	
-; End of function Sonic_JumpAngle
+; End of function jumpchkAngle
 
 ; ---------------------------------------------------------------------------
 ; Subroutine for Sonic to interact with	the floor after	jumping/falling
@@ -26712,7 +26690,7 @@ loc_14D3C:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-sub_14D48:				; XREF: Sonic_Jump
+sub_14D48:				; XREF: jumpchk
 		move.b	d0,($FFFFF768).w
 		move.b	d0,($FFFFF76A).w
 		addi.b	#$20,d0
@@ -26812,16 +26790,16 @@ locret_14E16:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-ObjHitFloor:
+emycol_d:
 		move.w	8(a0),d3
 
-; End of function ObjHitFloor
+; End of function emycol_d
 
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-ObjHitFloor2:
+emycol_d2:
 		move.w	$C(a0),d2
 		moveq	#0,d0
 		move.b	$16(a0),d0
@@ -26840,7 +26818,7 @@ ObjHitFloor2:
 
 locret_14E4E:
 		rts	
-; End of function ObjHitFloor2
+; End of function emycol_d2
 
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -28971,7 +28949,7 @@ imo_Main:				; XREF: imo_Index
 		move.b	#7,$16(a0)
 		move.b	#8,$17(a0)
 		jsr	speedset
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	locret_16950
 		add.w	d1,$C(a0)
@@ -29120,7 +29098,7 @@ loc_16B1E:
 		asl.l	#8,d0
 		add.l	d0,d2
 		move.l	d2,8(a0)
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		move.l	(sp)+,d2
 		cmpi.w	#-8,d1
 		blt.b	loc_16B70
@@ -29263,7 +29241,7 @@ loc_16CC0:				; XREF: imo_Index
 		jsr	speedset
 		tst.w	$12(a0)
 		bmi.b	loc_16CE0
-		jsr	ObjHitFloor
+		jsr	emycol_d
 		tst.w	d1
 		bpl.b	loc_16CE0
 		add.w	d1,$C(a0)
@@ -29412,42 +29390,31 @@ loc_16FA0:
 		add.w	$32(a0),d0
 		move.w	d0,$C(a0)
 		rts	
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Subroutine to	store information when you hit a lamppost
-; ---------------------------------------------------------------------------
 
-playsave:			; XREF: save_HitLamp
-		move.b	$28(a0),($FFFFFE30).w 		; lamppost number
+playsave:
+		move.b	$28(a0),($FFFFFE30).w
 		move.b	($FFFFFE30).w,($FFFFFE31).w
-		move.w	8(a0),($FFFFFE32).w		; x-position
-		move.w	$C(a0),($FFFFFE34).w		; y-position
-		move.w	plring,($FFFFFE36).w 	; rings
-		move.b	plring_f2,($FFFFFE54).w 	; lives
-		move.l	($FFFFFE22).w,($FFFFFE38).w 	; time
-		move.b	($FFFFF742).w,($FFFFFE3C).w 	; routine counter for dynamic level mod
-		move.w	($FFFFF72E).w,($FFFFFE3E).w 	; lower y-boundary of level
-		move.w	scra_h_posit,($FFFFFE40).w 	; screen x-position
-		move.w	scra_v_posit,($FFFFFE42).w 	; screen y-position
-		move.w	($FFFFF708).w,($FFFFFE44).w 	; bg position
-		move.w	scrb_v_posit,($FFFFFE46).w 	; bg position
-		move.w	($FFFFF710).w,($FFFFFE48).w 	; bg position
-		move.w	($FFFFF714).w,($FFFFFE4A).w 	; bg position
-		move.w	($FFFFF718).w,($FFFFFE4C).w 	; bg position
-		move.w	($FFFFF71C).w,($FFFFFE4E).w 	; bg position
-		move.w	($FFFFF648).w,($FFFFFE50).w 	; water height
-		move.b	($FFFFF64D).w,($FFFFFE52).w 	; rountine counter for water
-		move.b	($FFFFF64E).w,($FFFFFE53).w 	; water direction
+		move.w	xposi(a0),($FFFFFE32).w
+		move.w	yposi(a0),($FFFFFE34).w
+		move.w	plring,($FFFFFE36).w
+		move.b	plring_f2,($FFFFFE54).w
+		move.l	($FFFFFE22).w,($FFFFFE38).w
+		move.b	($FFFFF742).w,($FFFFFE3C).w
+		move.w	($FFFFF72E).w,($FFFFFE3E).w
+		move.w	scra_h_posit,($FFFFFE40).w
+		move.w	scra_v_posit,($FFFFFE42).w
+		move.w	scrb_h_posit,($FFFFFE44).w
+		move.w	scrb_v_posit,($FFFFFE46).w
+		move.w	scrc_h_posit,($FFFFFE48).w
+		move.w	scrc_v_posit,($FFFFFE4A).w
+		move.w	scrz_h_posit,($FFFFFE4C).w
+		move.w	scrz_v_posit,($FFFFFE4E).w
+		move.w	($FFFFF648).w,($FFFFFE50).w
+		move.b	($FFFFF64D).w,($FFFFFE52).w
+		move.b	($FFFFF64E).w,($FFFFFE53).w
 		rts	
 
-; ---------------------------------------------------------------------------
-; Subroutine to	load stored info when you start	a level	from a lamppost
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-playload:				; XREF: scr_set
+playload:
 		move.b	($FFFFFE31).w,($FFFFFE30).w
 		move.w	($FFFFFE32).w,playerwk+xposi
 		move.w	($FFFFFE34).w,playerwk+yposi
@@ -29464,28 +29431,25 @@ playload:				; XREF: scr_set
 		move.w	($FFFFFE3E).w,scralim_n_down
 		move.w	($FFFFFE40).w,scra_h_posit
 		move.w	($FFFFFE42).w,scra_v_posit
-		move.w	($FFFFFE44).w,($FFFFF708).w
+		move.w	($FFFFFE44).w,scrb_h_posit
 		move.w	($FFFFFE46).w,scrb_v_posit
-		move.w	($FFFFFE48).w,($FFFFF710).w
-		move.w	($FFFFFE4A).w,($FFFFF714).w
-		move.w	($FFFFFE4C).w,($FFFFF718).w
-		move.w	($FFFFFE4E).w,($FFFFF71C).w
+		move.w	($FFFFFE48).w,scrc_h_posit
+		move.w	($FFFFFE4A).w,scrc_v_posit
+		move.w	($FFFFFE4C).w,scrz_h_posit
+		move.w	($FFFFFE4E).w,scrz_v_posit
 		cmpi.b	#1,stageno
-		bne.b	loc_170E4
+		bne.b	?jump
 		move.w	($FFFFFE50).w,($FFFFF648).w
 		move.b	($FFFFFE52).w,($FFFFF64D).w
 		move.b	($FFFFFE53).w,($FFFFF64E).w
-
-loc_170E4:
+?jump:
 		tst.b	($FFFFFE30).w
-		bpl.b	locret_170F6
+		bpl.b	?jump1
 		move.w	($FFFFFE32).w,d0
 		subi.w	#$A0,d0
 		move.w	d0,($FFFFF728).w
-
-locret_170F6:
-		rts	
-; End of function playload
+?jump1:
+		rts
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -29502,14 +29466,14 @@ savepat:
 bten:					; XREF: act_tbl
 		moveq	#0,d0
 		move.b	$24(a0),d0
-		move.w	bten_Index(pc,d0.w),d1
-		jmp	bten_Index(pc,d1.w)
+		move.w	bten_move_tbl(pc,d0.w),d1
+		jmp	bten_move_tbl(pc,d1.w)
 ; ===========================================================================
-bten_Index:	dc.w bten_Main-bten_Index
-		dc.w bten_DelayDel-bten_Index
+bten_move_tbl:	dc.w bten_init-bten_move_tbl
+		dc.w bten_DelayDel-bten_move_tbl
 ; ===========================================================================
 
-bten_Main:				; XREF: bten_Index
+bten_init:				; XREF: bten_move_tbl
 		moveq	#$10,d2
 		move.w	d2,d3
 		add.w	d3,d3
@@ -29565,7 +29529,7 @@ bten_Points:	dc.w 0			; Bonus	points array
 		dc.w 1
 ; ===========================================================================
 
-bten_DelayDel:				; XREF: bten_Index
+bten_DelayDel:				; XREF: bten_move_tbl
 		subq.w	#1,$30(a0)	; subtract 1 from display time
 		bmi.b	bten_Delete2	; if time is zero, branch
 		move.w	8(a0),d0
@@ -31133,7 +31097,7 @@ Obj74_Drop:				; XREF: Obj74_Index2
 		clr.b	$28(a0)
 		addi.w	#$18,$12(a0)
 		bclr	#1,$22(a0)
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		tst.w	d1
 		bpl.b	locret_18780
 		addq.b	#2,$25(a0)
@@ -31188,7 +31152,7 @@ locret_187EE:
 ; ===========================================================================
 
 Obj74_Duplicate:			; XREF: Obj74_Index2
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		tst.w	d1
 		bpl.b	loc_18826
 		move.w	8(a0),d0
@@ -31233,7 +31197,7 @@ loc_1884A:
 		bclr	#7,2(a0)
 
 loc_18856:
-		bsr.w	ObjHitFloor
+		bsr.w	emycol_d
 		tst.w	d1
 		bpl.b	locret_1887E
 		subq.b	#1,$29(a0)
@@ -33277,7 +33241,7 @@ loc_19E90:				; XREF: off_19E80
 		addq.b	#2,$34(a0)
 
 loc_19EA2:
-		addq.l	#1,($FFFFF636).w
+		addq.l	#1,ranum
 		rts	
 ; ===========================================================================
 
@@ -33337,7 +33301,7 @@ loc_19F48:
 ; ===========================================================================
 
 loc_19F50:
-		addq.w	#7,($FFFFF636).w
+		addq.w	#7,ranum
 		cmpi.b	#2,playerwk+mstno
 		bne.b	loc_19F48
 		move.w	#$300,d0
@@ -34924,22 +34888,22 @@ loc_1B2A4:
 		dbra	d1,loc_1B2A4
 
 		lea	($FF4005).l,a1
-		subq.b	#1,($FFFFFEC2).w
+		subq.b	#1,sys_pattim2
 		bpl.b	loc_1B2C8
-		move.b	#7,($FFFFFEC2).w
-		addq.b	#1,($FFFFFEC3).w
-		andi.b	#3,($FFFFFEC3).w
+		move.b	#7,sys_pattim2
+		addq.b	#1,sys_patno2
+		andi.b	#3,sys_patno2
 
 loc_1B2C8:
-		move.b	($FFFFFEC3).w,$1D0(a1)
-		subq.b	#1,($FFFFFEC4).w
+		move.b	sys_patno2,$1D0(a1)
+		subq.b	#1,sys_pattim3
 		bpl.b	loc_1B2E4
-		move.b	#7,($FFFFFEC4).w
-		addq.b	#1,($FFFFFEC5).w
-		andi.b	#1,($FFFFFEC5).w
+		move.b	#7,sys_pattim3
+		addq.b	#1,sys_patno3
+		andi.b	#1,sys_patno3
 
 loc_1B2E4:
-		move.b	($FFFFFEC5).w,d0
+		move.b	sys_patno3,d0
 		move.b	d0,$138(a1)
 		move.b	d0,$160(a1)
 		move.b	d0,$148(a1)
@@ -34950,29 +34914,29 @@ loc_1B2E4:
 		move.b	d0,$1F0(a1)
 		move.b	d0,$1F8(a1)
 		move.b	d0,$200(a1)
-		subq.b	#1,($FFFFFEC6).w
+		subq.b	#1,sys_pattim4
 		bpl.b	loc_1B326
-		move.b	#4,($FFFFFEC6).w
-		addq.b	#1,($FFFFFEC7).w
-		andi.b	#3,($FFFFFEC7).w
+		move.b	#4,sys_pattim4
+		addq.b	#1,sys_patno4
+		andi.b	#3,sys_patno4
 
 loc_1B326:
-		move.b	($FFFFFEC7).w,d0
+		move.b	sys_patno4,d0
 		move.b	d0,$168(a1)
 		move.b	d0,$170(a1)
 		move.b	d0,$178(a1)
 		move.b	d0,$180(a1)
-		subq.b	#1,($FFFFFEC0).w
+		subq.b	#1,sys_pattim
 		bpl.b	loc_1B350
-		move.b	#7,($FFFFFEC0).w
-		subq.b	#1,($FFFFFEC1).w
-		andi.b	#7,($FFFFFEC1).w
+		move.b	#7,sys_pattim
+		subq.b	#1,sys_patno
+		andi.b	#7,sys_patno
 
 loc_1B350:
 		lea	($FF4016).l,a1
 		lea	(SS_WaRiVramSet).l,a0
 		moveq	#0,d0
-		move.b	($FFFFFEC1).w,d0
+		move.b	sys_patno,d0
 		add.w	d0,d0
 		lea	(a0,d0.w),a0
 		move.w	(a0),(a1)
@@ -35573,7 +35537,7 @@ locret_1BB54:
 
 
 play01_Jump:				; XREF: play01_OnWall
-		move.b	($FFFFF603).w,d0
+		move.b	swdata+1,d0
 		andi.b	#$70,d0		; is A,	B or C pressed?
 		beq.b	play01_NoJump	; if not, branch
 		move.b	rotdir,d0

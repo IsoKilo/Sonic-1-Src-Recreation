@@ -9,7 +9,17 @@ swdata:			equ $fff602
 swdata1:		equ $fff604
 swdata2:		equ $fff606
 
+ranum:			equ $fff636
 pauseflag:		equ $fff63a
+
+scra_h_posit:	equ $fff700
+scra_v_posit:	equ $fff704
+scrb_h_posit:	equ $fff708
+scrb_v_posit:	equ $fff70c
+scrc_h_posit:	equ $fff710
+scrc_v_posit:	equ $fff714
+scrz_h_posit:	equ $fff718
+scrz_v_posit:	equ $fff71c
 
 mizuflag:		equ $fff7ca
 
@@ -27,6 +37,18 @@ pl_suu_f:		equ $fffe1c
 plring_f:		equ $fffe1d
 pltime_f:		equ $fffe1e
 plscore_f:		equ $fffe1f
+
+editno:			equ $fffe06
+
+sys_pattim:		equ $fffec0
+sys_patno:		equ $fffec1
+sys_pattim2:	equ $fffec2
+sys_patno2:		equ $fffec3
+sys_pattim3:	equ $fffec4
+sys_patno3:		equ $fffec5
+sys_pattim4:	equ $fffec6
+sys_patno4:		equ $fffec7
+sys_ringtimer:	equ $fffec8
 
 plring:			equ $fffe20
 
@@ -53,8 +75,8 @@ yposi:			equ $0c
 xspeed:			equ $10
 yspeed:			equ $12
 mspeed:			equ $14
-sprhsize:		equ $16
-sprvsize:		equ $17
+sprvsize:		equ $16
+sprhsize:		equ $17
 sprhs:			equ $18
 sprpri:			equ $19
 patno:			equ $1a
@@ -200,5 +222,8 @@ bten_act:		equ $7D
 
 boss6_act:		equ $85
 
-cd_ball:		equ $02
 cd_jump:		equ $01
+cd_ball:		equ $02
+
+cd_push:		equ $05
+cd_die:			equ $06

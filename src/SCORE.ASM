@@ -33,6 +33,7 @@ score_move:
 		beq.b	?jump
 		clr.b	patno(a0)
 		jmp		actionsub
+
 ?jump:
 		moveq	#0,d0
 		btst.b	#3,$fffe05
@@ -191,8 +192,7 @@ scoreset:
 		move.w	$fff7d4,d1
 		bsr.w	bonuswrt
 ?jump6:
-		rts	
-
+		rts
 ?timeover:
 		clr.b	pltime_f
 		lea		playerwk,a0
@@ -200,7 +200,6 @@ scoreset:
 		bsr.w	playdieset
 		move.b	#1,pltimeover_f
 		rts
-
 scoreset2:
 		bsr.w	posiwrt
 		tst.b	plring_f
@@ -234,8 +233,7 @@ scoreset2:
 		move.w	$fff7d4,d1
 		bsr.w	bonuswrt
 ?jump4:
-		rts	
-
+		rts
 ringinit:
 		move.l	#$5f400003,$c00004
 		lea		ringinittbl(pc),a2
@@ -263,7 +261,6 @@ scoreinitsub:
 ?jump:
 		dbra	d2,?loop
 		rts
-
 ?loop2:
 ?spaceset:
 		move.l	#0,(a6)
@@ -306,7 +303,6 @@ hexwrtw:
 		swap	d1
 		dbra	d6,?loop
 		rts
-
 ringwrt:
 		lea		subtbl2,a2
 		moveq	#2,d6
@@ -325,6 +321,7 @@ scorewrt2:
 		bcs.b	?jump3
 		addq.w	#1,d2
 		bra.b	?jump2
+
 ?jump3:
 		add.l	d3,d1
 		tst.w	d2
@@ -356,7 +353,6 @@ scorewrt2:
 		addi.l	#$400000,d0
 		dbra	d6,?loop
 		rts
-
 contwrt:
 		move.l	#$5f800003,$c00004
 		lea		$c00000,a6
@@ -372,6 +368,7 @@ contwrt:
 		bcs.b	?jump3
 		addq.w	#1,d2
 		bra.b	?jump2
+
 ?jump3:
 		add.l	d3,d1
 		lsl.w	#6,d2
@@ -406,6 +403,7 @@ timewrt:
 		lea		timewrt1,a2
 		moveq	#0,d6
 		bra.b	?jump
+
 timewrt0:
 		lea		subtbl1,a2
 		moveq	#1,d6
@@ -420,6 +418,7 @@ timewrt0:
 		bcs.b	?jump3
 		addq.w	#1,d2
 		bra.b	?jump2
+
 ?jump3:
 		add.l	d3,d1
 		tst.w	d2
@@ -448,7 +447,6 @@ timewrt0:
 		addi.l	#$400000,d0
 		dbra	d6,?loop
 		rts
-
 bonuswrt:
 		lea		subtbl3,a2
 		moveq	#3,d6
@@ -462,6 +460,7 @@ bonuswrt:
 		bcs.b	?jump3
 		addq.w	#1,d2
 		bra.b	?jump2
+
 ?jump3:
 		add.l	d3,d1
 		tst.w	d2
@@ -516,6 +515,7 @@ playsuuwrt:
 		bcs.b	?jump3
 		addq.w	#1,d2
 		bra.b	?jump2
+
 ?jump3:
 		add.l	d3,d1
 		tst.w	d2
@@ -524,6 +524,7 @@ playsuuwrt:
 ?jump4:
 		tst.w	d4
 		beq.b	?jump7
+
 ?jump5:
 		lsl.w	#5,d2
 		lea		(a1,d2.w),a3
