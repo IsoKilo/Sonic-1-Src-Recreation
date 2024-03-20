@@ -36,9 +36,9 @@ save_init:
 		btst.b	#0,2(a2,d0.w)
 		bne.b	?jump
 		move.b	saveno,d1
-		andi.b	#$7F,d1
+		andi.b	#$7f,d1
 		move.b	userflag(a0),d2
-		andi.b	#$7F,d2
+		andi.b	#$7f,d2
 		cmp.b	d2,d1
 		bcs.b	save_move0
 ?jump:
@@ -52,9 +52,9 @@ save_move0:
 		tst.b	$fff7c8
 		bmi.w	?jump2
 		move.b	saveno,d1
-		andi.b	#$7F,d1
+		andi.b	#$7f,d1
 		move.b	userflag(a0),d2
-		andi.b	#$7F,d2
+		andi.b	#$7f,d2
 		cmp.b	d2,d1
 		bcs.b	?jump0
 		lea		$fffc00,a2
@@ -76,7 +76,7 @@ save_move0:
 		addi.w	#64,d0
 		cmpi.w	#104,d0
 		bcc.b	?jump2
-		move.w	#$A1,d0
+		move.w	#$a1,d0
 		jsr		soundset
 		addq.b	#word,r_no0(a0)
 		jsr		actwkchk
@@ -92,7 +92,7 @@ save_move0:
 		move.b	#8,sprhs(a1)
 		move.b	#4,sprpri(a1)
 		move.b	#2,patno(a1)
-		move.w	#$20,actfree+10(a1)
+		move.w	#32,actfree+10(a1)
 ?jump1:
 		move.b	#1,patno(a0)
 		bsr.w	playsave
@@ -113,11 +113,11 @@ save_move2:
 		subi.b	#$10,direc(a0)
 		subi.b	#$40,d0
 		jsr		sinset
-		muls.w	#$0C00,d1
+		muls.w	#$0c00,d1
 		swap	d1
 		add.w	actfree+4(a0),d1
 		move.w	d1,xposi(a0)
-		muls.w	#$0C00,d0
+		muls.w	#$0c00,d0
 		swap	d0
 		add.w	actfree+6(a0),d0
 		move.w	d0,yposi(a0)
