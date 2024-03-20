@@ -2,6 +2,8 @@ byte:			equ 1
 word:			equ 2
 long:			equ 4
 
+playposiwk:		equ $ffcb00
+
 actwk:
 playerwk:		equ $ffd000
 
@@ -9,8 +11,17 @@ swdata:			equ $fff602
 swdata1:		equ $fff604
 swdata2:		equ $fff606
 
+hintposi:		equ $fff624
+
 ranum:			equ $fff636
 pauseflag:		equ $fff63a
+
+waterposi:		equ $fff646
+waterposi_m:	equ $fff648
+watermoveposi:	equ $fff64a
+
+
+waterflag:		equ $fff64e
 
 scra_h_posit:	equ $fff700
 scra_v_posit:	equ $fff704
@@ -21,11 +32,31 @@ scrc_v_posit:	equ $fff714
 scrz_h_posit:	equ $fff718
 scrz_v_posit:	equ $fff71c
 
+scralim_left:	equ $fff728
+scralim_right:	equ $fff72a
+scralim_up:		equ $fff72c
+scralim_down:	equ $fff72e
+
+plmaxspdwk:		equ $fff760
+pladdspdwk:		equ $fff762
+plretspdwk:		equ $fff764
+
+dirstk:			equ $fff768
+
+scdadr:			equ $fff796
+
+plposiwkadr:	equ $fff7a8
+
+watercoliflag:	equ $fff7c7
+
 mizuflag:		equ $fff7ca
+
+plautoflag:		equ $fff7cc
 
 emyscorecnt:	equ $fff7d0
 
 gametimer:		equ $fffe04
+editno:			equ $fffe06
 
 stageno:		equ $fffe10
 pl_suu:			equ $fffe12
@@ -38,7 +69,28 @@ plring_f:		equ $fffe1d
 pltime_f:		equ $fffe1e
 plscore_f:		equ $fffe1f
 
-editno:			equ $fffe06
+pltime:			equ $fffe22
+
+saveno:				equ $fffe30
+saveno_sb:			equ $fffe31
+plxposi_sb:			equ $fffe32
+plyposi_sb:			equ $fffe34
+plring_s:			equ $fffe36
+pltime_sb:			equ $fffe38
+scralim_down_sb:	equ $fffe3e
+scra_h_posit_sb:	equ $fffe40
+scra_v_posit_sb:	equ $fffe42
+scrb_h_posit_sb:	equ $fffe44
+scrb_v_posit_sb:	equ $fffe46
+scrc_h_posit_sb:	equ $fffe48
+scrc_v_posit_sb:	equ $fffe4a
+scrz_h_posit_sb:	equ $fffe4c
+scrz_v_posit_sb:	equ $fffe4e
+waterposi_m_sb:		equ $fffe50
+
+waterflag_s:		equ $fffe53
+
+plring_f2_s:		equ $fffe54
 
 sys_pattim:		equ $fffec0
 sys_patno:		equ $fffec1
@@ -77,8 +129,8 @@ yspeed:			equ $12
 mspeed:			equ $14
 sprvsize:		equ $16
 sprhsize:		equ $17
-sprhs:			equ $18
-sprpri:			equ $19
+sprpri:			equ $18
+sprhs:			equ $19
 patno:			equ $1a
 patcnt:			equ $1b
 mstno:			equ $1c
@@ -226,4 +278,4 @@ cd_jump:		equ $01
 cd_ball:		equ $02
 
 cd_push:		equ $05
-cd_die:			equ $06
+cd_water:		equ $06
