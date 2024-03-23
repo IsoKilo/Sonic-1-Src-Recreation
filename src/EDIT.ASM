@@ -238,7 +238,7 @@ edit1tbl:
 		dcblw	kageb_act,kagebpat,$434c,0,$00		;12:
 		dcblw	ball_act,ballpat,$43aa,0,$00		;13:
 		dcblw	save_act,savepat,$07a0,0,$01		;14:
-		dcblw	bigring_act,Map_obj4B,$0240,0,$00	;15:
+		dcblw	bring_act,bringpat,$0240,0,$00		;15:
 		dcblw	bten_act,btenpat,$84B6,1,$01		;16:
 edit2tbl:
 		dc.w 25

@@ -184,11 +184,11 @@ playload:
 		rts
 
 savepat:
-		dc.w	savepat0-savepat
-		dc.w	savepat1-savepat
-		dc.w	savepat2-savepat
-		dc.w	savepat3-savepat
-savepat0:
+		dc.w	savesp0-savepat
+		dc.w	savesp1-savepat
+		dc.w	savesp2-savepat
+		dc.w	savesp3-savepat
+savesp0:
 		dc.b	6
 		dc.b	$e4,$01,$00,$00,$f8	;1:
 		dc.b	$e4,$01,$08,$00,$00	;2:
@@ -196,17 +196,17 @@ savepat0:
 		dc.b	$f4,$03,$28,$02,$00	;4:
 		dc.b	$d4,$01,$00,$06,$f8	;5:
 		dc.b	$d4,$01,$08,$06,$00	;6:
-savepat1:
+savesp1:
 		dc.b	4
 		dc.b	$e4,$01,$00,$00,$f8	;1:
 		dc.b	$e4,$01,$08,$00,$00	;2:
 		dc.b	$f4,$03,$20,$02,$f8	;3:
 		dc.b	$f4,$03,$28,$02,$00	;4:
-savepat2:
+savesp2:
 		dc.b	2
 		dc.b	$f8,$01,$00,$08,$f8	;1:
 		dc.b	$f8,$01,$08,$08,$00	;2:
-savepat3:
+savesp3:
 		dc.b	6
 		dc.b	$e4,$01,$00,$00,$f8	;1:
 		dc.b	$e4,$01,$08,$00,$00	;2:
@@ -218,3 +218,4 @@ savepat3:
 ;------------------------------------------------------------------------------
 		align
 ;------------------------------------------------------------------------------
+		end

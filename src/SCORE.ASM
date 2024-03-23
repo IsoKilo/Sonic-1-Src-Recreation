@@ -47,11 +47,11 @@ score_move:
 		jmp	actionsub
 
 scorepat:
-		dc.w	scorepat0-scorepat
-		dc.w	scorepat1-scorepat
-		dc.w	scorepat2-scorepat
-		dc.w	scorepat3-scorepat
-scorepat0:
+		dc.w	scoresp0-scorepat
+		dc.w	scoresp1-scorepat
+		dc.w	scoresp2-scorepat
+		dc.w	scoresp3-scorepat
+scoresp0:
 		dc.b	10
 		dc.b	$80,$0d,$80,$00,$00	;1:
 		dc.b	$80,$0d,$80,$18,$20	;2:
@@ -64,7 +64,7 @@ scorepat0:
 		dc.b	$40,$05,$81,$0a,$00	;9:
 		dc.b	$40,$0d,$81,$0e,$10	;10:
 		dc.b	0
-scorepat1:
+scoresp1:
 		dc.b	10
 		dc.b	$80,$0d,$80,$00,$00	;1:
 		dc.b	$80,$0d,$80,$18,$20	;2:
@@ -77,7 +77,7 @@ scorepat1:
 		dc.b	$40,$05,$81,$0a,$00	;9:
 		dc.b	$40,$0d,$81,$0e,$10	;10:
 		dc.b	0
-scorepat2:
+scoresp2:
 		dc.b	10
 		dc.b	$80,$0d,$80,$00,$00	;1:
 		dc.b	$80,$0d,$80,$18,$20	;2:
@@ -90,7 +90,7 @@ scorepat2:
 		dc.b	$40,$05,$81,$0a,$00	;9:
 		dc.b	$40,$0d,$81,$0e,$10	;10:
 		dc.b	0
-scorepat3:
+scoresp3:
 		dc.b	10
 		dc.b	$80,$0d,$80,$00,$00	;1:
 		dc.b	$80,$0d,$80,$18,$20	;2:

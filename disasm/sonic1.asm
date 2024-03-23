@@ -2,46 +2,49 @@ align macro
 	cnop 0,\1
 	endm
 	
-StartOfRom:
-Vectors:	dc.l $FFFE00, START, Buserr, Addrerr
+		dc.l $FFFE00, START, Buserr, Addrerr
 		dc.l IllegalInstr, ZeroDivide, ChkInstr, TrapvInstr
 		dc.l PrivilegeViol, Trace, Line1010Emu,	Line1111Emu
 		dc.l ErrorExcept, ErrorExcept, ErrorExcept, ErrorExcept
 		dc.l ErrorExcept, ErrorExcept, ErrorExcept, ErrorExcept
 		dc.l ErrorExcept, ErrorExcept, ErrorExcept, ErrorExcept
-		dc.l ErrorExcept, ErrorTrap, ErrorTrap,	ErrorTrap
-		dc.l PalToCRAM,	ErrorTrap, loc_B10, ErrorTrap
-		dc.l ErrorTrap,	ErrorTrap, ErrorTrap, ErrorTrap
-		dc.l ErrorTrap,	ErrorTrap, ErrorTrap, ErrorTrap
-		dc.l ErrorTrap,	ErrorTrap, ErrorTrap, ErrorTrap
-		dc.l ErrorTrap,	ErrorTrap, ErrorTrap, ErrorTrap
-		dc.l ErrorTrap,	ErrorTrap, ErrorTrap, ErrorTrap
-		dc.l ErrorTrap,	ErrorTrap, ErrorTrap, ErrorTrap
-		dc.l ErrorTrap,	ErrorTrap, ErrorTrap, ErrorTrap
-		dc.l ErrorTrap,	ErrorTrap, ErrorTrap, ErrorTrap
-Console:	dc.b 'SEGA MEGA DRIVE ' ; Hardware system ID
-Date:		dc.b '(C)SEGA 1991.APR' ; Release date
-Title_Local:	dc.b 'SONIC THE               HEDGEHOG                ' ; Domestic name
-Title_Int:	dc.b 'SONIC THE               HEDGEHOG                ' ; International name
-Serial:		dc.b 'GM 00001009-00'   ; Serial/version number
-Checksum:	dc.w 0
-		dc.b 'J               ' ; I/O support
-RomStartLoc:	dc.l StartOfRom		; ROM start
-RomEndLoc:	dc.l EndOfRom-1		; ROM end
-RamStartLoc:	dc.l $FF0000		; RAM start
-RamEndLoc:	dc.l $FFFFFF		; RAM end
-SRAMSupport:	dc.l $20202020		; change to $5241E020 to create	SRAM
-		dc.l $20202020		; SRAM start
-		dc.l $20202020		; SRAM end
-Notes:		dc.b '                                                    '
-Region:		dc.b 'JUE             ' ; Region
+		dc.l ErrorExcept, ErrorVect, ErrorVect,	ErrorVect
+		dc.l Hint,	ErrorVect, Vblank, ErrorVect
+		dc.l ErrorVect,	ErrorVect, ErrorVect, ErrorVect
+		dc.l ErrorVect,	ErrorVect, ErrorVect, ErrorVect
+		dc.l ErrorVect,	ErrorVect, ErrorVect, ErrorVect
+		dc.l ErrorVect,	ErrorVect, ErrorVect, ErrorVect
+		dc.l ErrorVect,	ErrorVect, ErrorVect, ErrorVect
+		dc.l ErrorVect,	ErrorVect, ErrorVect, ErrorVect
+		dc.l ErrorVect,	ErrorVect, ErrorVect, ErrorVect
+		dc.l ErrorVect,	ErrorVect, ErrorVect, ErrorVect
+
+*				 0        1         2         3         4         5
+*				 12345678901234567890123456789012345678901234567890
+		DC.B	'SEGA MEGA DRIVE '
+		DC.B	'(C)SEGA 1991.APR'
+		DC.B	'SONIC THE               '
+		DC.B	'HEDGEHOG                '
+		DC.B	'SONIC THE               '
+		DC.B	'HEDGEHOG                '
+		DC.B	'GM 00001009-00'
+		DC.W	 0
+		DC.B	'J               '
+		DC.L	$00000000
+		DC.L	$00200000
+		DC.L	$00FF0000
+		DC.L	$00FFFFFF
+		DC.B	'            '
+		DC.B	'            '
+		DC.B	'                                        '
+		DC.B	'JUE             '
 
 ; ===========================================================================
 
-ErrorTrap:
+ErrorVect:
 		nop	
 		nop	
-		bra.b	ErrorTrap
+		bra.b	ErrorVect
 
 *
 *
@@ -198,7 +201,7 @@ chk_vdp:
 		beq.w	GameInit	; if yes, branch
 
 CheckSumCheck:
-		movea.l	#ErrorTrap,a0	; start	checking bytes after the header	($200)
+		movea.l	#ErrorVect,a0	; start	checking bytes after the header	($200)
 		movea.l	#RomEndLoc,a1	; stop at end of ROM
 		move.l	(a1),d0
 		moveq	#0,d1
@@ -332,7 +335,7 @@ loc_43A:
 		addq.w	#2,sp
 		move.l	(sp)+,($FFFFFC40).w
 		addq.w	#2,sp
-		movem.l	d0-a7,($FFFFFC00).w
+		movem.l	d0-a7,flagwork
 		bsr.w	ShowErrorMsg
 		move.l	2(sp),d0
 		bsr.w	sub_5BA
@@ -343,14 +346,14 @@ loc_43A:
 
 loc_462:
 		move	#$2700,sr
-		movem.l	d0-a7,($FFFFFC00).w
+		movem.l	d0-a7,flagwork
 		bsr.w	ShowErrorMsg
 		move.l	2(sp),d0
 		bsr.w	sub_5BA
 
 loc_478:
 		bsr.w	ErrorWaitForC
-		movem.l	($FFFFFC00).w,d0-a7
+		movem.l	flagwork,d0-a7
 		move	#$2300,sr
 		rte	
 
@@ -451,7 +454,7 @@ ascii:	incbin	artunc\menutext.bin	; text used in level select and debug mode
 
 ; ===========================================================================
 
-loc_B10:				; XREF: Vectors
+Vblank:				; XREF: Vectors
 		movem.l	d0-a6,-(sp)
 		tst.b	($FFFFF62A).w
 		beq.b	loc_B88
@@ -477,7 +480,7 @@ loc_B5E:				; XREF: loc_B88
 		jsr	sub_71B4C
 
 loc_B64:				; XREF: loc_D50
-		addq.l	#1,($FFFFFE0C).w
+		addq.l	#1,systemtimer
 		movem.l	(sp)+,d0-a6
 		rte	
 ; ===========================================================================
@@ -490,7 +493,7 @@ off_B6E:	dc.w loc_B88-off_B6E, loc_C32-off_B6E
 		dc.w loc_E72-off_B6E
 ; ===========================================================================
 
-loc_B88:				; XREF: loc_B10; off_B6E
+loc_B88:				; XREF: Vblank; off_B6E
 		cmpi.b	#$8C,gmmode
 		beq.b	loc_B9A
 		cmpi.b	#$C,gmmode
@@ -648,18 +651,17 @@ loc_D50:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Demo_Time:				; XREF: loc_D50; PalToCRAM
+Demo_Time:
 		bsr.w	scrollwrt
-		jsr	efectwrt
-		jsr	scoreset
+		jsr		efectwrt
+		jsr		scoreset
 		bsr.w	sub_165E
 		tst.w	($FFFFF614).w	; is there time	left on	the demo?
 		beq.w	Demo_TimeEnd	; if not, branch
 		subq.w	#1,($FFFFF614).w ; subtract 1 from time	left
 
 Demo_TimeEnd:
-		rts	
-; End of function Demo_Time
+		rts
 
 ; ===========================================================================
 
@@ -901,7 +903,7 @@ loc_10D4:				; XREF: sub_106E
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-PalToCRAM:
+Hint:
 		move	#$2700,sr
 		tst.w	($FFFFF644).w
 		beq.b	locret_119C
@@ -951,14 +953,14 @@ locret_119C:
 		rte	
 ; ===========================================================================
 
-loc_119E:				; XREF: PalToCRAM
+loc_119E:				; XREF: Hint
 		clr.b	($FFFFF64F).w
 		movem.l	d0-a6,-(sp)
 		bsr.w	Demo_Time
 		jsr	sub_71B4C
 		movem.l	(sp)+,d0-a6
 		rte	
-; End of function PalToCRAM
+; End of function Hint
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	initialise joypads
@@ -2059,7 +2061,7 @@ PalCycle_Title:				; XREF: TitleScreen
 ; ===========================================================================
 
 PalCycle_GHZ:				; XREF: PalCycle
-		lea	(Pal_GHZCyc).l,a0
+		lea	(zone1colorCyc).l,a0
 
 loc_196A:				; XREF: PalCycle_Title
 		subq.w	#1,($FFFFF634).w
@@ -2089,10 +2091,10 @@ PalCycle_LZ:				; XREF: PalCycle
 		addq.w	#1,($FFFFF632).w
 		andi.w	#3,d0
 		lsl.w	#3,d0
-		lea	(Pal_LZCyc1).l,a0
+		lea	(zone2colorCyc1).l,a0
 		cmpi.b	#3,stageno+1 ; check if level is SBZ3
 		bne.b	loc_19C0
-		lea	(Pal_SBZ3Cyc1).l,a0 ; load SBZ3	pallet instead
+		lea	(zone24colorCyc1).l,a0 ; load SBZ3	pallet instead
 
 loc_19C0:
 		lea	($FFFFFB56).w,a1
@@ -2130,11 +2132,11 @@ loc_1A0A:
 		move.w	d0,d1
 		add.w	d0,d0
 		add.w	d1,d0
-		lea	(Pal_LZCyc2).l,a0
+		lea	(zone2colorCyc2).l,a0
 		lea	($FFFFFB76).w,a1
 		move.l	(a0,d0.w),(a1)+
 		move.w	4(a0,d0.w),(a1)
-		lea	(Pal_LZCyc3).l,a0
+		lea	(zone2colorCyc3).l,a0
 		lea	($FFFFFAF6).w,a1
 		move.l	(a0,d0.w),(a1)+
 		move.w	4(a0,d0.w),(a1)
@@ -2169,7 +2171,7 @@ loc_1A60:
 		add.w	d1,d1
 		add.w	d1,d0
 		add.w	d0,d0
-		lea	(Pal_SLZCyc).l,a0
+		lea	(zone4colorCyc).l,a0
 		lea	($FFFFFB56).w,a1
 		move.w	(a0,d0.w),(a1)
 		move.l	2(a0,d0.w),4(a1)
@@ -2192,11 +2194,11 @@ PalCycle_SYZ:				; XREF: PalCycle
 		lsl.w	#2,d0
 		move.w	d0,d1
 		add.w	d0,d0
-		lea	(Pal_SYZCyc1).l,a0
+		lea	(zone5colorCyc1).l,a0
 		lea	($FFFFFB6E).w,a1
 		move.l	(a0,d0.w),(a1)+
 		move.l	4(a0,d0.w),(a1)
-		lea	(Pal_SYZCyc2).l,a0
+		lea	(zone5colorCyc2).l,a0
 		lea	($FFFFFB76).w,a1
 		move.w	(a0,d1.w),(a1)
 		move.w	2(a0,d1.w),4(a1)
@@ -2285,14 +2287,14 @@ locret_1B64:
 
 ; ===========================================================================
 Pal_TitleCyc:	incbin	pallet\c_title.bin
-Pal_GHZCyc:	incbin	pallet\c_ghz.bin
-Pal_LZCyc1:	incbin	pallet\c_lz_wat.bin	; waterfalls pallet
-Pal_LZCyc2:	incbin	pallet\c_lz_bel.bin	; conveyor belt pallet
-Pal_LZCyc3:	incbin	pallet\c_lz_buw.bin	; conveyor belt (underwater) pallet
-Pal_SBZ3Cyc1:	incbin	pallet\c_sbz3_w.bin	; waterfalls pallet
-Pal_SLZCyc:	incbin	pallet\c_slz.bin
-Pal_SYZCyc1:	incbin	pallet\c_syz_1.bin
-Pal_SYZCyc2:	incbin	pallet\c_syz_2.bin
+zone1colorCyc:	incbin	pallet\c_ghz.bin
+zone2colorCyc1:	incbin	pallet\c_lz_wat.bin	; waterfalls pallet
+zone2colorCyc2:	incbin	pallet\c_lz_bel.bin	; conveyor belt pallet
+zone2colorCyc3:	incbin	pallet\c_lz_buw.bin	; conveyor belt (underwater) pallet
+zone24colorCyc1:	incbin	pallet\c_sbz3_w.bin	; waterfalls pallet
+zone4colorCyc:	incbin	pallet\c_slz.bin
+zone5colorCyc1:	incbin	pallet\c_syz_1.bin
+zone5colorCyc2:	incbin	pallet\c_syz_2.bin
 
 Pal_SBZCycList:
 	include "_inc\SBZ pallet script 1.asm"
@@ -2868,36 +2870,62 @@ loc_2160:
 		rts	
 ; End of function PalLoad4_Water
 
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Pallet pointers
-; ---------------------------------------------------------------------------
-colortbl:
-	include "_inc\Pallet pointers.asm"
+dclww	macro	\1,\2,\3
+		dc.l	(\1)
+		dc.w	(\2)
+		dc.w	(\3)
 
-; ---------------------------------------------------------------------------
-; Pallet data
-; ---------------------------------------------------------------------------
-Pal_SegaBG:	incbin	pallet\sega_bg.bin
+colortbl:
+		dclww	logobcolor,$FB00,31		;0:
+		dclww	Pal_Title,$FB00,31		;1;
+		dclww	Pal_LevelSel,$FB00,31	;2:
+		dclww	gamecolor,$FB00,7		;3:
+		dclww	zone1color,$FB20,23		;4:
+		dclww	zone2color,$FB20,23		;5:
+		dclww	zone3color,$FB20,23		;6:
+		dclww	zone4color,$FB20,23		;7:
+		dclww	zone5color,$FB20,23		;8:
+		dclww	zone6color,$FB20,23		;9:
+		dclww	Pal_Special,$FB00,31	;10:
+		dclww	zone2color2,$FB00,31	;11:
+		dclww	zone24color,$FB20,23	;12:
+		dclww	zone24color2,$FB00,31	;13:
+		dclww	zone6color2,$FB20,23	;14:
+		dclww	gamecolor2,$FB00,7		;15:
+		dclww	gamecolor3,$FB00,7		;16:
+		dclww	Pal_SpeResult,$FB00,31	;17:
+		dclww	continuecolor,$FB00,15	;18:
+		dclww	endcolor,$FB00,31		;19:
+
+logobcolor:
+		dc.w	$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee
+		dc.w	$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee
+		dc.w	$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee
+		dc.w	$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee,$eee
 Pal_Title:	incbin	pallet\title.bin
 Pal_LevelSel:	incbin	pallet\levelsel.bin
-Pal_Sonic:	incbin	pallet\sonic.bin
-Pal_GHZ:	incbin	pallet\ghz.bin
-Pal_LZ:		incbin	pallet\lz.bin
-Pal_LZWater:	incbin	pallet\lz_uw.bin	; LZ underwater pallets
-Pal_MZ:		incbin	pallet\mz.bin
-Pal_SLZ:	incbin	pallet\slz.bin
-Pal_SYZ:	incbin	pallet\syz.bin
-Pal_SBZ1:	incbin	pallet\sbz_act1.bin	; SBZ act 1 pallets
-Pal_SBZ2:	incbin	pallet\sbz_act2.bin	; SBZ act 2 & Final Zone pallets
+gamecolor:
+*		dc.w	$000,$000,$c22,$e44,$e66,$e88,$eee,$aaa,$888,$444,$8ae,$46a,$00e,$008,$004,$0ee
+		dc.w	$000,$000,$822,$a44,$c66,$e88,$eee,$aaa,$888,$444,$8ae,$46a,$00e,$008,$004,$0ee
+zone1color:
+		dc.w	$800,$000,$242,$464,$686,$8c8,$eee,$aaa,$888,$444,$8ea,$46a,$0ee,$088,$044,$00e
+		dc.w	$e80,$002,$eee,$026,$048,$06c,$08e,$0ce,$a86,$e86,$ea8,$eca,$040,$060,$0a4,$0e8
+		dc.w	$c82,$a02,$c42,$e86,$eca,$eec,$eee,$eac,$e8a,$e68,$0e8,$0a4,$002,$026,$06c,$0ce
+zone2color:		incbin	pallet\lz.bin
+zone2color2:	incbin	pallet\lz_uw.bin	; LZ underwater pallets
+zone3color:		incbin	pallet\mz.bin
+zone4color:	incbin	pallet\slz.bin
+zone5color:	incbin	pallet\syz.bin
+zone6color:	incbin	pallet\sbz_act1.bin	; SBZ act 1 pallets
+zone6color2:	incbin	pallet\sbz_act2.bin	; SBZ act 2 & Final Zone pallets
 Pal_Special:	incbin	pallet\special.bin	; special stage pallets
-Pal_SBZ3:	incbin	pallet\sbz_act3.bin	; SBZ act 3 pallets
-Pal_SBZ3Water:	incbin	pallet\sbz_a3uw.bin	; SBZ act 3 (underwater) pallets
-Pal_LZSonWater:	incbin	pallet\son_lzuw.bin	; Sonic (underwater in LZ) pallet
-Pal_SBZ3SonWat:	incbin	pallet\son_sbzu.bin	; Sonic (underwater in SBZ act 3) pallet
+zone24color:	incbin	pallet\sbz_act3.bin	; SBZ act 3 pallets
+zone24color2:	incbin	pallet\sbz_a3uw.bin	; SBZ act 3 (underwater) pallets
+gamecolor2:	incbin	pallet\son_lzuw.bin	; Sonic (underwater in LZ) pallet
+gamecolor3:	incbin	pallet\son_sbzu.bin	; Sonic (underwater in SBZ act 3) pallet
 Pal_SpeResult:	incbin	pallet\ssresult.bin	; special stage results screen pallets
-Pal_SpeContinue:incbin	pallet\sscontin.bin	; special stage results screen continue pallet
-Pal_Ending:	incbin	pallet\ending.bin	; ending sequence pallets
+continuecolor:incbin	pallet\sscontin.bin	; special stage results screen continue pallet
+endcolor:	incbin	pallet\ending.bin	; ending sequence pallets
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	delay the program by ($FFFFF62A) frames
@@ -2934,7 +2962,7 @@ random:
 		move.l	d1,ranum
 		rts
 
-sinset:				; XREF: SS_BGAnimate; et al
+sinset:
 		andi.w	#$FF,d0
 		add.w	d0,d0
 		addi.w	#$80,d0
@@ -3212,7 +3240,7 @@ Title_LoadText:
 		lea	($C00004).l,a5
 		lea	($C00000).l,a6
 		lea	scrb_h_posit,a3
-		lea	($FFFFA440).w,a4
+		lea	mapwkb,a4
 		move.w	#$6000,d2
 		bsr.w	mapwrt2
 		lea	($FF0000).l,a1
@@ -3895,7 +3923,7 @@ loc_39E8:
 		move.b	d0,plpower_s ; clear speed shoes
 		move.b	d0,($FFFFFE2F).w
 		move.w	d0,editmode
-		move.w	d0,($FFFFFE02).w
+		move.w	d0,gameflag
 		move.w	d0,gametimer
 		bsr.w	OscillateNumInit
 		move.b	#1,plscore_f ; update score	counter
@@ -3997,7 +4025,7 @@ loc_3B14:
 		bsr.w	SignpostArtLoad
 		cmpi.b	#8,gmmode
 		beq.b	Level_ChkDemo	; if screen mode is 08 (demo), branch
-		tst.w	($FFFFFE02).w	; is the level set to restart?
+		tst.w	gameflag	; is the level set to restart?
 		bne.w	Level		; if yes, branch
 		cmpi.b	#$C,gmmode
 		beq.w	Level_MainLoop	; if screen mode is $0C	(level), branch
@@ -4005,7 +4033,7 @@ loc_3B14:
 ; ===========================================================================
 
 Level_ChkDemo:				; XREF: Level_MainLoop
-		tst.w	($FFFFFE02).w	; is level set to restart?
+		tst.w	gameflag	; is level set to restart?
 		bne.b	Level_EndDemo	; if yes, branch
 		tst.w	($FFFFF614).w	; is there time	left on	the demo?
 		beq.b	Level_EndDemo	; if not, branch
@@ -4096,8 +4124,8 @@ LZDynamicWater:				; XREF: LZWaterEffects
 		moveq	#0,d0
 		move.b	stageno+1,d0
 		add.w	d0,d0
-		move.w	DynWater_Index(pc,d0.w),d0
-		jsr	DynWater_Index(pc,d0.w)
+		move.w	Dynwave_move_tbl(pc,d0.w),d0
+		jsr	Dynwave_move_tbl(pc,d0.w)
 		moveq	#0,d1
 		move.b	($FFFFF64C).w,d1
 		move.w	watermoveposi,d0
@@ -4112,13 +4140,13 @@ loc_3C56:
 locret_3C5A:
 		rts	
 ; ===========================================================================
-DynWater_Index:	dc.w DynWater_LZ1-DynWater_Index
-		dc.w DynWater_LZ2-DynWater_Index
-		dc.w DynWater_LZ3-DynWater_Index
-		dc.w DynWater_SBZ3-DynWater_Index
+Dynwave_move_tbl:	dc.w DynWater_LZ1-Dynwave_move_tbl
+		dc.w DynWater_LZ2-Dynwave_move_tbl
+		dc.w DynWater_LZ3-Dynwave_move_tbl
+		dc.w DynWater_SBZ3-Dynwave_move_tbl
 ; ===========================================================================
 
-DynWater_LZ1:				; XREF: DynWater_Index
+DynWater_LZ1:				; XREF: Dynwave_move_tbl
 		move.w	scra_h_posit,d0
 		move.b	($FFFFF64D).w,d2
 		bne.b	loc_3CD0
@@ -4175,7 +4203,7 @@ locret_3CF4:
 		rts	
 ; ===========================================================================
 
-DynWater_LZ2:				; XREF: DynWater_Index
+DynWater_LZ2:				; XREF: Dynwave_move_tbl
 		move.w	scra_h_posit,d0
 		move.w	#$328,d1
 		cmpi.w	#$500,d0
@@ -4190,7 +4218,7 @@ loc_3D12:
 		rts	
 ; ===========================================================================
 
-DynWater_LZ3:				; XREF: DynWater_Index
+DynWater_LZ3:				; XREF: Dynwave_move_tbl
 		move.w	scra_h_posit,d0
 		move.b	($FFFFF64D).w,d2
 		bne.b	loc_3D5E
@@ -4292,7 +4320,7 @@ locret_3E1A:
 		rts	
 ; ===========================================================================
 
-DynWater_SBZ3:				; XREF: DynWater_Index
+DynWater_SBZ3:				; XREF: Dynwave_move_tbl
 		move.w	#$228,d1
 		cmpi.w	#$F00,scra_h_posit
 		bcs.b	loc_3E2C
@@ -4337,7 +4365,7 @@ LZWind_Loop:
 		bcs.b	loc_3EF4
 		cmp.w	6(a2),d2
 		bcc.b	loc_3EF4
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		andi.b	#$3F,d0
 		bne.b	loc_3E90
 		move.w	#$D0,d0
@@ -4346,7 +4374,7 @@ LZWind_Loop:
 loc_3E90:
 		tst.b	($FFFFF7C9).w
 		bne.w	locret_3F0A
-		cmpi.b	#4,$24(a1)
+		cmpi.b	#4,r_no0(a1)
 		bcc.b	loc_3F06
 		move.b	#1,watercoliflag
 		subi.w	#$80,d0
@@ -4365,7 +4393,7 @@ LZWind_Move:
 		move.w	#$400,$10(a1)	; move Sonic horizontally
 		move.w	#0,$12(a1)
 		move.b	#$F,$1C(a1)	; use floating animation
-		bset	#1,$22(a1)
+		bset	#1,cddat(a1)
 		btst	#0,swdata+0 ; is up pressed?
 		beq.b	LZWind_MoveDown	; if not, branch
 		subq.w	#1,$C(a1)	; move Sonic up
@@ -4409,7 +4437,7 @@ LZWind_Data:	dc.w $F80, $100, $1410,	$180, $460, $400, $710,	$480, $A20
 
 LZWaterSlides:				; XREF: LZWaterEffects
 		lea	playerwk,a1
-		btst	#1,$22(a1)
+		btst	#1,cddat(a1)
 		bne.b	loc_3F6A
 		move.w	$C(a1),d0
 		lsr.w	#1,d0
@@ -4417,7 +4445,7 @@ LZWaterSlides:				; XREF: LZWaterEffects
 		move.b	8(a1),d1
 		andi.w	#$7F,d1
 		add.w	d1,d0
-		lea	($FFFFA400).w,a2
+		lea	mapwka,a2
 		move.b	(a2,d0.w),d0
 		lea	byte_3FCF(pc),a2
 		moveq	#6,d1
@@ -4443,17 +4471,17 @@ LZSlide_Move:				; XREF: LZWaterSlides
 		nop	
 
 loc_3F84:
-		bclr	#0,$22(a1)
+		bclr	#0,cddat(a1)
 		move.b	byte_3FC0(pc,d1.w),d0
 		move.b	d0,$14(a1)
 		bpl.b	loc_3F9A
-		bset	#0,$22(a1)
+		bset	#0,cddat(a1)
 
 loc_3F9A:
 		clr.b	$15(a1)
 		move.b	#$1B,$1C(a1)	; use Sonic's "sliding" animation
 		move.b	#1,mizuflag ; lock	controls (except jumping)
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		andi.b	#$1F,d0
 		bne.b	locret_3FBE
 		move.w	#$D0,d0
@@ -4831,7 +4859,7 @@ SS_ClrNemRam:
 		dbra	d1,SS_ClrNemRam	; clear	Nemesis	buffer
 
 		clr.b	waterflag
-		clr.w	($FFFFFE02).w
+		clr.w	gameflag
 		moveq	#$A,d0
 		bsr.w	colorset	; load special stage pallet
 		jsr	SS_Load
@@ -4960,7 +4988,7 @@ SS_NormalExit:
 		jsr	action
 		jsr	patset
 		bsr.w	RunPLC_RAM
-		tst.w	($FFFFFE02).w
+		tst.w	gameflag
 		beq.b	SS_NormalExit
 		tst.l	($FFFFF680).w
 		bne.b	SS_NormalExit
@@ -5152,9 +5180,9 @@ byte_4ABC:	dc.b $10, 1, $18, 0, $18, 1, $20, 0, $20, 1, $28, 0, $28, 1
 					; XREF: PalCycle_SS
 		even
 
-Pal_SSCyc1:	incbin	pallet\c_ss_1.bin
+Pal_SSCyc1:	incbin	pallet\c_rotmaptbl0.bin
 		even
-Pal_SSCyc2:	incbin	pallet\c_ss_2.bin
+Pal_SSCyc2:	incbin	pallet\c_rotmaptbl1.bin
 		even
 
 ; ---------------------------------------------------------------------------
@@ -5363,7 +5391,7 @@ Cont_GotoLevel:				; XREF: Cont_MainLoop
 
 Obj80:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj80_Index(pc,d0.w),d1
 		jmp	Obj80_Index(pc,d1.w)
 ; ===========================================================================
@@ -5374,7 +5402,7 @@ Obj80_Index:	dc.w Obj80_Main-Obj80_Index
 ; ===========================================================================
 
 Obj80_Main:				; XREF: Obj80_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_obj80,4(a0)
 		move.w	#$8500,2(a0)
 		move.b	#0,actflg(a0)
@@ -5422,21 +5450,21 @@ Obj80_MiniSonLoop:
 loc_4EEA:
 		move.w	#$D0,$A(a1)
 		move.b	#6,$1A(a1)
-		move.b	#6,$24(a1)
+		move.b	#6,r_no0(a1)
 		move.l	#Map_obj80,4(a1)
 		move.w	#$8551,2(a1)
 		move.b	#0,actflg(a1)
 		lea	$40(a1),a1
 		dbra	d1,Obj80_MiniSonLoop ; repeat for number of continues
 		lea	-$40(a1),a1
-		move.b	d3,$28(a1)
+		move.b	d3,userflag(a1)
 
 Obj80_ChkType:				; XREF: Obj80_Index
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		beq.b	loc_4F40
 		cmpi.b	#6,($FFFFD024).w
 		bcs.b	loc_4F40
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		andi.b	#1,d0
 		bne.b	loc_4F40
 		tst.w	($FFFFD010).w
@@ -5445,7 +5473,7 @@ Obj80_ChkType:				; XREF: Obj80_Index
 ; ===========================================================================
 
 loc_4F40:				; XREF: Obj80_ChkType
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		andi.b	#$F,d0
 		bne.b	Obj80_Display2
 		bchg	#0,$1A(a0)
@@ -5464,7 +5492,7 @@ Obj80_Delete:				; XREF: Obj80_ChkType
 
 Obj81:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj81_Index(pc,d0.w),d1
 		jsr	Obj81_Index(pc,d1.w)
 		jmp	actionsub
@@ -5476,7 +5504,7 @@ Obj81_Index:	dc.w Obj81_Main-Obj81_Index
 ; ===========================================================================
 
 Obj81_Main:				; XREF: Obj81_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#$A0,8(a0)
 		move.w	#$C0,$C(a0)
 		move.l	#playpat,4(a0)
@@ -5489,7 +5517,7 @@ Obj81_Main:				; XREF: Obj81_Index
 Obj81_ChkLand:				; XREF: Obj81_Index
 		cmpi.w	#$1A0,$C(a0)	; has Sonic landed yet?
 		bne.b	Obj81_ShowFall	; if not, branch
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		clr.w	$12(a0)		; stop Sonic falling
 		move.l	#Map_obj80,4(a0)
 		move.w	#$8500,2(a0)
@@ -5511,7 +5539,7 @@ Obj81_Animate:				; XREF: Obj81_Index
 ; ===========================================================================
 
 Obj81_GetUp:				; XREF: Obj81_Animate
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#playpat,4(a0)
 		move.w	#$780,2(a0)
 		move.b	#$1E,$1C(a0)	; use "getting up" animation
@@ -5647,7 +5675,7 @@ End_LoadSonic:
 		move.b	d0,plpower_s
 		move.b	d0,($FFFFFE2F).w
 		move.w	d0,editmode
-		move.w	d0,($FFFFFE02).w
+		move.w	d0,gameflag
 		move.w	d0,gametimer
 		bsr.w	OscillateNumInit
 		move.b	#1,plscore_f
@@ -5689,10 +5717,10 @@ End_MainLoop:
 ; ===========================================================================
 
 loc_52DA:
-		tst.w	($FFFFFE02).w	; is level set to restart?
+		tst.w	gameflag	; is level set to restart?
 		beq.w	End_MainLoop	; if not, branch
 
-		clr.w	($FFFFFE02).w
+		clr.w	gameflag
 		move.w	#$3F,($FFFFF626).w
 		clr.w	($FFFFF794).w
 
@@ -5714,14 +5742,14 @@ End_AllEmlds:				; XREF: loc_5334
 		bsr.w	flashout
 
 loc_5334:
-		tst.w	($FFFFFE02).w
+		tst.w	gameflag
 		beq.w	End_AllEmlds
-		clr.w	($FFFFFE02).w
+		clr.w	gameflag
 		move.w	#$2E2F,($FFFFA480).w ; modify level layout
 		lea	($C00004).l,a5
 		lea	($C00000).l,a6
 		lea	scra_h_posit,a3
-		lea	($FFFFA400).w,a4
+		lea	mapwka,a4
 		move.w	#$4000,d2
 		bsr.w	mapwrt2
 		moveq	#$13,d0
@@ -5783,7 +5811,7 @@ End_MoveSonExit:
 
 Obj87:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	Obj87_Index(pc,d0.w),d1
 		jsr	Obj87_Index(pc,d1.w)
 		jmp	actionsub
@@ -5798,17 +5826,17 @@ Obj87_Index:	dc.w Obj87_Main-Obj87_Index, Obj87_MakeEmlds-Obj87_Index
 Obj87_Main:				; XREF: Obj87_Index
 		cmpi.b	#6,($FFFFFE57).w ; do you have all 6 emeralds?
 		beq.b	Obj87_Main2	; if yes, branch
-		addi.b	#$10,$25(a0)	; else,	skip emerald sequence
+		addi.b	#$10,r_no1(a0)	; else,	skip emerald sequence
 		move.w	#$D8,$30(a0)
 		rts	
 ; ===========================================================================
 
 Obj87_Main2:				; XREF: Obj87_Main
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.l	#Map_obj87,4(a0)
 		move.w	#$3E1,2(a0)
 		move.b	#4,actflg(a0)
-		clr.b	$22(a0)
+		clr.b	cddat(a0)
 		move.b	#2,$18(a0)
 		move.b	#0,$1A(a0)
 		move.w	#$50,$30(a0)	; set duration for Sonic to pause
@@ -5816,7 +5844,7 @@ Obj87_Main2:				; XREF: Obj87_Main
 Obj87_MakeEmlds:			; XREF: Obj87_Index
 		subq.w	#1,$30(a0)	; subtract 1 from duration
 		bne.b	Obj87_Wait
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#1,$1C(a0)
 		move.b	#$88,($FFFFD400).w ; load chaos	emeralds objects
 
@@ -5827,9 +5855,9 @@ Obj87_Wait:
 Obj87_LookUp:				; XREF: Obj87_Index
 		cmpi.w	#$2000,($FFD43C).l
 		bne.b	locret_5480
-		move.w	#1,($FFFFFE02).w ; set level to	restart	(causes	flash)
+		move.w	#1,gameflag ; set level to	restart	(causes	flash)
 		move.w	#$5A,$30(a0)
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 
 locret_5480:
 		rts	
@@ -5844,8 +5872,8 @@ Obj87_ClrObjRam:			; XREF: Obj87_Index
 Obj87_ClrLoop:
 		clr.l	(a1)+
 		dbra	d1,Obj87_ClrLoop ; clear the object RAM
-		move.w	#1,($FFFFFE02).w
-		addq.b	#2,$25(a0)
+		move.w	#1,gameflag
+		addq.b	#2,r_no1(a0)
 		move.b	#1,$1C(a0)
 		move.w	#$3C,$30(a0)
 
@@ -5856,7 +5884,7 @@ Obj87_Wait2:
 Obj87_MakeLogo:				; XREF: Obj87_Index
 		subq.w	#1,$30(a0)
 		bne.b	Obj87_Wait3
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#$B4,$30(a0)
 		move.b	#2,$1C(a0)
 		move.b	#$89,($FFFFD400).w ; load "SONIC THE HEDGEHOG" object
@@ -5873,11 +5901,11 @@ Obj87_Animate:				; XREF: Obj87_Index
 Obj87_Leap:				; XREF: Obj87_Index
 		subq.w	#1,$30(a0)
 		bne.b	Obj87_Wait4
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.l	#Map_obj87,4(a0)
 		move.w	#$3E1,2(a0)
 		move.b	#4,actflg(a0)
-		clr.b	$22(a0)
+		clr.b	cddat(a0)
 		move.b	#2,$18(a0)
 		move.b	#5,$1A(a0)
 		move.b	#2,$1C(a0)	; use "leaping"	animation
@@ -5898,7 +5926,7 @@ Ani_obj87:
 
 Obj88:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj88_Index(pc,d0.w),d1
 		jsr	Obj88_Index(pc,d1.w)
 		jmp	actionsub
@@ -5924,7 +5952,7 @@ Obj88_Main2:				; XREF: Obj88_Main
 
 Obj88_MainLoop:
 		move.b	#$88,(a1)	; load chaos emerald object
-		addq.b	#2,$24(a1)
+		addq.b	#2,r_no0(a1)
 		move.l	#Map_obj88,4(a1)
 		move.w	#$3C5,2(a1)
 		move.b	#4,actflg(a1)
@@ -5934,15 +5962,15 @@ Obj88_MainLoop:
 		move.b	d2,$1C(a1)
 		move.b	d2,$1A(a1)
 		addq.b	#1,d2
-		move.b	d3,$26(a1)
+		move.b	d3,direc(a1)
 		addi.b	#$2A,d3
 		lea	$40(a1),a1
 		dbra	d1,Obj88_MainLoop ; repeat 5 more times
 
 Obj88_Move:				; XREF: Obj88_Index
 		move.w	$3E(a0),d0
-		add.w	d0,$26(a0)
-		move.b	$26(a0),d0
+		add.w	d0,direc(a0)
+		move.b	direc(a0),d0
 		jsr	(sinset).l
 		moveq	#0,d4
 		move.b	$3C(a0),d4
@@ -5977,7 +6005,7 @@ locret_5614:
 
 Obj89:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj89_Index(pc,d0.w),d1
 		jmp	Obj89_Index(pc,d1.w)
 ; ===========================================================================
@@ -5987,7 +6015,7 @@ Obj89_Index:	dc.w Obj89_Main-Obj89_Index
 ; ===========================================================================
 
 Obj89_Main:				; XREF: Obj89_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#-$20,8(a0)	; object starts	outside	the level boundary
 		move.w	#$D8,$A(a0)
 		move.l	#Map_obj89,4(a0)
@@ -6003,7 +6031,7 @@ Obj89_Move:				; XREF: Obj89_Index
 ; ===========================================================================
 
 Obj89_Delay:				; XREF: Obj89_Move
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#120,$30(a0)	; set duration for delay (2 seconds)
 
 Obj89_GotoCredits:			; XREF: Obj89_Index
@@ -6229,7 +6257,7 @@ TryAg_Exit:
 
 Obj8B:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj8B_Index(pc,d0.w),d1
 		jsr	Obj8B_Index(pc,d1.w)
 		jmp	actionsub
@@ -6241,7 +6269,7 @@ Obj8B_Index:	dc.w Obj8B_Main-Obj8B_Index
 ; ===========================================================================
 
 Obj8B_Main:				; XREF: Obj8B_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#$120,8(a0)
 		move.w	#$F4,$A(a0)
 		move.l	#Map_obj8B,4(a0)
@@ -6262,7 +6290,7 @@ Obj8B_Animate:				; XREF: Obj8B_Index
 ; ===========================================================================
 
 Obj8B_Juggle:				; XREF: Obj8B_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		moveq	#2,d0
 		btst	#0,$1C(a0)
 		beq.b	loc_5A6A
@@ -6276,7 +6304,7 @@ loc_5A70:
 		move.b	d0,$3E(a1)
 		move.w	d0,d2
 		asl.w	#3,d2
-		add.b	d2,$26(a1)
+		add.b	d2,direc(a1)
 		lea	$40(a1),a1
 		dbra	d1,loc_5A70
 		addq.b	#1,$1A(a0)
@@ -6286,7 +6314,7 @@ loc_5A8E:				; XREF: Obj8B_Index
 		subq.w	#1,$30(a0)
 		bpl.b	locret_5AA0
 		bchg	#0,$1C(a0)
-		move.b	#2,$24(a0)
+		move.b	#2,r_no0(a0)
 
 locret_5AA0:
 		rts	
@@ -6301,7 +6329,7 @@ Ani_obj8B:
 
 Obj8C:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj8C_Index(pc,d0.w),d1
 		jsr	Obj8C_Index(pc,d1.w)
 		jmp	actionsub
@@ -6319,7 +6347,7 @@ Obj8C_Main:				; XREF: Obj8C_Index
 
 Obj8C_MakeEms:				; XREF: loc_5B42
 		move.b	#$8C,(a1)	; load emerald object
-		addq.b	#2,$24(a1)
+		addq.b	#2,r_no0(a1)
 		move.l	#Map_obj88,4(a1)
 		move.w	#$3C5,2(a1)
 		move.b	#0,actflg(a1)
@@ -6351,7 +6379,7 @@ loc_5B42:
 		move.b	d2,$1A(a1)
 		addq.b	#1,$1A(a1)
 		addq.b	#1,d2
-		move.b	#$80,$26(a1)
+		move.b	#$80,direc(a1)
 		move.b	d3,$1E(a1)
 		move.b	d3,$1F(a1)
 		addi.w	#$A,d3
@@ -6368,10 +6396,10 @@ Obj8C_Move:				; XREF: Obj8C_Index
 
 loc_5B78:
 		move.w	$3E(a0),d0
-		add.w	d0,$26(a0)
+		add.w	d0,direc(a0)
 
 loc_5B80:
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		beq.b	loc_5B8C
 		cmpi.b	#$80,d0
 		bne.b	loc_5B96
@@ -7404,7 +7432,7 @@ sub_6886:				; XREF: loc_C44
 		lea	($C00000).l,a6
 		lea	($FFFFF756).w,a2
 		lea	scrb_h_posit,a3
-		lea	($FFFFA440).w,a4
+		lea	mapwkb,a4
 		move.w	#$6000,d2
 		bsr.w	sub_6954
 		lea	($FFFFF758).w,a2
@@ -7424,7 +7452,7 @@ scrollwrt:			; XREF: Demo_Time
 		lea	($C00000).l,a6
 		lea	($FFFFFF32).w,a2
 		lea	($FFFFFF18).w,a3
-		lea	($FFFFA440).w,a4
+		lea	mapwkb,a4
 		move.w	#$6000,d2
 		bsr.w	sub_6954
 		lea	($FFFFFF34).w,a2
@@ -7432,7 +7460,7 @@ scrollwrt:			; XREF: Demo_Time
 		bsr.w	sub_69F4
 		lea	($FFFFFF30).w,a2
 		lea	($FFFFFF10).w,a3
-		lea	($FFFFA400).w,a4
+		lea	mapwka,a4
 		move.w	#$4000,d2
 		tst.b	(a2)
 		beq.b	locret_6952
@@ -7872,11 +7900,11 @@ mapwrt:			; XREF: Level; EndingSequence
 		lea	($C00004).l,a5
 		lea	($C00000).l,a6
 		lea	scra_h_posit,a3
-		lea	($FFFFA400).w,a4
+		lea	mapwka,a4
 		move.w	#$4000,d2
 		bsr.b	mapwrt2
 		lea	scrb_h_posit,a3
-		lea	($FFFFA440).w,a4
+		lea	mapwkb,a4
 		move.w	#$6000,d2
 ; End of function mapwrt
 
@@ -7963,7 +7991,7 @@ locret_6D10:
 
 
 LevelLayoutLoad:			; XREF: TitleScreen; mapinit
-		lea	($FFFFA400).w,a3
+		lea	mapwka,a3
 		move.w	#$1FF,d1
 		moveq	#0,d0
 
@@ -7971,10 +7999,10 @@ LevLoad_ClrRam:
 		move.l	d0,(a3)+
 		dbra	d1,LevLoad_ClrRam ; clear the RAM ($FFFFA400-A7FF)
 
-		lea	($FFFFA400).w,a3 ; RAM address for level layout
+		lea	mapwka,a3 ; RAM address for level layout
 		moveq	#0,d1
 		bsr.w	LevelLayoutLoad2 ; load	level layout into RAM
-		lea	($FFFFA440).w,a3 ; RAM address for background layout
+		lea	mapwkb,a3 ; RAM address for background layout
 		moveq	#2,d1
 ; End of function LevelLayoutLoad
 
@@ -7991,7 +8019,7 @@ LevelLayoutLoad2:			; XREF: LevelLayoutLoad
 		add.w	d0,d0
 		add.w	d2,d0
 		add.w	d1,d0
-		lea	(Level_Index).l,a1
+		lea	(zonemaptbl).l,a1
 		move.w	(a1,d0.w),d0
 		lea	(a1,d0.w),a1
 		moveq	#0,d1
@@ -8247,7 +8275,7 @@ Resize_SBZ3:
 		cmpi.w	#$18,playerwk+yposi ; has Sonic reached the top of the level?
 		bcc.b	locret_6F8C	; if not, branch
 		clr.b	saveno
-		move.w	#1,($FFFFFE02).w ; restart level
+		move.w	#1,gameflag ; restart level
 		move.w	#$502,stageno ; set level	number to 0502 (FZ)
 		move.b	#1,($FFFFF7C8).w ; freeze Sonic
 
@@ -8702,46 +8730,43 @@ Resize_FZend2:
 Resize_Ending:				; XREF: Resize_Index
 		rts	
 ; ===========================================================================
-; ---------------------------------------------------------------------------
-; Object 11 - GHZ bridge
-; ---------------------------------------------------------------------------
-
-hashi:					; XREF: act_tbl
+hashi:
 		moveq	#0,d0
-		move.b	$24(a0),d0
-		move.w	hashi_Index(pc,d0.w),d1
-		jmp	hashi_Index(pc,d1.w)
-; ===========================================================================
-hashi_Index:	dc.w hashi_Main-hashi_Index, hashi_Action-hashi_Index
-		dc.w hashi_Action2-hashi_Index,	hashi_Delete2-hashi_Index
-		dc.w hashi_Delete2-hashi_Index,	hashi_Display2-hashi_Index
-; ===========================================================================
-
-hashi_Main:				; XREF: hashi_Index
-		addq.b	#2,$24(a0)
-		move.l	#Map_hashi,4(a0)
-		move.w	#$438E,2(a0)
+		move.b	r_no0(a0),d0
+		move.w	hashi_move_tbl(pc,d0.w),d1
+		jmp		hashi_move_tbl(pc,d1.w)
+hashi_move_tbl:
+		dc.w	hashi_init-hashi_move_tbl
+		dc.w	hash_move-hashi_move_tbl
+		dc.w	hash_move2-hashi_move_tbl
+		dc.w	hashi_Delete2-hashi_move_tbl
+		dc.w	hashi_Delete2-hashi_move_tbl
+		dc.w	hashi_Display2-hashi_move_tbl
+hashi_init:
+		addq.b	#word,r_no0(a0)
+		move.l	#hashipat,patbase(a0)
+		move.w	#$438e,sproffset(a0)
 		move.b	#4,actflg(a0)
-		move.b	#3,$18(a0)
-		move.b	#$80,$19(a0)
-		move.w	$C(a0),d2
-		move.w	8(a0),d3
-		move.b	0(a0),d4	; copy object number ($11) to d4
-		lea	$28(a0),a2	; copy bridge subtype to a2
+		move.b	#3,sprpri(a0)
+		move.b	#128,sprhs(a0)
+		move.w	yposi(a0),d2
+		move.w	xposi(a0),d3
+		move.b	actno(a0),d4
+		lea		userflag(a0),a2
 		moveq	#0,d1
-		move.b	(a2),d1		; copy a2 to d1
+		move.b	(a2),d1
 		move.b	#0,(a2)+
 		move.w	d1,d0
 		lsr.w	#1,d0
 		lsl.w	#4,d0
 		sub.w	d0,d3
 		subq.b	#2,d1
-		bcs.b	hashi_Action
+		bcs.b	hash_move
 
 hashi_MakeBdg:
 		bsr.w	actwkchk
-		bne.b	hashi_Action
-		addq.b	#1,$28(a0)
+		bne.b	hash_move
+		addq.b	#1,userflag(a0)
 		cmp.w	8(a0),d3
 		bne.b	loc_73B8
 		addi.w	#$10,d3
@@ -8752,20 +8777,20 @@ hashi_MakeBdg:
 		lsr.w	#6,d5
 		andi.w	#$7F,d5
 		move.b	d5,(a2)+
-		addq.b	#1,$28(a0)
+		addq.b	#1,userflag(a0)
 
-loc_73B8:				; XREF: ROM:00007398j
+loc_73B8:
 		move.w	a1,d5
 		subi.w	#-$3000,d5
 		lsr.w	#6,d5
 		andi.w	#$7F,d5
 		move.b	d5,(a2)+
-		move.b	#$A,$24(a1)
-		move.b	d4,0(a1)	; load bridge object (d4 = $11)
+		move.b	#$A,r_no0(a1)
+		move.b	d4,0(a1)
 		move.w	d2,$C(a1)
 		move.w	d2,$3C(a1)
 		move.w	d3,8(a1)
-		move.l	#Map_hashi,4(a1)
+		move.l	#hashipat,4(a1)
 		move.w	#$438E,2(a1)
 		move.b	#4,actflg(a1)
 		move.b	#3,$18(a1)
@@ -8773,7 +8798,7 @@ loc_73B8:				; XREF: ROM:00007398j
 		addi.w	#$10,d3
 		dbra	d1,hashi_MakeBdg ; repeat d1 times (length of bridge)
 
-hashi_Action:				; XREF: hashi_Index
+hash_move:				; XREF: hashi_move_tbl
 		bsr.b	hashi_Solid
 		tst.b	$3E(a0)
 		beq.b	hashi_Display
@@ -8787,9 +8812,9 @@ hashi_Display:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-hashi_Solid:				; XREF: hashi_Action
+hashi_Solid:				; XREF: hash_move
 		moveq	#0,d1
-		move.b	$28(a0),d1
+		move.b	userflag(a0),d1
 		lsl.w	#3,d1
 		move.w	d1,d2
 		addq.w	#8,d1
@@ -8841,26 +8866,26 @@ Platform3:
 		bcs.w	locret_751E
 		tst.b	($FFFFF7C8).w
 		bmi.w	locret_751E
-		cmpi.b	#6,$24(a1)
+		cmpi.b	#6,r_no0(a1)
 		bcc.w	locret_751E
 		add.w	d0,d2
 		addq.w	#3,d2
 		move.w	d2,$C(a1)
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 loc_74AE:
-		btst	#3,$22(a1)
+		btst	#3,cddat(a1)
 		beq.b	loc_74DC
 		moveq	#0,d0
 		move.b	$3D(a1),d0
 		lsl.w	#6,d0
 		addi.l	#$FFD000,d0
 		movea.l	d0,a2
-		bclr	#3,$22(a2)
-		clr.b	$25(a2)
-		cmpi.b	#4,$24(a2)
+		bclr	#3,cddat(a2)
+		clr.b	r_no1(a2)
+		cmpi.b	#4,r_no0(a2)
 		bne.b	loc_74DC
-		subq.b	#2,$24(a2)
+		subq.b	#2,r_no0(a2)
 
 loc_74DC:
 		move.w	a0,d0
@@ -8868,10 +8893,10 @@ loc_74DC:
 		lsr.w	#6,d0
 		andi.w	#$7F,d0
 		move.b	d0,$3D(a1)
-		move.b	#0,$26(a1)
+		move.b	#0,direc(a1)
 		move.w	#0,$12(a1)
 		move.w	$10(a1),$14(a1)
-		btst	#1,$22(a1)
+		btst	#1,cddat(a1)
 		beq.b	loc_7512
 		move.l	a0,-(sp)
 		movea.l	a1,a0
@@ -8879,8 +8904,8 @@ loc_74DC:
 		movea.l	(sp)+,a0
 
 loc_7512:
-		bset	#3,$22(a1)
-		bset	#3,$22(a0)
+		bset	#3,cddat(a1)
+		bset	#3,cddat(a0)
 
 locret_751E:
 		rts	
@@ -8940,7 +8965,7 @@ buranko_Solid:				; XREF: buranko_SetSolid
 
 ; ===========================================================================
 
-hashi_Action2:				; XREF: hashi_Index
+hash_move2:				; XREF: hashi_move_tbl
 		bsr.b	hashi_WalkOff
 		bsr.w	actionsub
 		bra.w	hashi_ChkDel
@@ -8952,9 +8977,9 @@ hashi_Action2:				; XREF: hashi_Index
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-hashi_WalkOff:				; XREF: hashi_Action2
+hashi_WalkOff:				; XREF: hash_move2
 		moveq	#0,d1
-		move.b	$28(a0),d1
+		move.b	userflag(a0),d1
 		lsl.w	#3,d1
 		move.w	d1,d2
 		addq.w	#8,d1
@@ -8988,7 +9013,7 @@ ExitPlatform:
 ExitPlatform2:
 		add.w	d2,d2
 		lea	playerwk,a1
-		btst	#1,$22(a1)
+		btst	#1,cddat(a1)
 		bne.b	loc_75E0
 		move.w	8(a1),d0
 		sub.w	8(a0),d0
@@ -8998,9 +9023,9 @@ ExitPlatform2:
 		bcs.b	locret_75F2
 
 loc_75E0:
-		bclr	#3,$22(a1)
-		move.b	#2,$24(a0)
-		bclr	#3,$22(a0)
+		bclr	#3,cddat(a1)
+		move.b	#2,r_no0(a0)
+		bclr	#3,cddat(a0)
 
 locret_75F2:
 		rts	
@@ -9031,13 +9056,13 @@ hashi_MoveSonic:			; XREF: hashi_WalkOff
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-hashi_Bend:				; XREF: hashi_Action; hashi_WalkOff
+hashi_Bend:				; XREF: hash_move; hashi_WalkOff
 		move.b	$3E(a0),d0
 		bsr.w	sinset
 		move.w	d0,d4
 		lea	(hashi_BendData2).l,a4
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		lsl.w	#4,d0
 		moveq	#0,d3
 		move.b	$3F(a0),d3
@@ -9067,7 +9092,7 @@ loc_765C:
 		move.w	d0,$C(a1)
 		dbra	d2,loc_765C
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		moveq	#0,d3
 		move.b	$3F(a0),d3
 		addq.b	#1,d3
@@ -9113,7 +9138,7 @@ hashi_BendData2:incbin	misc\ghzbend2.bin
 
 ; ===========================================================================
 
-hashi_ChkDel:				; XREF: hashi_Display; hashi_Action2
+hashi_ChkDel:				; XREF: hashi_Display; hash_move2
 		move.w	8(a0),d0
 		andi.w	#$FF80,d0
 		move.w	scra_h_posit,d1
@@ -9127,7 +9152,7 @@ hashi_ChkDel:				; XREF: hashi_Display; hashi_Action2
 
 hashi_DelAll:				; XREF: hashi_ChkDel
 		moveq	#0,d2
-		lea	$28(a0),a2	; load bridge length
+		lea	userflag(a0),a2	; load bridge length
 		move.b	(a2)+,d2	; move bridge length to	d2
 		subq.b	#1,d2		; subtract 1
 		bcs.b	hashi_Delete
@@ -9150,19 +9175,19 @@ hashi_Delete:
 		rts	
 ; ===========================================================================
 
-hashi_Delete2:				; XREF: hashi_Index
+hashi_Delete2:				; XREF: hashi_move_tbl
 		bsr.w	frameout
 		rts	
 ; ===========================================================================
 
-hashi_Display2:				; XREF: hashi_Index
+hashi_Display2:				; XREF: hashi_move_tbl
 		bsr.w	actionsub
 		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - GHZ	bridge
 ; ---------------------------------------------------------------------------
-Map_hashi:
+hashipat:
 	include "_maps\hashi.asm"
 
 ; ===========================================================================
@@ -9173,7 +9198,7 @@ Map_hashi:
 
 buranko:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	buranko_Index(pc,d0.w),d1
 		jmp	buranko_Index(pc,d1.w)
 ; ===========================================================================
@@ -9184,7 +9209,7 @@ buranko_Index:	dc.w buranko_Main-buranko_Index, buranko_SetSolid-buranko_Index
 ; ===========================================================================
 
 buranko_Main:				; XREF: buranko_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_buranko,4(a0) ; GHZ and MZ specific code
 		move.w	#$4380,2(a0)
 		move.b	#4,actflg(a0)
@@ -9199,7 +9224,7 @@ buranko_Main:				; XREF: buranko_Index
 		move.w	#$43DC,2(a0)
 		move.b	#$20,$19(a0)
 		move.b	#$10,$16(a0)
-		move.b	#$99,$20(a0)
+		move.b	#$99,colino(a0)
 
 buranko_NotSLZ:
 		cmpi.b	#5,stageno ; check if level is SBZ
@@ -9208,13 +9233,13 @@ buranko_NotSLZ:
 		move.w	#$391,2(a0)
 		move.b	#$18,$19(a0)
 		move.b	#$18,$16(a0)
-		move.b	#$86,$20(a0)
-		move.b	#$C,$24(a0)
+		move.b	#$86,colino(a0)
+		move.b	#$C,r_no0(a0)
 
 buranko_SetLength:
 		move.b	0(a0),d4
 		moveq	#0,d1
-		lea	$28(a0),a2	; move chain length to a2
+		lea	userflag(a0),a2	; move chain length to a2
 		move.b	(a2),d1		; move a2 to d1
 		move.w	d1,-(sp)
 		andi.w	#$F,d1
@@ -9232,13 +9257,13 @@ buranko_SetLength:
 buranko_MakeChain:
 		bsr.w	actwkchk
 		bne.b	loc_7A92
-		addq.b	#1,$28(a0)
+		addq.b	#1,userflag(a0)
 		move.w	a1,d5
 		subi.w	#-$3000,d5
 		lsr.w	#6,d5
 		andi.w	#$7F,d5
 		move.b	d5,(a2)+
-		move.b	#$A,$24(a1)
+		move.b	#$A,r_no0(a1)
 		move.b	d4,0(a1)	; load swinging	object
 		move.l	4(a0),4(a1)
 		move.w	2(a0),2(a1)
@@ -9263,7 +9288,7 @@ loc_7A92:
 		lsr.w	#6,d5
 		andi.w	#$7F,d5
 		move.b	d5,(a2)+
-		move.w	#$4080,$26(a0)
+		move.w	#$4080,direc(a0)
 		move.w	#-$200,$3E(a0)
 		move.w	(sp)+,d1
 		btst	#4,d1		; is object type $8X ?
@@ -9272,7 +9297,7 @@ loc_7A92:
 		move.w	#$43AA,2(a0)
 		move.b	#1,$1A(a0)
 		move.b	#2,$18(a0)
-		move.b	#$81,$20(a0)	; make object hurt when	touched
+		move.b	#$81,colino(a0)	; make object hurt when	touched
 
 loc_7AD4:
 		cmpi.b	#5,stageno ; is zone SBZ?
@@ -9358,7 +9383,7 @@ locret_7B62:
 buranko_Move:				; XREF: buranko_Action; buranko_Action2
 		move.b	($FFFFFE78).w,d0
 		move.w	#$80,d1
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_7B78
 		neg.w	d0
 		add.w	d1,d0
@@ -9377,7 +9402,7 @@ btama_Move:				; XREF: btama_Display2
 		move.w	$3E(a0),d0
 		addq.w	#8,d0
 		move.w	d0,$3E(a0)
-		add.w	d0,$26(a0)
+		add.w	d0,direc(a0)
 		cmpi.w	#$200,d0
 		bne.b	loc_7BB6
 		move.b	#1,$3D(a0)
@@ -9388,13 +9413,13 @@ loc_7B9C:
 		move.w	$3E(a0),d0
 		subq.w	#8,d0
 		move.w	d0,$3E(a0)
-		add.w	d0,$26(a0)
+		add.w	d0,direc(a0)
 		cmpi.w	#-$200,d0
 		bne.b	loc_7BB6
 		move.b	#0,$3D(a0)
 
 loc_7BB6:
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 ; End of function btama_Move
 
 
@@ -9405,7 +9430,7 @@ buranko_Move2:				; XREF: buranko_Move; btama_Display
 		bsr.w	sinset
 		move.w	$38(a0),d2
 		move.w	$3A(a0),d3
-		lea	$28(a0),a2
+		lea	userflag(a0),a2
 		moveq	#0,d6
 		move.b	(a2)+,d6
 
@@ -9446,7 +9471,7 @@ buranko_ChkDel:				; XREF: buranko_Action; buranko_Action2
 
 buranko_DelAll:				; XREF: buranko_ChkDel
 		moveq	#0,d2
-		lea	$28(a0),a2
+		lea	userflag(a0),a2
 		move.b	(a2)+,d2
 
 buranko_DelLoop:
@@ -9487,29 +9512,29 @@ Map_burankoa:
 
 thashi:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
-		move.w	thashi_Index(pc,d0.w),d1
-		jmp	thashi_Index(pc,d1.w)
+		move.b	r_no0(a0),d0
+		move.w	thashi_move_tbl(pc,d0.w),d1
+		jmp	thashi_move_tbl(pc,d1.w)
 ; ===========================================================================
-thashi_Index:	dc.w thashi_Main-thashi_Index
-		dc.w thashi_Action-thashi_Index
-		dc.w thashi_Action-thashi_Index
-		dc.w thashi_Delete-thashi_Index
-		dc.w thashi_Display-thashi_Index
+thashi_move_tbl:	dc.w thashi_init-thashi_move_tbl
+		dc.w thash_move-thashi_move_tbl
+		dc.w thash_move-thashi_move_tbl
+		dc.w thashi_Delete-thashi_move_tbl
+		dc.w thashi_Display-thashi_move_tbl
 ; ===========================================================================
 
-thashi_Main:				; XREF: thashi_Index
-		addq.b	#2,$24(a0)
+thashi_init:				; XREF: thashi_move_tbl
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_thashi,4(a0)
 		move.w	#$4398,2(a0)
-		move.b	#7,$22(a0)
+		move.b	#7,cddat(a0)
 		move.b	#4,actflg(a0)
 		move.b	#3,$18(a0)
 		move.b	#8,$19(a0)
 		move.w	$C(a0),d2
 		move.w	8(a0),d3
 		move.b	0(a0),d4
-		lea	$28(a0),a2	; move helix length to a2
+		lea	userflag(a0),a2	; move helix length to a2
 		moveq	#0,d1
 		move.b	(a2),d1		; move a2 to d1
 		move.b	#0,(a2)+
@@ -9518,19 +9543,19 @@ thashi_Main:				; XREF: thashi_Index
 		lsl.w	#4,d0
 		sub.w	d0,d3
 		subq.b	#2,d1
-		bcs.b	thashi_Action
+		bcs.b	thash_move
 		moveq	#0,d6
 
 thashi_MakeHelix:
 		bsr.w	actwkchk
-		bne.b	thashi_Action
-		addq.b	#1,$28(a0)
+		bne.b	thash_move
+		addq.b	#1,userflag(a0)
 		move.w	a1,d5
 		subi.w	#$D000,d5
 		lsr.w	#6,d5
 		andi.w	#$7F,d5
 		move.b	d5,(a2)+
-		move.b	#8,$24(a1)
+		move.b	#8,r_no0(a1)
 		move.b	d4,0(a1)
 		move.w	d2,$C(a1)
 		move.w	d3,8(a1)
@@ -9549,12 +9574,12 @@ thashi_MakeHelix:
 		addq.b	#1,d6
 		andi.b	#7,d6
 		addi.w	#$10,d3
-		addq.b	#1,$28(a0)
+		addq.b	#1,userflag(a0)
 
 loc_7D78:
 		dbra	d1,thashi_MakeHelix ; repeat d1 times (helix length)
 
-thashi_Action:				; XREF: thashi_Index
+thash_move:				; XREF: thashi_move_tbl
 		bsr.w	thashi_RotateSpikes
 		bsr.w	actionsub
 		bra.w	thashi_ChkDel
@@ -9562,14 +9587,14 @@ thashi_Action:				; XREF: thashi_Index
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-thashi_RotateSpikes:			; XREF: thashi_Action; thashi_Display
+thashi_RotateSpikes:			; XREF: thash_move; thashi_Display
 		move.b	sys_patno,d0
-		move.b	#0,$20(a0)	; make object harmless
+		move.b	#0,colino(a0)	; make object harmless
 		add.b	$3E(a0),d0
 		andi.b	#7,d0
 		move.b	d0,$1A(a0)	; change current frame
 		bne.b	locret_7DA6
-		move.b	#$84,$20(a0)	; make object harmful
+		move.b	#$84,colino(a0)	; make object harmful
 
 locret_7DA6:
 		rts	
@@ -9577,7 +9602,7 @@ locret_7DA6:
 
 ; ===========================================================================
 
-thashi_ChkDel:				; XREF: thashi_Action
+thashi_ChkDel:				; XREF: thash_move
 		move.w	8(a0),d0
 		andi.w	#$FF80,d0
 		move.w	scra_h_posit,d1
@@ -9591,7 +9616,7 @@ thashi_ChkDel:				; XREF: thashi_Action
 
 thashi_DelAll:				; XREF: thashi_ChkDel
 		moveq	#0,d2
-		lea	$28(a0),a2	; move helix length to a2
+		lea	userflag(a0),a2	; move helix length to a2
 		move.b	(a2)+,d2	; move a2 to d2
 		subq.b	#2,d2
 		bcs.b	thashi_Delete
@@ -9605,12 +9630,12 @@ thashi_DelLoop:
 		bsr.w	frameout2	; delete object
 		dbra	d2,thashi_DelLoop ; repeat d2 times (helix length)
 
-thashi_Delete:				; XREF: thashi_Index
+thashi_Delete:				; XREF: thashi_move_tbl
 		bsr.w	frameout
 		rts	
 ; ===========================================================================
 
-thashi_Display:				; XREF: thashi_Index
+thashi_Display:				; XREF: thashi_move_tbl
 		bsr.w	thashi_RotateSpikes
 		bra.w	actionsub
 ; ===========================================================================
@@ -9627,7 +9652,7 @@ Map_thashi:
 
 shima:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	shima_Index(pc,d0.w),d1
 		jmp	shima_Index(pc,d1.w)
 ; ===========================================================================
@@ -9639,7 +9664,7 @@ shima_Index:	dc.w shima_Main-shima_Index
 ; ===========================================================================
 
 shima_Main:				; XREF: shima_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#$4000,2(a0)
 		move.l	#shimapat2,4(a0)
 		move.b	#$20,$19(a0)
@@ -9654,17 +9679,17 @@ shima_NotSYZ:
 		move.l	#shimapat4,4(a0) ; SLZ	specific code
 		move.b	#$20,$19(a0)
 		move.w	#$4000,2(a0)
-		move.b	#3,$28(a0)
+		move.b	#3,userflag(a0)
 
 shima_NotSLZ:
 		move.b	#4,1(a0)
 		move.b	#4,$18(a0)
-		move.w	$C(a0),$2C(a0)
+		move.w	$C(a0),actfree(a0)
 		move.w	$C(a0),$34(a0)
 		move.w	8(a0),$32(a0)
-		move.w	#$80,$26(a0)
+		move.w	#$80,direc(a0)
 		moveq	#0,d1
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		cmpi.b	#$A,d0		; is object type $A (large platform)?
 		bne.b	shima_SetFrame	; if not, branch
 		addq.b	#1,d1		; use frame #1
@@ -9722,7 +9747,7 @@ shima_Nudge:				; XREF: shima_Action; shima_Action2
 		move.w	#$400,d1
 		muls.w	d1,d0
 		swap	d0
-		add.w	$2C(a0),d0
+		add.w	actfree(a0),d0
 		move.w	d0,$C(a0)
 		rts	
 ; End of function shima_Nudge
@@ -9736,7 +9761,7 @@ shima_Nudge:				; XREF: shima_Action; shima_Action2
 
 shima_Move:				; XREF: shima_Action; shima_Action2
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#$F,d0
 		add.w	d0,d0
 		move.w	shima_TypeIndex(pc,d0.w),d1
@@ -9759,7 +9784,7 @@ shima_Type00:
 
 shima_Type05:
 		move.w	$32(a0),d0
-		move.b	$26(a0),d1	; load platform-motion variable
+		move.b	direc(a0),d1	; load platform-motion variable
 		neg.b	d1		; reverse platform-motion
 		addi.b	#$40,d1
 		bra.b	shima_01_Move
@@ -9767,7 +9792,7 @@ shima_Type05:
 
 shima_Type01:
 		move.w	$32(a0),d0
-		move.b	$26(a0),d1	; load platform-motion variable
+		move.b	direc(a0),d1	; load platform-motion variable
 		subi.b	#$40,d1
 
 shima_01_Move:
@@ -9794,7 +9819,7 @@ shima_Type0B:
 
 shima_Type06:
 		move.w	$34(a0),d0
-		move.b	$26(a0),d1	; load platform-motion variable
+		move.b	direc(a0),d1	; load platform-motion variable
 		neg.b	d1		; reverse platform-motion
 		addi.b	#$40,d1
 		bra.b	shima_02_Move
@@ -9802,20 +9827,20 @@ shima_Type06:
 
 shima_Type02:
 		move.w	$34(a0),d0
-		move.b	$26(a0),d1	; load platform-motion variable
+		move.b	direc(a0),d1	; load platform-motion variable
 		subi.b	#$40,d1
 
 shima_02_Move:
 		ext.w	d1
 		add.w	d1,d0
-		move.w	d0,$2C(a0)	; change position on y-axis
+		move.w	d0,actfree(a0)	; change position on y-axis
 		bra.w	shima_ChgMotion
 ; ===========================================================================
 
 shima_Type03:
 		tst.w	$3A(a0)		; is time delay	set?
 		bne.b	shima_03_Wait	; if yes, branch
-		btst	#3,$22(a0)	; is Sonic standing on the platform?
+		btst	#3,cddat(a0)	; is Sonic standing on the platform?
 		beq.b	shima_03_NoMove	; if not, branch
 		move.w	#30,$3A(a0)	; set time delay to 0.5	seconds
 
@@ -9827,7 +9852,7 @@ shima_03_Wait:
 		subq.w	#1,$3A(a0)	; subtract 1 from time
 		bne.b	shima_03_NoMove	; if time is > 0, branch
 		move.w	#32,$3A(a0)
-		addq.b	#1,$28(a0)	; change to type 04 (falling)
+		addq.b	#1,userflag(a0)	; change to type 04 (falling)
 		rts	
 ; ===========================================================================
 
@@ -9836,31 +9861,31 @@ shima_Type04:
 		beq.b	loc_8048
 		subq.w	#1,$3A(a0)
 		bne.b	loc_8048
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		beq.b	loc_8042
-		bset	#1,$22(a1)
-		bclr	#3,$22(a1)
-		move.b	#2,$24(a1)
-		bclr	#3,$22(a0)
-		clr.b	$25(a0)
+		bset	#1,cddat(a1)
+		bclr	#3,cddat(a1)
+		move.b	#2,r_no0(a1)
+		bclr	#3,cddat(a0)
+		clr.b	r_no1(a0)
 		move.w	$12(a0),$12(a1)
 
 loc_8042:
-		move.b	#8,$24(a0)
+		move.b	#8,r_no0(a0)
 
 loc_8048:
-		move.l	$2C(a0),d3
+		move.l	actfree(a0),d3
 		move.w	$12(a0),d0
 		ext.l	d0
 		asl.l	#8,d0
 		add.l	d0,d3
-		move.l	d3,$2C(a0)
+		move.l	d3,actfree(a0)
 		addi.w	#$38,$12(a0)
 		move.w	scralim_down,d0
 		addi.w	#$E0,d0
-		cmp.w	$2C(a0),d0
+		cmp.w	actfree(a0),d0
 		bcc.b	locret_8074
-		move.b	#6,$24(a0)
+		move.b	#6,r_no0(a0)
 
 locret_8074:
 		rts	
@@ -9871,7 +9896,7 @@ shima_Type07:
 		bne.b	shima_07_Wait	; if yes, branch
 		lea	($FFFFF7E0).w,a2 ; load	switch statuses
 		moveq	#0,d0
-		move.b	$28(a0),d0	; move object type ($x7) to d0
+		move.b	userflag(a0),d0	; move object type ($x7) to d0
 		lsr.w	#4,d0		; divide d0 by 8, round	down
 		tst.b	(a2,d0.w)	; has switch no. d0 been pressed?
 		beq.b	shima_07_NoMove	; if not, branch
@@ -9884,17 +9909,17 @@ shima_07_NoMove:
 shima_07_Wait:
 		subq.w	#1,$3A(a0)	; subtract 1 from time delay
 		bne.b	shima_07_NoMove	; if time is > 0, branch
-		addq.b	#1,$28(a0)	; change to type 08
+		addq.b	#1,userflag(a0)	; change to type 08
 		rts	
 ; ===========================================================================
 
 shima_Type08:
-		subq.w	#2,$2C(a0)	; move platform	up
+		subq.w	#2,actfree(a0)	; move platform	up
 		move.w	$34(a0),d0
 		subi.w	#$200,d0
-		cmp.w	$2C(a0),d0	; has platform moved $200 pixels?
+		cmp.w	actfree(a0),d0	; has platform moved $200 pixels?
 		bne.b	shima_08_NoStop	; if not, branch
-		clr.b	$28(a0)		; change to type 00 (stop moving)
+		clr.b	userflag(a0)		; change to type 00 (stop moving)
 
 shima_08_NoStop:
 		rts	
@@ -9902,15 +9927,15 @@ shima_08_NoStop:
 
 shima_Type0A:
 		move.w	$34(a0),d0
-		move.b	$26(a0),d1	; load platform-motion variable
+		move.b	direc(a0),d1	; load platform-motion variable
 		subi.b	#$40,d1
 		ext.w	d1
 		asr.w	#1,d1
 		add.w	d1,d0
-		move.w	d0,$2C(a0)	; change position on y-axis
+		move.w	d0,actfree(a0)	; change position on y-axis
 
 shima_ChgMotion:
-		move.b	($FFFFFE78).w,$26(a0) ;	update platform-movement variable
+		move.b	($FFFFFE78).w,direc(a0) ;	update platform-movement variable
 		rts	
 ; ===========================================================================
 
@@ -9974,7 +9999,7 @@ Map_btama:
 
 break:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	break_Index(pc,d0.w),d1
 		jmp	break_Index(pc,d1.w)
 ; ===========================================================================
@@ -9984,14 +10009,14 @@ break_Index:	dc.w break_Main-break_Index, break_ChkTouch-break_Index
 ; ===========================================================================
 
 break_Main:				; XREF: break_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_break,4(a0)
 		move.w	#$4000,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#4,$18(a0)
 		move.b	#7,$38(a0)	; set time delay for collapse
 		move.b	#$64,$19(a0)
-		move.b	$28(a0),$1A(a0)
+		move.b	userflag(a0),$1A(a0)
 		move.b	#$38,$16(a0)
 		bset	#4,1(a0)
 
@@ -10043,17 +10068,17 @@ loc_82D0:				; XREF: break_Display
 		subq.b	#1,$38(a0)
 		bsr.w	break_WalkOff
 		lea	playerwk,a1
-		btst	#3,$22(a1)
+		btst	#3,cddat(a1)
 		beq.b	loc_82FC
 		tst.b	$38(a0)
 		bne.b	locret_8308
-		bclr	#3,$22(a1)
-		bclr	#5,$22(a1)
+		bclr	#3,cddat(a1)
+		bclr	#5,cddat(a1)
 		move.b	#1,$1D(a1)
 
 loc_82FC:
 		move.b	#0,$3A(a0)
-		move.b	#6,$24(a0)	; run "break_Display" routine
+		move.b	#6,r_no0(a0)	; run "break_Display" routine
 
 locret_8308:
 		rts	
@@ -10077,7 +10102,7 @@ break_Delete:				; XREF: break_Index
 
 break2:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	break2_Index(pc,d0.w),d1
 		jmp	break2_Index(pc,d1.w)
 ; ===========================================================================
@@ -10087,7 +10112,7 @@ break2_Index:	dc.w break2_Main-break2_Index, break2_ChkTouch-break2_Index
 ; ===========================================================================
 
 break2_Main:				; XREF: break2_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_break2,4(a0)
 		move.w	#$42B8,2(a0)
 		cmpi.b	#3,stageno ; check if level is SLZ
@@ -10116,9 +10141,9 @@ break2_ChkTouch:				; XREF: break2_Index
 break2_Solid:
 		move.w	#$20,d1
 		bsr.w	PlatformObject
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		bpl.b	break2_MarkAsGone
-		btst	#3,$22(a1)
+		btst	#3,cddat(a1)
 		beq.b	break2_MarkAsGone
 		bclr	#0,1(a0)
 		move.w	8(a1),d0
@@ -10162,17 +10187,17 @@ loc_8402:
 		subq.b	#1,$38(a0)
 		bsr.w	break2_WalkOff
 		lea	playerwk,a1
-		btst	#3,$22(a1)
+		btst	#3,cddat(a1)
 		beq.b	loc_842E
 		tst.b	$38(a0)
 		bne.b	locret_843A
-		bclr	#3,$22(a1)
-		bclr	#5,$22(a1)
+		bclr	#3,cddat(a1)
+		bclr	#5,cddat(a1)
 		move.b	#1,$1D(a1)
 
 loc_842E:
 		move.b	#0,$3A(a0)
-		move.b	#6,$24(a0)	; run "break2_Display" routine
+		move.b	#6,r_no0(a0)	; run "break2_Display" routine
 
 locret_843A:
 		rts	
@@ -10196,7 +10221,7 @@ break2_Collapse:				; XREF: break2_ChkTouch
 
 loc_8458:				; XREF: break2_Touch
 		lea	(break2_Data2).l,a4
-		btst	#0,$28(a0)
+		btst	#0,userflag(a0)
 		beq.b	loc_846C
 		lea	(break2_Data3).l,a4
 
@@ -10234,7 +10259,7 @@ loc_84AA:
 		addq.w	#5,a3
 
 loc_84B2:
-		move.b	#6,$24(a1)
+		move.b	#6,r_no0(a1)
 		move.b	d4,0(a1)
 		move.l	a3,4(a1)
 		move.b	d5,1(a1)
@@ -10273,7 +10298,7 @@ break2_Data3:	dc.b $16, $1E, $1A, $12, 6, $E,	$A, 2
 
 SlopeObject2:				; XREF: break_WalkOff; et al
 		lea	playerwk,a1
-		btst	#3,$22(a1)
+		btst	#3,cddat(a1)
 		beq.b	locret_856E
 		move.w	8(a1),d0
 		sub.w	8(a0),d0
@@ -10327,7 +10352,7 @@ Map_break2:
 
 bgspr:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	bgspr_Index(pc,d0.w),d1
 		jmp	bgspr_Index(pc,d1.w)
 ; ===========================================================================
@@ -10336,9 +10361,9 @@ bgspr_Index:	dc.w bgspr_Main-bgspr_Index
 ; ===========================================================================
 
 bgspr_Main:				; XREF: bgspr_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0	; copy object type to d0
+		move.b	userflag(a0),d0	; copy object type to d0
 		mulu.w	#$A,d0		; multiply by $A
 		lea	bgspr_Var(pc,d0.w),a1
 		move.l	(a1)+,4(a0)
@@ -10347,7 +10372,7 @@ bgspr_Main:				; XREF: bgspr_Index
 		move.b	(a1)+,$1A(a0)
 		move.b	(a1)+,$19(a0)
 		move.b	(a1)+,$18(a0)
-		move.b	(a1)+,$20(a0)
+		move.b	(a1)+,colino(a0)
 
 bgspr_ChkDel:				; XREF: bgspr_Index
 		move.w	8(a0),d0
@@ -10372,7 +10397,7 @@ bgspr_Var:	dc.l Map_bgspr		; mappings address
 		dc.l Map_bgspr
 		dc.w $44D8
 		dc.b 0,	8, 2, 0
-		dc.l Map_hashi
+		dc.l hashipat
 		dc.w $438E
 		dc.b 1,	$10, 1,	0
 ; ---------------------------------------------------------------------------
@@ -10389,7 +10414,7 @@ Map_bgspr:
 
 switch:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	switch_Index(pc,d0.w),d1
 		jmp	switch_Index(pc,d1.w)
 ; ===========================================================================
@@ -10399,7 +10424,7 @@ switch_Index:	dc.w switch_Main-switch_Index
 ; ===========================================================================
 
 switch_Main:				; XREF: switch_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_switch,4(a0)
 		move.w	#$4000,2(a0)
 		move.b	#4,1(a0)
@@ -10481,7 +10506,7 @@ Map_switch:
 
 door:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	door_Index(pc,d0.w),d1
 		jmp	door_Index(pc,d1.w)
 ; ===========================================================================
@@ -10490,7 +10515,7 @@ door_Index:	dc.w door_Main-door_Index
 ; ===========================================================================
 
 door_Main:				; XREF: door_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_door,4(a0)
 		move.w	#$42E8,2(a0)
 		ori.b	#4,1(a0)
@@ -10511,13 +10536,13 @@ door_OpenShut:				; XREF: door_Index
 		add.w	d1,d0
 		cmp.w	8(a0),d0
 		bcc.b	loc_899A
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	door_Animate
 		bra.b	door_Open
 ; ===========================================================================
 
 loc_899A:				; XREF: door_OpenShut
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	door_Animate
 
 door_Open:				; XREF: door_OpenShut
@@ -10572,21 +10597,21 @@ loc_8A82:
 		move.w	#0,$10(a1)
 
 loc_8A92:
-		btst	#1,$22(a1)
+		btst	#1,cddat(a1)
 		bne.b	loc_8AB6
-		bset	#5,$22(a1)
-		bset	#5,$22(a0)
+		bset	#5,cddat(a1)
+		bset	#5,cddat(a0)
 		rts	
 ; ===========================================================================
 
 loc_8AA8:
-		btst	#5,$22(a0)
+		btst	#5,cddat(a0)
 		beq.b	locret_8AC2
 		move.w	#1,mstno(a1)
 
 loc_8AB6:
-		bclr	#5,$22(a0)
-		bclr	#5,$22(a1)
+		bclr	#5,cddat(a0)
+		bclr	#5,cddat(a1)
 
 locret_8AC2:
 		rts	
@@ -10675,7 +10700,7 @@ loc_8B48:
 
 buta:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	buta_Index(pc,d0.w),d1
 		jmp	buta_Index(pc,d1.w)
 ; ===========================================================================
@@ -10690,7 +10715,7 @@ buta_Main:				; XREF: buta_Index
 		move.w	#$2302,2(a0)
 		move.b	#4,1(a0)
 		move.b	#4,$18(a0)
-		move.b	#5,$20(a0)
+		move.b	#5,colino(a0)
 		move.b	#$C,$19(a0)
 		bsr.w	speedset
 		jsr	emycol_d
@@ -10698,7 +10723,7 @@ buta_Main:				; XREF: buta_Index
 		bpl.b	locret_8BAC
 		add.w	d1,$C(a0)
 		move.w	#0,$12(a0)
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 locret_8BAC:
 		rts	
@@ -10731,7 +10756,7 @@ buta_MakeBall:				; XREF: buta_Action
 		move.w	#-$100,$10(a1)	; cannonball bounces to	the left
 		move.w	#0,$12(a1)
 		moveq	#-4,d0
-		btst	#0,$22(a0)	; is Ball Hog facing right?
+		btst	#0,cddat(a0)	; is Ball Hog facing right?
 		beq.b	loc_8C0A	; if not, branch
 		neg.w	d0
 		neg.w	$10(a1)		; cannonball bounces to	the right
@@ -10739,7 +10764,7 @@ buta_MakeBall:				; XREF: buta_Action
 loc_8C0A:
 		add.w	d0,8(a1)
 		addi.w	#$C,$C(a1)
-		move.b	$28(a0),$28(a1)	; copy object type from	Ball Hog
+		move.b	userflag(a0),userflag(a1)	; copy object type from	Ball Hog
 
 loc_8C1A:
 		bra.b	buta_MarkAsGone
@@ -10750,7 +10775,7 @@ loc_8C1A:
 
 Obj20:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj20_Index(pc,d0.w),d1
 		jmp	Obj20_Index(pc,d1.w)
 ; ===========================================================================
@@ -10759,16 +10784,16 @@ Obj20_Index:	dc.w Obj20_Main-Obj20_Index
 ; ===========================================================================
 
 Obj20_Main:				; XREF: Obj20_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#7,$16(a0)
 		move.l	#Map_buta,4(a0)
 		move.w	#$2302,2(a0)
 		move.b	#4,1(a0)
 		move.b	#3,$18(a0)
-		move.b	#$87,$20(a0)
+		move.b	#$87,colino(a0)
 		move.b	#8,$19(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0	; move object type to d0
+		move.b	userflag(a0),d0	; move object type to d0
 		mulu.w	#60,d0		; multiply by 60 frames	(1 second)
 		move.w	d0,$30(a0)	; set explosion	time
 		move.b	#4,$1A(a0)
@@ -10799,9 +10824,9 @@ loc_8CA4:				; XREF: Obj20_Bounce
 Obj20_ChkExplode:			; XREF: Obj20_Bounce
 		subq.w	#1,$30(a0)	; subtract 1 from explosion time
 		bpl.b	Obj20_Animate	; if time is > 0, branch
-		move.b	#$24,0(a0)
-		move.b	#$3F,0(a0)	; change object	to an explosion	($3F)
-		move.b	#0,$24(a0)	; reset	routine	counter
+		move.b	#$24,actno(a0)
+		move.b	#$3F,actno(a0)	; change object	to an explosion	($3F)
+		move.b	#0,r_no0(a0)	; reset	routine	counter
 		bra.w	Obj3F		; jump to explosion code
 ; ===========================================================================
 
@@ -10825,7 +10850,7 @@ Obj20_Display:
 
 Obj24:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj24_Index(pc,d0.w),d1
 		jmp	Obj24_Index(pc,d1.w)
 ; ===========================================================================
@@ -10834,12 +10859,12 @@ Obj24_Index:	dc.w Obj24_Main-Obj24_Index
 ; ===========================================================================
 
 Obj24_Main:				; XREF: Obj24_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_obj24,4(a0)
 		move.w	#$41C,2(a0)
 		move.b	#4,1(a0)
 		move.b	#1,$18(a0)
-		move.b	#0,$20(a0)
+		move.b	#0,colino(a0)
 		move.b	#$C,$19(a0)
 		move.b	#9,$1E(a0)
 		move.b	#0,$1A(a0)
@@ -10863,7 +10888,7 @@ Obj24_Display:
 
 bakuhatu:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	bakuhatu_Index(pc,d0.w),d1
 		jmp	bakuhatu_Index(pc,d1.w)
 ; ===========================================================================
@@ -10873,7 +10898,7 @@ bakuhatu_Index:	dc.w bakuhatu_LoadAnimal-bakuhatu_Index
 ; ===========================================================================
 
 bakuhatu_LoadAnimal:			; XREF: bakuhatu_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		bsr.w	actwkchk
 		bne.b	bakuhatu_Main
 		move.b	#$28,0(a1)	; load animal object
@@ -10882,12 +10907,12 @@ bakuhatu_LoadAnimal:			; XREF: bakuhatu_Index
 		move.w	$3E(a0),$3E(a1)
 
 bakuhatu_Main:				; XREF: bakuhatu_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_bakuhatu,4(a0)
 		move.w	#$5A0,2(a0)
 		move.b	#4,1(a0)
 		move.b	#1,$18(a0)
-		move.b	#0,$20(a0)
+		move.b	#0,colino(a0)
 		move.b	#$C,$19(a0)
 		move.b	#7,$1E(a0)	; set frame duration to	7 frames
 		move.b	#0,$1A(a0)
@@ -10911,7 +10936,7 @@ bakuhatu_Display:
 
 Obj3F:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj3F_Index(pc,d0.w),d1
 		jmp	Obj3F_Index(pc,d1.w)
 ; ===========================================================================
@@ -10920,12 +10945,12 @@ Obj3F_Index:	dc.w Obj3F_Main-Obj3F_Index
 ; ===========================================================================
 
 Obj3F_Main:				; XREF: Obj3F_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_obj3F,4(a0)
 		move.w	#$5A0,2(a0)
 		move.b	#4,1(a0)
 		move.b	#1,$18(a0)
-		move.b	#0,$20(a0)
+		move.b	#0,colino(a0)
 		move.b	#$C,$19(a0)
 		move.b	#7,$1E(a0)
 		move.b	#0,$1A(a0)
@@ -10993,7 +11018,6 @@ usagi:
 		move.b	r_no0(a0),d0
 		move.w	usagi_move_tbl(pc,d0.w),d1
 		jmp		usagi_move_tbl(pc,d1.w)
-
 usagi_move_tbl:
 		dc.w	usagiinit-usagi_move_tbl
 		dc.w	usagimove0-usagi_move_tbl
@@ -11050,12 +11074,12 @@ usagi_EndVram:
 ; ===========================================================================
 
 usagiinit:				; XREF: usagi_move_tbl
-		tst.b	$28(a0)		; did animal come from a destroyed enemy?
+		tst.b	userflag(a0)		; did animal come from a destroyed enemy?
 		beq.w	usagi_FromEnemy	; if yes, branch
 		moveq	#0,d0
-		move.b	$28(a0),d0	; move object type to d0
+		move.b	userflag(a0),d0	; move object type to d0
 		add.w	d0,d0		; multiply d0 by 2
-		move.b	d0,$24(a0)	; move d0 to routine counter
+		move.b	d0,r_no0(a0)	; move d0 to routine counter
 		subi.w	#$14,d0
 		move.w	usagi_EndVram(pc,d0.w),2(a0)
 		add.w	d0,d0
@@ -11075,7 +11099,7 @@ usagiinit:				; XREF: usagi_move_tbl
 ; ===========================================================================
 
 usagi_FromEnemy:			; XREF: usagiinit
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		bsr.w	random
 		andi.w	#1,d0
 		moveq	#0,d1
@@ -11121,7 +11145,7 @@ usagi_Display:
 ; ===========================================================================
 
 loc_911C:
-		move.b	#$12,$24(a0)
+		move.b	#$12,r_no0(a0)
 		clr.w	$10(a0)
 		bra.w	actionsub
 ; ===========================================================================
@@ -11142,10 +11166,10 @@ usagimove0:				; XREF: usagi_move_tbl
 		move.b	$30(a0),d0
 		add.b	d0,d0
 		addq.b	#4,d0
-		move.b	d0,$24(a0)
+		move.b	d0,r_no0(a0)
 		tst.b	($FFFFF7A7).w
 		beq.b	loc_9180
-		btst	#4,($FFFFFE0F).w
+		btst	#4,systemtimer+3
 		beq.b	loc_9180
 		neg.w	$10(a0)
 		bchg	#0,1(a0)
@@ -11167,7 +11191,7 @@ usagimove1:				; XREF: usagi_move_tbl
 		move.w	$34(a0),$12(a0)
 
 loc_91AE:
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		bne.b	loc_9224
 		tst.b	1(a0)
 		bpl.w	frameout
@@ -11184,9 +11208,9 @@ usagimove2:				; XREF: usagi_move_tbl
 		bpl.b	loc_91FC
 		add.w	d1,$C(a0)
 		move.w	$34(a0),$12(a0)
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		beq.b	loc_91FC
-		cmpi.b	#$A,$28(a0)
+		cmpi.b	#$A,userflag(a0)
 		beq.b	loc_91FC
 		neg.w	$10(a0)
 		bchg	#0,1(a0)
@@ -11199,7 +11223,7 @@ loc_91FC:
 		andi.b	#1,$1A(a0)
 
 loc_9212:
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		bne.b	loc_9224
 		tst.b	1(a0)
 		bpl.w	frameout
@@ -11224,7 +11248,7 @@ usagimove3:				; XREF: usagi_move_tbl
 		bpl.w	frameout
 		subq.w	#1,$36(a0)
 		bne.w	loc_925C
-		move.b	#2,$24(a0)
+		move.b	#2,r_no0(a0)
 		move.b	#3,$18(a0)
 
 loc_925C:
@@ -11236,7 +11260,7 @@ usagimove4:				; XREF: usagi_move_tbl
 		bcc.b	loc_927C
 		move.w	$32(a0),$10(a0)
 		move.w	$34(a0),$12(a0)
-		move.b	#$E,$24(a0)
+		move.b	#$E,r_no0(a0)
 		bra.w	usagimove2
 ; ===========================================================================
 
@@ -11268,7 +11292,7 @@ usagimove6:				; XREF: usagi_move_tbl
 		bpl.b	loc_9310
 		move.w	$32(a0),$10(a0)
 		move.w	$34(a0),$12(a0)
-		move.b	#4,$24(a0)
+		move.b	#4,r_no0(a0)
 		bra.w	usagimove1
 ; ===========================================================================
 
@@ -11422,7 +11446,22 @@ ten_move:
 
 usagipat:
 pengpat:
-	include "_maps\usagi.asm"
+		dc.w	usagisp0-usagipat
+		dc.w	usagisp1-usagipat
+		dc.w	usagisp2-usagipat
+usagisp2:
+		dc.b	1
+		dc.b	$f4,$06,$00,$00,$f8	;1:
+usagisp0:
+		dc.b	1
+		dc.b	$f4,$06,$00,$06,$f8	;1:
+usagisp1:
+		dc.b	1
+		dc.b	$f4,$06,$00,$0c,$f8	;1:
+
+;------------------------------------------------------------------------------
+		align
+;------------------------------------------------------------------------------
 
 flicpat:
 azarpat:
@@ -11471,7 +11510,7 @@ tenpat6:
 
 kani:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	kani_Index(pc,d0.w),d1
 		jmp	kani_Index(pc,d1.w)
 kani_Index:
@@ -11487,16 +11526,16 @@ kani_Main:
 		move.w	#$400,2(a0)
 		move.b	#4,1(a0)
 		move.b	#3,$18(a0)
-		move.b	#6,$20(a0)
+		move.b	#6,colino(a0)
 		move.b	#$15,$19(a0)
 		bsr.w	speedset
 		jsr	emycol_d
 		tst.w	d1
 		bpl.b	locret_955A
 		add.w	d1,$C(a0)
-		move.b	d3,$26(a0)
+		move.b	d3,direc(a0)
 		move.w	#0,$12(a0)
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 locret_955A:
 		rts	
@@ -11504,7 +11543,7 @@ locret_955A:
 
 kani_Action:				; XREF: kani_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	kani_Index2(pc,d0.w),d1
 		jsr	kani_Index2(pc,d1.w)
 		lea	(Ani_kani).l,a1
@@ -11524,13 +11563,13 @@ kani_WaitFire:				; XREF: kani_Index2
 		bne.b	kani_MakeFire
 
 kani_Move:
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#127,$30(a0)	; set time delay to approx 2 seconds
 		move.w	#$80,$10(a0)	; move Crabmeat	to the right
 		bsr.w	kani_SetAni
 		addq.b	#3,d0
 		move.b	d0,mstno(a0)
-		bchg	#0,$22(a0)
+		bchg	#0,cddat(a0)
 		bne.b	locret_95B6
 		neg.w	$10(a0)		; change direction
 
@@ -11544,7 +11583,7 @@ kani_MakeFire:				; XREF: kani_WaitFire
 		bsr.w	actwkchk
 		bne.b	kani_MakeFire2
 		move.b	#$1F,0(a1)	; load left fireball
-		move.b	#6,$24(a1)
+		move.b	#6,r_no0(a1)
 		move.w	8(a0),8(a1)
 		subi.w	#$10,8(a1)
 		move.w	$C(a0),$C(a1)
@@ -11554,7 +11593,7 @@ kani_MakeFire2:
 		bsr.w	actwkchk
 		bne.b	locret_9618
 		move.b	#$1F,0(a1)	; load right fireball
-		move.b	#6,$24(a1)
+		move.b	#6,r_no0(a1)
 		move.w	8(a0),8(a1)
 		addi.w	#$10,8(a1)
 		move.w	$C(a0),$C(a1)
@@ -11572,7 +11611,7 @@ kani_WalkOnFloor:			; XREF: kani_Index2
 		bne.b	loc_9654
 		move.w	8(a0),d3
 		addi.w	#$10,d3
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_9640
 		subi.w	#$20,d3
 
@@ -11588,7 +11627,7 @@ loc_9640:
 loc_9654:				; XREF: kani_WalkOnFloor
 		jsr	emycol_d
 		add.w	d1,$C(a0)
-		move.b	d3,$26(a0)
+		move.b	d3,direc(a0)
 		bsr.w	kani_SetAni
 		addq.b	#3,d0
 		move.b	d0,mstno(a0)
@@ -11596,7 +11635,7 @@ loc_9654:				; XREF: kani_WalkOnFloor
 ; ===========================================================================
 
 loc_966E:				; XREF: kani_WalkOnFloor
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		move.w	#59,$30(a0)
 		move.w	#0,$10(a0)
 		bsr.w	kani_SetAni
@@ -11611,12 +11650,12 @@ loc_966E:				; XREF: kani_WalkOnFloor
 
 kani_SetAni:				; XREF: loc_966E
 		moveq	#0,d0
-		move.b	$26(a0),d3
+		move.b	direc(a0),d3
 		bmi.b	loc_96A4
 		cmpi.b	#6,d3
 		bcs.b	locret_96A2
 		moveq	#1,d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	locret_96A2
 		moveq	#2,d0
 
@@ -11628,7 +11667,7 @@ loc_96A4:				; XREF: kani_SetAni
 		cmpi.b	#-6,d3
 		bhi.b	locret_96B6
 		moveq	#2,d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	locret_96B6
 		moveq	#1,d0
 
@@ -11647,12 +11686,12 @@ kani_Delete:				; XREF: kani_Index
 ; ---------------------------------------------------------------------------
 
 kani_BallMain:				; XREF: kani_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#kanipat,4(a0)
 		move.w	#$400,2(a0)
 		move.b	#4,1(a0)
 		move.b	#3,$18(a0)
-		move.b	#$87,$20(a0)
+		move.b	#$87,colino(a0)
 		move.b	#8,$19(a0)
 		move.w	#-$400,$12(a0)
 		move.b	#7,mstno(a0)
@@ -11688,7 +11727,7 @@ kanipat:
 
 hachi:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	hachi_Index(pc,d0.w),d1
 		jmp	hachi_Index(pc,d1.w)
 ; ===========================================================================
@@ -11698,17 +11737,17 @@ hachi_Index:	dc.w hachi_Main-hachi_Index
 ; ===========================================================================
 
 hachi_Main:				; XREF: hachi_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#hachipat,4(a0)
 		move.w	#$444,2(a0)
 		move.b	#4,1(a0)
 		move.b	#3,$18(a0)
-		move.b	#8,$20(a0)
+		move.b	#8,colino(a0)
 		move.b	#$18,$19(a0)
 
 hachi_Action:				; XREF: hachi_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	hachi_Index2(pc,d0.w),d1
 		jsr	hachi_Index2(pc,d1.w)
 		lea	(Ani_hachi).l,a1
@@ -11724,11 +11763,11 @@ hachi_Move:				; XREF: hachi_Index2
 		bpl.b	locret_986C	; if time remains, branch
 		btst	#1,$34(a0)	; is Buzz Bomber near Sonic?
 		bne.b	hachi_Fire	; if yes, branch
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#127,$32(a0)	; set time delay to just over 2	seconds
 		move.w	#$400,$10(a0)	; move Buzz Bomber to the right
 		move.b	#1,mstno(a0)	; use "flying" animation
-		btst	#0,$22(a0)	; is Buzz Bomber facing	left?
+		btst	#0,cddat(a0)	; is Buzz Bomber facing	left?
 		bne.b	locret_986C	; if not, branch
 		neg.w	$10(a0)		; move Buzz Bomber to the left
 
@@ -11746,14 +11785,14 @@ hachi_Fire:				; XREF: hachi_Move
 		move.w	#$200,$12(a1)	; move missile downwards
 		move.w	#$200,$10(a1)	; move missile to the right
 		move.w	#$18,d0
-		btst	#0,$22(a0)	; is Buzz Bomber facing	left?
+		btst	#0,cddat(a0)	; is Buzz Bomber facing	left?
 		bne.b	loc_98AA	; if not, branch
 		neg.w	d0
 		neg.w	$10(a1)		; move missile to the left
 
 loc_98AA:
 		add.w	d0,8(a1)
-		move.b	$22(a0),$22(a1)
+		move.b	cddat(a0),cddat(a1)
 		move.w	#$E,$32(a1)
 		move.l	a0,$3C(a1)
 		move.b	#1,$34(a0)	; set to "already fired" to prevent refiring
@@ -11787,11 +11826,11 @@ hachi_SetNrSonic:
 
 hachi_ChgDir:				; XREF: hachi_ChkNrSonic
 		move.b	#0,$34(a0)	; set Buzz Bomber to "normal"
-		bchg	#0,$22(a0)	; change direction
+		bchg	#0,cddat(a0)	; change direction
 		move.w	#59,$32(a0)
 
 hachi_Stop:				; XREF: hachi_SetNrSonic
-		subq.b	#2,$25(a0)	; run "hachi_Fire" routine
+		subq.b	#2,r_no1(a0)	; run "hachi_Fire" routine
 		move.w	#0,$10(a0)	; stop Buzz Bomber moving
 		move.b	#0,mstno(a0)	; use "hovering" animation
 
@@ -11809,7 +11848,7 @@ hachi_Delete:				; XREF: hachi_Index
 
 Obj23:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj23_Index(pc,d0.w),d1
 		jmp	Obj23_Index(pc,d1.w)
 ; ===========================================================================
@@ -11823,17 +11862,17 @@ Obj23_Index:	dc.w Obj23_Main-Obj23_Index
 Obj23_Main:				; XREF: Obj23_Index
 		subq.w	#1,$32(a0)
 		bpl.b	Obj23_ChkCancel
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_obj23,4(a0)
 		move.w	#$2444,2(a0)
 		move.b	#4,1(a0)
 		move.b	#3,$18(a0)
 		move.b	#8,$19(a0)
-		andi.b	#3,$22(a0)
-		tst.b	$28(a0)		; was object created by	a Newtron?
+		andi.b	#3,cddat(a0)
+		tst.b	userflag(a0)		; was object created by	a Newtron?
 		beq.b	Obj23_Animate	; if not, branch
-		move.b	#8,$24(a0)	; run "Obj23_FromNewt" routine
-		move.b	#$87,$20(a0)
+		move.b	#8,r_no0(a0)	; run "Obj23_FromNewt" routine
+		move.b	#$87,colino(a0)
 		move.b	#1,mstno(a0)
 		bra.b	Obj23_Animate2
 ; ===========================================================================
@@ -11861,9 +11900,9 @@ Obj23_ChkCancel:			; XREF: Obj23_Main
 ; ===========================================================================
 
 Obj23_FromBuzz:				; XREF: Obj23_Index
-		btst	#7,$22(a0)
+		btst	#7,cddat(a0)
 		bne.b	Obj23_Explode
-		move.b	#$87,$20(a0)
+		move.b	#$87,colino(a0)
 		move.b	#1,mstno(a0)
 		bsr.w	speedset2
 		lea	(Ani_obj23).l,a1
@@ -11877,8 +11916,8 @@ Obj23_FromBuzz:				; XREF: Obj23_Index
 ; ===========================================================================
 
 Obj23_Explode:				; XREF: Obj23_FromBuzz
-		move.b	#$24,0(a0)	; change object	to an explosion	(Obj24)
-		move.b	#0,$24(a0)
+		move.b	#$24,actno(a0)	; change object	to an explosion	(Obj24)
+		move.b	#0,r_no0(a0)
 		bra.w	Obj24
 ; ===========================================================================
 
@@ -11917,109 +11956,101 @@ Map_obj23:
 	include "_maps\obj23.asm"
 
 ; ===========================================================================
-; ---------------------------------------------------------------------------
-; Object 25 - rings
-; ---------------------------------------------------------------------------
 
-ring:					; XREF: act_tbl
+ring:
 		moveq	#0,d0
-		move.b	$24(a0),d0
-		move.w	ring_Index(pc,d0.w),d1
-		jmp	ring_Index(pc,d1.w)
-; ===========================================================================
-ring_Index:	dc.w ring_Main-ring_Index
-		dc.w ring_Animate-ring_Index
-		dc.w ring_Collect-ring_Index
-		dc.w ring_Sparkle-ring_Index
-		dc.w ring_Delete-ring_Index
-; ---------------------------------------------------------------------------
-; Distances between rings (format: horizontal, vertical)
-; ---------------------------------------------------------------------------
-ring_PosData:	dc.b $10, 0		; horizontal tight
-		dc.b $18, 0		; horizontal normal
-		dc.b $20, 0		; horizontal wide
-		dc.b 0,	$10		; vertical tight
-		dc.b 0,	$18		; vertical normal
-		dc.b 0,	$20		; vertical wide
-		dc.b $10, $10		; diagonal
-		dc.b $18, $18
-		dc.b $20, $20
-		dc.b $F0, $10
-		dc.b $E8, $18
-		dc.b $E0, $20
-		dc.b $10, 8
-		dc.b $18, $10
-		dc.b $F0, 8
-		dc.b $E8, $10
-; ===========================================================================
-
-ring_Main:				; XREF: ring_Index
-		lea	($FFFFFC00).w,a2
+		move.b	r_no0(a0),d0
+		move.w	ring_move_tbl(pc,d0.w),d1
+		jmp		ring_move_tbl(pc,d1.w)
+ring_move_tbl:
+		dc.w	ringinit-ring_move_tbl
+		dc.w	ringmove-ring_move_tbl
+		dc.w	ringget-ring_move_tbl
+		dc.w	ringdie-ring_move_tbl
+		dc.w	ringerase-ring_move_tbl
+ringtbl:
+		dc.b	16,0
+		dc.b	24,0
+		dc.b	32,0
+		dc.b	0,16
+		dc.b	0,24
+		dc.b	0,32
+		dc.b	16,16
+		dc.b	24,24
+		dc.b	32,32
+		dc.b	-16,16
+		dc.b	-24,24
+		dc.b	-32,32
+		dc.b	16,8
+		dc.b	24,16
+		dc.b	-16,8
+		dc.b	-24,16
+ringinit:
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		lea	2(a2,d0.w),a2
 		move.b	(a2),d4
-		move.b	$28(a0),d1
+		move.b	userflag(a0),d1
 		move.b	d1,d0
 		andi.w	#7,d1
 		cmpi.w	#7,d1
-		bne.b	loc_9B80
+		bne.b	?jump0
 		moveq	#6,d1
 
-loc_9B80:
+?jump0:
 		swap	d1
 		move.w	#0,d1
 		lsr.b	#4,d0
 		add.w	d0,d0
-		move.b	ring_PosData(pc,d0.w),d5 ; load ring spacing data
+		move.b	ringtbl(pc,d0.w),d5 ; load ring spacing data
 		ext.w	d5
-		move.b	ring_PosData+1(pc,d0.w),d6
+		move.b	ringtbl+1(pc,d0.w),d6
 		ext.w	d6
 		movea.l	a0,a1
-		move.w	8(a0),d2
-		move.w	$C(a0),d3
+		move.w	xposi(a0),d2
+		move.w	yposi(a0),d3
 		lsr.b	#1,d4
-		bcs.b	loc_9C02
+		bcs.b	?jump2
 		bclr	#7,(a2)
-		bra.b	loc_9BBA
-; ===========================================================================
+		bra.b	?jump1
 
-ring_MakeRings:
+?loop:
 		swap	d1
 		lsr.b	#1,d4
-		bcs.b	loc_9C02
+		bcs.b	?jump2
 		bclr	#7,(a2)
 		bsr.w	actwkchk
-		bne.b	loc_9C0E
+		bne.b	?worknai
 
-loc_9BBA:				; XREF: ring_Main
-		move.b	#$25,0(a1)	; load ring object
-		addq.b	#2,$24(a1)
-		move.w	d2,8(a1)	; set x-axis position based on d2
-		move.w	8(a0),$32(a1)
-		move.w	d3,$C(a1)	; set y-axis position based on d3
-		move.l	#ringpat,4(a1)
-		move.w	#$27B2,2(a1)
-		move.b	#4,1(a1)
-		move.b	#2,$18(a1)
-		move.b	#$47,$20(a1)
-		move.b	#8,$19(a1)
-		move.b	$23(a0),$23(a1)
+?jump1:				; XREF: ringinit
+		move.b	#ring_act,actno(a1)	; load ring object
+		addq.b	#word,r_no0(a1)
+		move.w	d2,xposi(a1)	; set x-axis position based on d2
+		move.w	xposi(a0),$32(a1)
+		move.w	d3,yposi(a1)	; set y-axis position based on d3
+		move.l	#ringpat,patbase(a1)
+		move.w	#$27b2,sproffset(a1)
+		move.b	#4,actflag(a1)
+		move.b	#2,sprpri(a1)
+		move.b	#$47,colino(a1)
+		move.b	#8,sprhs(a1)
+		move.b	cdsts(a0),cdsts(a1)
 		move.b	d1,$34(a1)
 
-loc_9C02:
+?jump2:
 		addq.w	#1,d1
 		add.w	d5,d2		; add ring spacing value to d2
 		add.w	d6,d3		; add ring spacing value to d3
 		swap	d1
-		dbra	d1,ring_MakeRings ; repeat for	number of rings
+		dbra	d1,?loop ; repeat for	number of rings
 
-loc_9C0E:
+?worknai:
 		btst	#0,(a2)
 		bne.w	frameout
 
-ring_Animate:				; XREF: ring_Index
-		move.b	sys_patno2,$1A(a0) ;	set frame
+ringmove:
+		move.b	sys_patno2,patno(a0)
 		bsr.w	actionsub
 		move.w	$32(a0),d0
 		andi.w	#$FF80,d0
@@ -12028,61 +12059,48 @@ ring_Animate:				; XREF: ring_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.b	ring_Delete
+		bhi.b	ringerase
 		rts	
-; ===========================================================================
-
-ring_Collect:				; XREF: ring_Index
-		addq.b	#2,$24(a0)
-		move.b	#0,$20(a0)
+ringget:
+		addq.b	#word,r_no0(a0)
+		move.b	#0,colino(a0)
 		move.b	#1,$18(a0)
-		bsr.w	CollectRing
-		lea	($FFFFFC00).w,a2
+		bsr.w	ringgetsub
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		move.b	$34(a0),d1
 		bset	d1,2(a2,d0.w)
 
-ring_Sparkle:				; XREF: ring_Index
+ringdie:
 		lea	(ringchg).l,a1
 		bsr.w	patchg
 		bra.w	actionsub
-; ===========================================================================
-
-ring_Delete:				; XREF: ring_Index
+ringerase:
 		bra.w	frameout
 
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
+ringgetsub:
+		addq.w	#1,plring
+		ori.b	#1,plring_f
+		move.w	#$B5,d0
+		cmpi.w	#100,plring
+		bcs.b	?jump1
+		bset	#1,plring_f2
+		beq.b	?jump0
+		cmpi.w	#200,plring 
+		bcs.b	?jump1
+		bset	#2,plring_f2
+		bne.b	?jump1
 
+?jump0:
+		addq.b	#1,pl_suu
+		addq.b	#1,pl_suu_f
+		move.w	#$88,d0
 
-CollectRing:				; XREF: ring_Collect
-		addq.w	#1,plring ; add 1 to rings
-		ori.b	#1,plring_f ; update the rings counter
-		move.w	#$B5,d0		; play ring sound
-		cmpi.w	#100,plring ; do	you have < 100 rings?
-		bcs.b	ring_PlaySnd	; if yes, branch
-		bset	#1,plring_f2 ; update lives	counter
-		beq.b	loc_9CA4
-		cmpi.w	#200,plring ; do	you have < 200 rings?
-		bcs.b	ring_PlaySnd	; if yes, branch
-		bset	#2,plring_f2 ; update lives	counter
-		bne.b	ring_PlaySnd
+?jump1:
+		jmp		soundset
 
-loc_9CA4:
-		addq.b	#1,pl_suu ; add 1 to the	number of lives	you have
-		addq.b	#1,pl_suu_f ; add 1 to the	lives counter
-		move.w	#$88,d0		; play extra life music
-
-ring_PlaySnd:
-		jmp	(soundset).l
-; End of function CollectRing
-
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Object 37 - rings flying out of Sonic	when he's hit
-; ---------------------------------------------------------------------------
-
-flyring:					; XREF: act_tbl
+flyring:
 		moveq	#0,d0
 		move.b	r_no0(a0),d0
 		move.w	flyring_move_tbl(pc,d0.w),d1
@@ -12152,9 +12170,9 @@ flyringinit:
 flyringmove:
 		move.b	sys_patno4,patno(a0)
 		bsr.w	speedset2
-		addi.w	#$18,yspeed(a0)
+		addi.w	#24,yspeed(a0)
 		bmi.b	?jump
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		add.b	d7,d0
 		andi.b	#3,d0
 		bne.b	?jump
@@ -12170,63 +12188,55 @@ flyringmove:
 		tst.b	sys_pattim4
 		beq.b	flyringerase
 		move.w	scralim_down,d0
-		addi.w	#$E0,d0
+		addi.w	#224,d0
 		cmp.w	yposi(a0),d0
 		bcs.b	flyringerase
 		bra.w	actionsub
-
 flyringget:
-		addq.b	#2,r_no0(a0)
+		addq.b	#word,r_no0(a0)
 		move.b	#0,colino(a0)
 		move.b	#1,sprpri(a0)
-		bsr.w	CollectRing
+		bsr.w	ringgetsub
 flyringdie:
 		lea		ringchg,a1
 		bsr.w	patchg
 		bra.w	actionsub
-
 flyringerase:
 		bra.w	frameout
 
-; ---------------------------------------------------------------------------
-; Object 4B - giant ring for entry to special stage
-; ---------------------------------------------------------------------------
-
-Obj4B:					; XREF: act_tbl
+bigring:
 		moveq	#0,d0
-		move.b	$24(a0),d0
-		move.w	Obj4B_Index(pc,d0.w),d1
-		jmp	Obj4B_Index(pc,d1.w)
-; ===========================================================================
-Obj4B_Index:	dc.w Obj4B_Main-Obj4B_Index
-		dc.w Obj4B_Animate-Obj4B_Index
-		dc.w Obj4B_Collect-Obj4B_Index
-		dc.w Obj4B_Delete-Obj4B_Index
-; ===========================================================================
+		move.b	r_no0(a0),d0
+		move.w	bring_move_tbl(pc,d0.w),d1
+		jmp	bring_move_tbl(pc,d1.w)
 
-Obj4B_Main:				; XREF: Obj4B_Index
-		move.l	#Map_obj4B,4(a0)
-		move.w	#$2400,2(a0)
-		ori.b	#4,1(a0)
-		move.b	#$40,$19(a0)
-		tst.b	1(a0)
-		bpl.b	Obj4B_Animate
+bring_move_tbl:
+		dc.w	bring_init-bring_move_tbl
+		dc.w	bring_move0-bring_move_tbl
+		dc.w	bring_move1-bring_move_tbl
+		dc.w	bring_move2-bring_move_tbl
+bring_init:
+		move.l	#bringpat,patbase(a0)
+		move.w	#$2400,sproffset(a0)
+		ori.b	#4,actflg(a0)
+		move.b	#64,sprhs(a0)
+		tst.b	actflg(a0)
+		bpl.b	bring_move0
 		cmpi.b	#6,($FFFFFE57).w ; do you have 6 emeralds?
-		beq.w	Obj4B_Delete	; if yes, branch
+		beq.w	bring_move2	; if yes, branch
 		cmpi.w	#50,plring ; do you have	at least 50 rings?
-		bcc.b	Obj4B_Okay	; if yes, branch
-		rts	
-; ===========================================================================
+		bcc.b	bigring_Okay	; if yes, branch
+		rts
 
-Obj4B_Okay:				; XREF: Obj4B_Main
-		addq.b	#2,$24(a0)
-		move.b	#2,$18(a0)
-		move.b	#$52,$20(a0)
+bigring_Okay:				; XREF: bring_init
+		addq.b	#word,r_no0(a0)
+		move.b	#2,sprpri(a0)
+		move.b	#$52,colino(a0)
 		move.w	#$C40,($FFFFF7BE).w
 
-Obj4B_Animate:				; XREF: Obj4B_Index
-		move.b	sys_patno2,$1A(a0)
-		move.w	8(a0),d0
+bring_move0:				; XREF: bring_move_tbl
+		move.b	sys_patno2,patno(a0)
+		move.w	xposi(a0),d0
 		andi.w	#$FF80,d0
 		move.w	scra_h_posit,d1
 		subi.w	#$80,d1
@@ -12237,27 +12247,26 @@ Obj4B_Animate:				; XREF: Obj4B_Index
 		bra.w	actionsub
 ; ===========================================================================
 
-Obj4B_Collect:				; XREF: Obj4B_Index
-		subq.b	#2,$24(a0)
-		move.b	#0,$20(a0)
+bring_move1:				; XREF: bring_move_tbl
+		subq.b	#word,r_no0(a0)
+		move.b	#0,colino(a0)
 		bsr.w	actwkchk
-		bne.w	Obj4B_PlaySnd
-		move.b	#$7C,0(a1)	; load giant ring flash	object
-		move.w	8(a0),8(a1)
-		move.w	$C(a0),$C(a1)
+		bne.w	?jump
+		move.b	#bring2_act,actno(a1)
+		move.w	xposi(a0),xposi(a1)
+		move.w	yposi(a0),ypsoi(a1)
 		move.l	a0,$3C(a1)
 		move.w	playerwk+xposi,d0
-		cmp.w	8(a0),d0	; has Sonic come from the left?
-		bcs.b	Obj4B_PlaySnd	; if yes, branch
-		bset	#0,1(a1)	; reverse flash	object
+		cmp.w	xposi(a0),D0
+		bcs.b	?jump
+		bset.b	#0,actflg(a1)
 
-Obj4B_PlaySnd:
-		move.w	#$C3,d0
-		jsr	(soundset).l ;	play giant ring	sound
-		bra.b	Obj4B_Animate
-; ===========================================================================
+?jump:
+		move.w	#$c3,d0
+		jsr		soundset
+		bra.b	bring_move0
 
-Obj4B_Delete:				; XREF: Obj4B_Index
+bring_move2:
 		bra.w	frameout
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -12266,7 +12275,7 @@ Obj4B_Delete:				; XREF: Obj4B_Index
 
 Obj7C:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj7C_Index(pc,d0.w),d1
 		jmp	Obj7C_Index(pc,d1.w)
 ; ===========================================================================
@@ -12276,7 +12285,7 @@ Obj7C_Index:	dc.w Obj7C_Main-Obj7C_Index
 ; ===========================================================================
 
 Obj7C_Main:				; XREF: Obj7C_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_obj7C,4(a0)
 		move.w	#$2462,2(a0)
 		ori.b	#4,1(a0)
@@ -12309,9 +12318,9 @@ Obj7C_Collect:				; XREF: Obj7C_ChkDel
 		cmpi.b	#3,$1A(a0)	; is 3rd frame displayed?
 		bne.b	locret_9F76	; if not, branch
 		movea.l	$3C(a0),a1
-		move.b	#6,$24(a1)	; delete giant ring object (Obj4B)
+		move.b	#6,r_no0(a1)	; delete giant ring object (bigring)
 		move.b	#$1C,playerwk+mstno ; make Sonic	invisible
-		move.b	#1,($FFFFF7CD).w ; stop	Sonic getting bonuses
+		move.b	#1,special_flag ; stop	Sonic getting bonuses
 		clr.b	plpower_m	; remove invincibility
 		clr.b	plpower_b	; remove shield
 
@@ -12320,7 +12329,7 @@ locret_9F76:
 ; ===========================================================================
 
 Obj7C_End:				; XREF: Obj7C_Collect
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#0,playerwk ; remove Sonic	object
 		addq.l	#4,sp
 		rts	
@@ -12343,7 +12352,7 @@ ringpat:
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - giant ring
 ; ---------------------------------------------------------------------------
-Map_obj4B:
+bringpat:
 	include "_maps\obj4B.asm"
 
 ; ---------------------------------------------------------------------------
@@ -12359,7 +12368,7 @@ Map_obj7C:
 
 item:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	item_Index(pc,d0.w),d1
 		jmp	item_Index(pc,d1.w)
 ; ===========================================================================
@@ -12371,7 +12380,7 @@ item_Index:	dc.w item_Main-item_Index
 ; ===========================================================================
 
 item_Main:				; XREF: item_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#$E,$16(a0)
 		move.b	#$E,$17(a0)
 		move.l	#itempat,4(a0)
@@ -12379,23 +12388,23 @@ item_Main:				; XREF: item_Index
 		move.b	#4,1(a0)
 		move.b	#3,$18(a0)
 		move.b	#$F,$19(a0)
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		bclr	#7,2(a2,d0.w)
 		btst	#0,2(a2,d0.w)	; has monitor been broken?
 		beq.b	item_NotBroken	; if not, branch
-		move.b	#8,$24(a0)	; run "item_Display" routine
+		move.b	#8,r_no0(a0)	; run "item_Display" routine
 		move.b	#$B,$1A(a0)	; use broken monitor frame
 		rts	
 ; ===========================================================================
 
 item_NotBroken:			; XREF: item_Main
-		move.b	#$46,$20(a0)
-		move.b	$28(a0),mstno(a0)
+		move.b	#$46,colino(a0)
+		move.b	userflag(a0),mstno(a0)
 
 item_Solid:				; XREF: item_Index
-		move.b	$25(a0),d0	; is monitor set to fall?
+		move.b	r_no1(a0),d0	; is monitor set to fall?
 		beq.b	loc_A1EC	; if not, branch
 		subq.b	#2,d0
 		bne.b	item_Fall
@@ -12403,9 +12412,9 @@ item_Solid:				; XREF: item_Index
 		move.b	$19(a0),d1
 		addi.w	#$B,d1
 		bsr.w	ExitPlatform
-		btst	#3,$22(a1)
+		btst	#3,cddat(a1)
 		bne.w	loc_A1BC
-		clr.b	$25(a0)
+		clr.b	r_no1(a0)
 		bra.w	item_Animate
 ; ===========================================================================
 
@@ -12423,7 +12432,7 @@ item_Fall:				; XREF: item_Solid
 		bpl.w	item_Animate
 		add.w	d1,$C(a0)
 		clr.w	$12(a0)
-		clr.b	$25(a0)
+		clr.b	r_no1(a0)
 		bra.w	item_Animate
 ; ===========================================================================
 
@@ -12442,7 +12451,7 @@ loc_A20A:
 		bpl.b	loc_A220
 		sub.w	d3,$C(a1)
 		bsr.w	loc_74AE
-		move.b	#2,$25(a0)
+		move.b	#2,r_no1(a0)
 		bra.w	item_Animate
 ; ===========================================================================
 
@@ -12465,21 +12474,21 @@ loc_A236:
 		move.w	#0,$10(a1)
 
 loc_A246:
-		btst	#1,$22(a1)
+		btst	#1,cddat(a1)
 		bne.b	loc_A26A
-		bset	#5,$22(a1)
-		bset	#5,$22(a0)
+		bset	#5,cddat(a1)
+		bset	#5,cddat(a0)
 		bra.b	item_Animate
 ; ===========================================================================
 
 loc_A25C:
-		btst	#5,$22(a0)
+		btst	#5,cddat(a0)
 		beq.b	item_Animate
 		move.w	#1,mstno(a1)
 
 loc_A26A:
-		bclr	#5,$22(a0)
-		bclr	#5,$22(a1)
+		bclr	#5,cddat(a0)
+		bclr	#5,cddat(a1)
 
 item_Animate:				; XREF: item_Index
 		lea	(Ani_item).l,a1
@@ -12499,8 +12508,8 @@ item_Display:				; XREF: item_Index
 ; ===========================================================================
 
 item_BreakOpen:			; XREF: item_Index
-		addq.b	#2,$24(a0)
-		move.b	#0,$20(a0)
+		addq.b	#2,r_no0(a0)
+		move.b	#0,colino(a0)
 		bsr.w	actwkchk
 		bne.b	item_Explode
 		move.b	#$2E,0(a1)	; load monitor contents	object
@@ -12512,14 +12521,14 @@ item_Explode:
 		bsr.w	actwkchk
 		bne.b	item_SetBroken
 		move.b	#$27,0(a1)	; load explosion object
-		addq.b	#2,$24(a1)
+		addq.b	#2,r_no0(a1)
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
 
 item_SetBroken:
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		bset	#0,2(a2,d0.w)
 		move.b	#9,mstno(a0)	; set monitor type to broken
 		bra.w	actionsub
@@ -12530,7 +12539,7 @@ item_SetBroken:
 
 item2:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	item2_Index(pc,d0.w),d1
 		jsr	item2_Index(pc,d1.w)
 		bra.w	actionsub
@@ -12541,7 +12550,7 @@ item2_Index:	dc.w item2_Main-item2_Index
 ; ===========================================================================
 
 item2_Main:				; XREF: item2_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#$680,2(a0)
 		move.b	#$24,1(a0)
 		move.b	#3,$18(a0)
@@ -12566,7 +12575,7 @@ item2_Move:				; XREF: item2_Index
 ; ===========================================================================
 
 item2_ChkEggman:			; XREF: item2_Move
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#29,$1E(a0)
 		move.b	mstno(a0),d0
 		cmpi.b	#1,d0		; does monitor contain Eggman?
@@ -12745,7 +12754,7 @@ itempat:
 
 Obj0E:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj0E_Index(pc,d0.w),d1
 		jmp	Obj0E_Index(pc,d1.w)
 ; ===========================================================================
@@ -12756,7 +12765,7 @@ Obj0E_Index:	dc.w Obj0E_Main-Obj0E_Index
 ; ===========================================================================
 
 Obj0E_Main:				; XREF: Obj0E_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#$F0,8(a0)
 		move.w	#$DE,$A(a0)
 		move.l	#Map_obj0E,4(a0)
@@ -12769,7 +12778,7 @@ Obj0E_Main:				; XREF: Obj0E_Index
 Obj0E_Delay:				; XREF: Obj0E_Index
 		subq.b	#1,$1F(a0)	; subtract 1 from time delay
 		bpl.b	Obj0E_Wait	; if time remains, branch
-		addq.b	#2,$24(a0)	; go to	next routine
+		addq.b	#2,r_no0(a0)	; go to	next routine
 		bra.w	actionsub
 ; ===========================================================================
 
@@ -12781,7 +12790,7 @@ Obj0E_Move:				; XREF: Obj0E_Index
 		subq.w	#8,$A(a0)
 		cmpi.w	#$96,$A(a0)
 		bne.b	Obj0E_Display
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 Obj0E_Display:
 		bra.w	actionsub
@@ -12802,7 +12811,7 @@ Obj0E_Animate:				; XREF: Obj0E_Index
 
 Obj0F:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj0F_Index(pc,d0.w),d1
 		jsr	Obj0F_Index(pc,d1.w)
 		bra.w	actionsub
@@ -12813,14 +12822,14 @@ Obj0F_Index:	dc.w Obj0F_Main-Obj0F_Index
 ; ===========================================================================
 
 Obj0F_Main:				; XREF: Obj0F_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#$D0,8(a0)
 		move.w	#$130,$A(a0)
 		move.l	#Map_obj0F,4(a0)
 		move.w	#$200,2(a0)
 		cmpi.b	#2,$1A(a0)	; is object "PRESS START"?
 		bcs.b	Obj0F_PrsStart	; if yes, branch
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		cmpi.b	#3,$1A(a0)	; is the object	"TM"?
 		bne.b	locret_A6F8	; if not, branch
 		move.w	#$2510,2(a0)	; "TM" specific	code
@@ -12872,7 +12881,7 @@ Anim_Next:
 		move.b	d0,d1
 		andi.b	#$1F,d0
 		move.b	d0,$1A(a0)	; load sprite number
-		move.b	$22(a0),d0
+		move.b	cddat(a0),d0
 		rol.b	#3,d1
 		eor.b	d0,d1
 		andi.b	#3,d1
@@ -12910,18 +12919,18 @@ Anim_End_FD:
 Anim_End_FC:
 		addq.b	#1,d0		; is the end flag = $FC	?
 		bne.b	Anim_End_FB	; if not, branch
-		addq.b	#2,$24(a0)	; jump to next routine
+		addq.b	#2,r_no0(a0)	; jump to next routine
 
 Anim_End_FB:
 		addq.b	#1,d0		; is the end flag = $FB	?
 		bne.b	Anim_End_FA	; if not, branch
 		move.b	#0,$1B(a0)	; reset	animation
-		clr.b	$25(a0)		; reset	2nd routine counter
+		clr.b	r_no1(a0)		; reset	2nd routine counter
 
 Anim_End_FA:
 		addq.b	#1,d0		; is the end flag = $FA	?
 		bne.b	Anim_End	; if not, branch
-		addq.b	#2,$25(a0)	; jump to next routine
+		addq.b	#2,r_no1(a0)	; jump to next routine
 
 Anim_End:
 		rts	
@@ -12947,7 +12956,7 @@ Map_obj0E:
 
 fish:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	fish_Index(pc,d0.w),d1
 		jsr	fish_Index(pc,d1.w)
 		bra.w	frameoutchk
@@ -12957,12 +12966,12 @@ fish_Index:	dc.w fish_Main-fish_Index
 ; ===========================================================================
 
 fish_Main:				; XREF: fish_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_fish,4(a0)
 		move.w	#$47B,2(a0)
 		move.b	#4,1(a0)
 		move.b	#4,$18(a0)
-		move.b	#9,$20(a0)
+		move.b	#9,colino(a0)
 		move.b	#$10,$19(a0)
 		move.w	#-$700,$12(a0)	; set vertical speed
 		move.w	$C(a0),$30(a0)
@@ -13007,7 +13016,7 @@ Map_fish:
 
 fish2:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	fish2_Index(pc,d0.w),d1
 		jmp	fish2_Index(pc,d1.w)
 ; ===========================================================================
@@ -13016,21 +13025,21 @@ fish2_Index:	dc.w fish2_Main-fish2_Index
 ; ===========================================================================
 
 fish2_Main:				; XREF: fish2_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_fish2,4(a0)
 		move.w	#$2486,2(a0)
 		ori.b	#4,1(a0)
-		move.b	#$A,$20(a0)
+		move.b	#$A,colino(a0)
 		move.b	#4,$18(a0)
 		move.b	#$10,$19(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0	; load object subtype number
+		move.b	userflag(a0),d0	; load object subtype number
 		lsl.w	#6,d0		; multiply d0 by 64
 		subq.w	#1,d0
 		move.w	d0,$30(a0)	; set turn delay time
 		move.w	d0,$32(a0)
 		move.w	#-$40,$10(a0)	; move Jaws to the left
-		btst	#0,$22(a0)	; is Jaws facing left?
+		btst	#0,cddat(a0)	; is Jaws facing left?
 		beq.b	fish2_Turn	; if yes, branch
 		neg.w	$10(a0)		; move Jaws to the right
 
@@ -13039,7 +13048,7 @@ fish2_Turn:				; XREF: fish2_Index
 		bpl.b	fish2_Animate	; if time remains, branch
 		move.w	$32(a0),$30(a0)	; reset	turn delay time
 		neg.w	$10(a0)		; change speed direction
-		bchg	#0,$22(a0)	; change Jaws facing direction
+		bchg	#0,cddat(a0)	; change Jaws facing direction
 		move.b	#1,$1D(a0)	; reset	animation
 
 fish2_Animate:
@@ -13064,7 +13073,7 @@ Map_fish2:
 
 mogura:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	mogura_Index(pc,d0.w),d1
 		jmp	mogura_Index(pc,d1.w)
 ; ===========================================================================
@@ -13073,21 +13082,21 @@ mogura_Index:	dc.w mogura_Main-mogura_Index
 ; ===========================================================================
 
 mogura_Main:				; XREF: mogura_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#$13,$16(a0)
 		move.b	#8,$17(a0)
 		move.l	#Map_mogura,4(a0)
 		move.w	#$4A6,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#4,$18(a0)
-		move.b	#5,$20(a0)
+		move.b	#5,colino(a0)
 		move.b	#$C,$19(a0)
-		addq.b	#6,$25(a0)	; run "mogura_ChkSonic" routine
+		addq.b	#6,r_no1(a0)	; run "mogura_ChkSonic" routine
 		move.b	#2,$1C(a0)
 
 mogura_Action:				; XREF: mogura_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	mogura_Index2(pc,d0.w),d1
 		jsr	mogura_Index2(pc,d1.w)
 		lea	(Ani_mogura).l,a1
@@ -13103,11 +13112,11 @@ mogura_Index2:	dc.w mogura_ChgDir-mogura_Index2
 mogura_ChgDir:				; XREF: mogura_Index2
 		subq.w	#1,$30(a0)
 		bpl.b	locret_AD42
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#$FF,$30(a0)
 		move.w	#$80,$10(a0)
 		move.b	#1,$1C(a0)
-		bchg	#0,$22(a0)	; change direction the Burrobot	is facing
+		bchg	#0,cddat(a0)	; change direction the Burrobot	is facing
 		beq.b	locret_AD42
 		neg.w	$10(a0)		; change direction the Burrobot	is moving
 
@@ -13123,7 +13132,7 @@ mogura_Move:				; XREF: mogura_Index2
 		bne.b	loc_AD78
 		move.w	8(a0),d3
 		addi.w	#$C,d3
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	loc_AD6A
 		subi.w	#$18,d3
 
@@ -13141,9 +13150,9 @@ loc_AD78:				; XREF: mogura_Move
 ; ===========================================================================
 
 loc_AD84:				; XREF: mogura_Move
-		btst	#2,($FFFFFE0F).w
+		btst	#2,systemtimer+3
 		beq.b	loc_ADA4
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		move.w	#$3B,$30(a0)
 		move.w	#0,$10(a0)
 		move.b	#0,$1C(a0)
@@ -13151,7 +13160,7 @@ loc_AD84:				; XREF: mogura_Move
 ; ===========================================================================
 
 loc_ADA4:
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#-$400,$12(a0)
 		move.b	#2,$1C(a0)
 		rts	
@@ -13169,7 +13178,7 @@ mogura_Jump:				; XREF: mogura_Index2
 		move.w	#0,$12(a0)
 		move.b	#1,$1C(a0)
 		move.w	#$FF,$30(a0)
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		bsr.w	mogura_ChkSonic2
 
 locret_ADF0:
@@ -13187,7 +13196,7 @@ mogura_ChkSonic:				; XREF: mogura_Index2
 		bcs.b	locret_AE20
 		tst.w	editmode
 		bne.b	locret_AE20
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		move.w	d1,$10(a0)
 		move.w	#-$400,$12(a0)
 
@@ -13199,13 +13208,13 @@ locret_AE20:
 
 mogura_ChkSonic2:			; XREF: mogura_ChkSonic
 		move.w	#$80,d1
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		move.w	playerwk+xposi,d0
 		sub.w	8(a0),d0
 		bcc.b	loc_AE40
 		neg.w	d0
 		neg.w	d1
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 
 loc_AE40:
 		cmp.w	d2,d0
@@ -13229,7 +13238,7 @@ Map_mogura:
 
 yuka:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	yuka_Index(pc,d0.w),d1
 		jmp	yuka_Index(pc,d1.w)
 ; ===========================================================================
@@ -13245,15 +13254,15 @@ yuka_Data:	dc.w yuka_Data1-yuka_Data 	; collision angle data
 ; ===========================================================================
 
 yuka_Main:				; XREF: yuka_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_yuka,4(a0)
 		move.w	#$C000,2(a0)
 		move.b	#4,1(a0)
 		move.b	#5,$18(a0)
-		move.w	$C(a0),$2C(a0)
+		move.w	$C(a0),actfree(a0)
 		move.w	8(a0),$2A(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		lsr.w	#2,d0
 		andi.w	#$1C,d0
 		lea	yuka_Data(pc,d0.w),a1
@@ -13262,21 +13271,21 @@ yuka_Main:				; XREF: yuka_Index
 		move.l	a2,$30(a0)
 		move.b	(a1)+,$1A(a0)
 		move.b	(a1),$19(a0)
-		andi.b	#$F,$28(a0)
+		andi.b	#$F,userflag(a0)
 		move.b	#$40,$16(a0)
 		bset	#4,1(a0)
 
 yuka_Action:				; XREF: yuka_Index
 		bsr.w	yuka_Types
-		tst.b	$25(a0)
+		tst.b	r_no1(a0)
 		beq.b	yuka_Solid
 		moveq	#0,d1
 		move.b	$19(a0),d1
 		addi.w	#$B,d1
 		bsr.w	ExitPlatform
-		btst	#3,$22(a1)
+		btst	#3,cddat(a1)
 		bne.w	yuka_Slope
-		clr.b	$25(a0)
+		clr.b	r_no1(a0)
 		bra.b	yuka_Display
 ; ===========================================================================
 
@@ -13312,7 +13321,7 @@ yuka_Display:				; XREF: yuka_Action
 
 yuka_Types:				; XREF: yuka_Action
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#7,d0
 		add.w	d0,d0
 		move.w	yuka_TypeIndex(pc,d0.w),d1
@@ -13355,13 +13364,13 @@ yuka_Type04:				; XREF: yuka_TypeIndex
 		move.w	#$60,d1
 
 yuka_Move:
-		btst	#3,$28(a0)
+		btst	#3,userflag(a0)
 		beq.b	loc_AFF2
 		neg.w	d0
 		add.w	d1,d0
 
 loc_AFF2:
-		move.w	$2C(a0),d1
+		move.w	actfree(a0),d1
 		sub.w	d0,d1
 		move.w	d1,$C(a0)	; update position on y-axis
 		rts	
@@ -13369,7 +13378,7 @@ loc_AFF2:
 
 yuka_Type05:				; XREF: yuka_TypeIndex
 		move.b	$34(a0),d0
-		tst.b	$25(a0)
+		tst.b	r_no1(a0)
 		bne.b	loc_B010
 		subq.b	#2,d0
 		bcc.b	loc_B01C
@@ -13388,7 +13397,7 @@ loc_B01C:
 		jsr	(sinset).l
 		lsr.w	#4,d0
 		move.w	d0,d1
-		add.w	$2C(a0),d0
+		add.w	actfree(a0),d0
 		move.w	d0,$C(a0)
 		cmpi.b	#$20,$34(a0)
 		bne.b	loc_B07A
@@ -13399,9 +13408,9 @@ loc_B01C:
 		bne.b	loc_B07A
 		move.b	#$35,0(a1)	; load sitting flame object
 		move.w	8(a0),8(a1)
-		move.w	$2C(a0),$2C(a1)
-		addq.w	#8,$2C(a1)
-		subq.w	#3,$2C(a1)
+		move.w	actfree(a0),actfree(a1)
+		addq.w	#8,actfree(a1)
+		subq.w	#3,actfree(a1)
 		subi.w	#$40,8(a1)
 		move.l	$30(a0),$30(a1)
 		move.l	a0,$38(a1)
@@ -13506,7 +13515,7 @@ yuka_Data3:	incbin	misc\mz_pfm3.bin
 
 Obj35:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj35_Index(pc,d0.w),d1
 		jmp	Obj35_Index(pc,d1.w)
 ; ===========================================================================
@@ -13516,19 +13525,19 @@ Obj35_Index:	dc.w Obj35_Main-Obj35_Index
 ; ===========================================================================
 
 Obj35_Main:				; XREF: Obj35_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_fire,4(a0)
 		move.w	#$345,2(a0)
 		move.w	8(a0),$2A(a0)
 		move.b	#4,1(a0)
 		move.b	#1,$18(a0)
-		move.b	#$8B,$20(a0)
+		move.b	#$8B,colino(a0)
 		move.b	#8,$19(a0)
 		move.w	#$C8,d0
 		jsr	(soundset).l ;	play flame sound
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		beq.b	loc_B238
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		bra.w	Obj35_Move
 ; ===========================================================================
 
@@ -13541,7 +13550,7 @@ loc_B238:				; XREF: Obj35_Index
 		lsr.w	#1,d0
 		move.b	(a1,d0.w),d0
 		neg.w	d0
-		add.w	$2C(a0),d0
+		add.w	actfree(a0),d0
 		move.w	d0,d2
 		add.w	$3C(a0),d0
 		move.w	d0,$C(a0)
@@ -13558,9 +13567,9 @@ loc_B238:				; XREF: Obj35_Index
 		bne.b	loc_B2B0
 		move.b	#$35,0(a1)
 		move.w	8(a0),8(a1)
-		move.w	d2,$2C(a1)
+		move.w	d2,actfree(a1)
 		move.w	$3C(a0),$3C(a1)
-		move.b	#1,$28(a1)
+		move.b	#1,userflag(a1)
 		movea.l	$38(a0),a2
 		bsr.w	sub_B09C
 
@@ -13569,7 +13578,7 @@ loc_B2B0:
 ; ===========================================================================
 
 Obj35_Move:				; XREF: Obj35_Index
-		move.w	$2C(a0),d0
+		move.w	actfree(a0),d0
 		add.w	$3C(a0),d0
 		move.w	d0,$C(a0)
 
@@ -13600,7 +13609,7 @@ Map_fire:
 
 ochi:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	ochi_Index(pc,d0.w),d1
 		jsr	ochi_Index(pc,d1.w)
 		move.w	8(a0),d0
@@ -13633,7 +13642,7 @@ ochi_Main:				; XREF: ochi_Index
 		lea	(ochi_Vars1).l,a2
 		moveq	#1,d1
 		move.b	#$48,$16(a0)
-		cmpi.b	#3,$28(a0)	; is object type 0/1/2 ?
+		cmpi.b	#3,userflag(a0)	; is object type 0/1/2 ?
 		bcs.b	loc_B40C	; if yes, branch
 		lea	(ochi_Vars2).l,a2
 		moveq	#1,d1
@@ -13649,7 +13658,7 @@ ochi_Loop:
 		bne.b	loc_B480
 
 ochi_Load:				; XREF: ochi_Main
-		move.b	(a2)+,$24(a1)
+		move.b	(a2)+,r_no0(a1)
 		move.b	#$30,0(a1)
 		move.w	8(a0),8(a1)
 		move.b	(a2)+,d0
@@ -13660,7 +13669,7 @@ ochi_Load:				; XREF: ochi_Main
 		move.w	#$C38E,2(a1)
 		move.b	#4,1(a1)
 		move.w	$C(a1),$30(a1)
-		move.b	$28(a0),$28(a1)
+		move.b	userflag(a0),userflag(a1)
 		move.b	#$20,$19(a1)
 		move.b	#4,$18(a1)
 		move.b	(a2)+,$1A(a1)
@@ -13669,8 +13678,8 @@ ochi_Load:				; XREF: ochi_Main
 
 		move.b	#$10,$19(a1)
 		move.b	#3,$18(a1)
-		addq.b	#8,$28(a1)
-		andi.b	#$F,$28(a1)
+		addq.b	#8,userflag(a1)
+		andi.b	#$F,userflag(a1)
 
 loc_B480:
 		move.w	#$90,$32(a0)
@@ -13711,7 +13720,7 @@ ochi_Reflect34:			; XREF: ochi_Index
 
 ochi_Types:				; XREF: ochi_Block012; et al
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#7,d0
 		add.w	d0,d0
 		move.w	ochi_TypeIndex(pc,d0.w),d1
@@ -13743,7 +13752,7 @@ ochi_Type02:				; XREF: ochi_TypeIndex
 		add.w	d1,d0
 
 loc_B514:				; XREF: ochi_Type01
-		btst	#3,$28(a0)
+		btst	#3,userflag(a0)
 		beq.b	loc_B526
 		neg.w	d0
 		add.w	d1,d0
@@ -13755,7 +13764,7 @@ loc_B526:
 ; ===========================================================================
 
 ochi_Type03:				; XREF: ochi_TypeIndex
-		btst	#3,$28(a0)
+		btst	#3,userflag(a0)
 		beq.b	loc_B53E
 		move.b	($FFFFFE70).w,d0
 		subi.w	#$10,d0
@@ -13763,7 +13772,7 @@ ochi_Type03:				; XREF: ochi_TypeIndex
 ; ===========================================================================
 
 loc_B53E:
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		bne.b	loc_B54E
 		bclr	#0,$34(a0)
 		bra.b	loc_B582
@@ -13806,7 +13815,7 @@ loc_B5AA:
 ; ===========================================================================
 
 ochi_Type04:				; XREF: ochi_TypeIndex
-		btst	#3,$28(a0)
+		btst	#3,userflag(a0)
 		beq.b	ochi_ChkSwitch
 		move.b	($FFFFFE70).w,d0
 		subi.w	#$10,d0
@@ -13818,7 +13827,7 @@ ochi_ChkSwitch:			; XREF: ochi_Type04
 		bne.b	loc_B5E0
 		lea	($FFFFF7E0).w,a2
 		moveq	#0,d0
-		move.b	$28(a0),d0	; load object type number
+		move.b	userflag(a0),d0	; load object type number
 		lsr.w	#4,d0		; read only the	first nybble
 		tst.b	(a2,d0.w)	; has switch number d0 been pressed?
 		beq.b	loc_B5EA	; if not, branch
@@ -13851,7 +13860,7 @@ Map_ochi:
 
 turi:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	turi_Index(pc,d0.w),d1
 		jmp	turi_Index(pc,d1.w)
 ; ===========================================================================
@@ -13877,14 +13886,14 @@ word_B6A4:	dc.w $7000, $A000
 
 turi_Main:				; XREF: turi_Index
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		bpl.b	loc_B6CE
 		andi.w	#$7F,d0
 		add.w	d0,d0
 		lea	turi_SwchNums(pc,d0.w),a2
 		move.b	(a2)+,$3A(a0)
 		move.b	(a2)+,d0
-		move.b	d0,$28(a0)
+		move.b	d0,userflag(a0)
 
 loc_B6CE:
 		andi.b	#$F,d0
@@ -13906,7 +13915,7 @@ turi_Loop:
 		bne.w	turi_SetSize
 
 turi_MakeStomper:			; XREF: turi_Main
-		move.b	(a2)+,$24(a1)
+		move.b	(a2)+,r_no0(a1)
 		move.b	#$31,0(a1)
 		move.w	8(a0),8(a1)
 		move.b	(a2)+,d0
@@ -13917,7 +13926,7 @@ turi_MakeStomper:			; XREF: turi_Main
 		move.w	#$300,2(a1)
 		move.b	#4,1(a1)
 		move.w	$C(a1),$30(a1)
-		move.b	$28(a0),$28(a1)
+		move.b	userflag(a0),userflag(a1)
 		move.b	#$10,$19(a1)
 		move.w	d2,$34(a1)
 		move.b	#4,$18(a1)
@@ -13925,12 +13934,12 @@ turi_MakeStomper:			; XREF: turi_Main
 		cmpi.b	#1,$1A(a1)
 		bne.b	loc_B76A
 		subq.w	#1,d1
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#$F0,d0
 		cmpi.w	#$20,d0
 		beq.b	turi_MakeStomper
 		move.b	#$38,$19(a1)
-		move.b	#$90,$20(a1)
+		move.b	#$90,colino(a1)
 		addq.w	#1,d1
 
 loc_B76A:
@@ -13941,7 +13950,7 @@ loc_B76A:
 
 turi_SetSize:
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		lsr.w	#3,d0
 		andi.b	#$E,d0
 		lea	turi_Var2(pc,d0.w),a2
@@ -13964,7 +13973,7 @@ loc_B798:				; XREF: turi_Index
 		move.w	#$D,d3
 		move.w	8(a0),d4
 		bsr.w	hitchk
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		beq.b	turi_Display
 		cmpi.b	#$10,$32(a0)
 		bcc.b	turi_Display
@@ -14010,7 +14019,7 @@ turi_ChkDel:				; XREF: turi_Display
 ; ===========================================================================
 
 turi_Types:				; XREF: loc_B798
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#$F,d0
 		add.w	d0,d0
 		move.w	turi_TypeIndex(pc,d0.w),d1
@@ -14039,7 +14048,7 @@ turi_Type00:				; XREF: turi_TypeIndex
 loc_B872:
 		tst.w	$32(a0)
 		beq.b	loc_B8A0
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		andi.b	#$F,d0
 		bne.b	loc_B892
 		tst.b	1(a0)
@@ -14091,7 +14100,7 @@ turi_Type01:				; XREF: turi_TypeIndex
 ; ===========================================================================
 
 loc_B902:
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		andi.b	#$F,d0
 		bne.b	loc_B91C
 		tst.b	1(a0)
@@ -14139,7 +14148,7 @@ turi_Type03:				; XREF: turi_TypeIndex
 loc_B98C:
 		cmpi.w	#$90,d0
 		bcc.b	loc_B996
-		addq.b	#1,$28(a0)
+		addq.b	#1,userflag(a0)
 
 loc_B996:
 		bra.w	turi_Restart
@@ -14150,7 +14159,7 @@ loc_B996:
 
 Obj45:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj45_Index(pc,d0.w),d1
 		jmp	Obj45_Index(pc,d1.w)
 ; ===========================================================================
@@ -14172,7 +14181,7 @@ word_B9BE:	dc.w $3800
 
 Obj45_Main:				; XREF: Obj45_Index
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		add.w	d0,d0
 		move.w	word_B9BE(pc,d0.w),d2
 		lea	(Obj45_Var).l,a2
@@ -14186,7 +14195,7 @@ Obj45_Loop:
 		bne.b	loc_BA52
 
 Obj45_Load:				; XREF: Obj45_Main
-		move.b	(a2)+,$24(a1)
+		move.b	(a2)+,r_no0(a1)
 		move.b	#$45,0(a1)
 		move.w	$C(a0),$C(a1)
 		move.b	(a2)+,d0
@@ -14198,13 +14207,13 @@ Obj45_Load:				; XREF: Obj45_Main
 		move.b	#4,1(a1)
 		move.w	8(a1),$30(a1)
 		move.w	8(a0),$3A(a1)
-		move.b	$28(a0),$28(a1)
+		move.b	userflag(a0),userflag(a1)
 		move.b	#$20,$19(a1)
 		move.w	d2,$34(a1)
 		move.b	#4,$18(a1)
 		cmpi.b	#1,(a2)
 		bne.b	loc_BA40
-		move.b	#$91,$20(a1)
+		move.b	#$91,colino(a1)
 
 loc_BA40:
 		move.b	(a2)+,$1A(a1)
@@ -14263,7 +14272,7 @@ Obj45_ChkDel:				; XREF: Obj45_Solid
 
 Obj45_Move:				; XREF: Obj45_Solid
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		add.w	d0,d0
 		move.w	off_BAD6(pc,d0.w),d1
 		jmp	off_BAD6(pc,d1.w)
@@ -14333,7 +14342,7 @@ Map_obj45:
 
 switch2:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	switch2_Index(pc,d0.w),d1
 		jmp	switch2_Index(pc,d1.w)
 ; ===========================================================================
@@ -14342,7 +14351,7 @@ switch2_Index:	dc.w switch2_Main-switch2_Index
 ; ===========================================================================
 
 switch2_Main:				; XREF: switch2_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_switch2,4(a0)
 		move.w	#$4513,2(a0)	; MZ specific code
 		cmpi.b	#2,stageno
@@ -14364,23 +14373,23 @@ switch2_Pressed:				; XREF: switch2_Index
 		move.w	8(a0),d4
 		bsr.w	hitchk
 		bclr	#0,$1A(a0)	; use "unpressed" frame
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#$F,d0
 		lea	($FFFFF7E0).w,a3
 		lea	(a3,d0.w),a3
 		moveq	#0,d3
-		btst	#6,$28(a0)
+		btst	#6,userflag(a0)
 		beq.b	loc_BDB2
 		moveq	#7,d3
 
 loc_BDB2:
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		bpl.b	loc_BDBE
 		bsr.w	switch2_MZBlock
 		bne.b	loc_BDC8
 
 loc_BDBE:
-		tst.b	$25(a0)
+		tst.b	r_no1(a0)
 		bne.b	loc_BDC8
 		bclr	d3,(a3)
 		bra.b	loc_BDDE
@@ -14397,7 +14406,7 @@ loc_BDD6:
 		bset	#0,$1A(a0)	; use "pressed"	frame
 
 loc_BDDE:
-		btst	#5,$28(a0)
+		btst	#5,userflag(a0)
 		beq.b	switch2_Display
 		subq.b	#1,$1E(a0)
 		bpl.b	switch2_Display
@@ -14512,7 +14521,7 @@ Map_switch2:
 
 box:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	box_Index(pc,d0.w),d1
 		jmp	box_Index(pc,d1.w)
 ; ===========================================================================
@@ -14525,7 +14534,7 @@ box_Var:	dc.b $10, 0	; object width,	frame number
 ; ===========================================================================
 
 box_Main:				; XREF: box_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#$F,$16(a0)
 		move.b	#$F,$17(a0)
 		move.l	#Map_box,4(a0)
@@ -14540,20 +14549,20 @@ loc_BF16:
 		move.w	8(a0),$34(a0)
 		move.w	$C(a0),$36(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		add.w	d0,d0
 		andi.w	#$E,d0
 		lea	box_Var(pc,d0.w),a2
 		move.b	(a2)+,$19(a0)
 		move.b	(a2)+,$1A(a0)
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		beq.b	box_ChkGone
 		move.w	#$C2B8,2(a0)
 
 box_ChkGone:
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	loc_BF6E
 		bclr	#7,2(a2,d0.w)
 		bset	#0,2(a2,d0.w)
@@ -14571,7 +14580,7 @@ loc_BF6E:				; XREF: box_Index
 		bsr.w	loc_C186
 		cmpi.w	#$200,stageno ; is the level MZ act 1?
 		bne.b	loc_BFC6	; if not, branch
-		bclr	#7,$28(a0)
+		bclr	#7,userflag(a0)
 		move.w	8(a0),d0
 		cmpi.w	#$A20,d0
 		bcs.b	loc_BFC6
@@ -14581,7 +14590,7 @@ loc_BF6E:				; XREF: box_Index
 		subi.w	#$1C,d0
 		move.w	d0,$C(a0)
 		bset	#7,($FFFFF7A4).w
-		bset	#7,$28(a0)
+		bset	#7,userflag(a0)
 
 loc_BFC6:
 		move.w	8(a0),d0
@@ -14606,14 +14615,14 @@ loc_BFE6:
 		bhi.b	loc_C016
 		move.w	$34(a0),8(a0)
 		move.w	$36(a0),$C(a0)
-		move.b	#4,$24(a0)
+		move.b	#4,r_no0(a0)
 		bra.b	loc_C02C
 ; ===========================================================================
 
 loc_C016:
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	loc_C028
 		bclr	#0,2(a2,d0.w)
 
@@ -14624,7 +14633,7 @@ loc_C028:
 loc_C02C:				; XREF: box_Index
 		bsr.w	ChkObjOnScreen2
 		beq.b	locret_C044
-		move.b	#2,$24(a0)
+		move.b	#2,r_no0(a0)
 		clr.b	$32(a0)
 		clr.w	$10(a0)
 		clr.w	$12(a0)
@@ -14635,12 +14644,12 @@ locret_C044:
 
 loc_C046:				; XREF: loc_BF6E
 		move.w	8(a0),-(sp)
-		cmpi.b	#4,$25(a0)
+		cmpi.b	#4,r_no1(a0)
 		bcc.b	loc_C056
 		bsr.w	speedset2
 
 loc_C056:
-		btst	#1,$22(a0)
+		btst	#1,cddat(a0)
 		beq.b	loc_C0A0
 		addi.w	#$18,$12(a0)
 		jsr	emycol_d
@@ -14648,7 +14657,7 @@ loc_C056:
 		bpl.w	loc_C09E
 		add.w	d1,$C(a0)
 		clr.w	$12(a0)
-		bclr	#1,$22(a0)
+		bclr	#1,cddat(a0)
 		move.w	(a1),d0
 		andi.w	#$3FF,d0
 		cmpi.w	#$16A,d0
@@ -14710,8 +14719,8 @@ loc_C0E6:
 loc_C104:
 		move.w	(sp)+,d4
 		lea	playerwk,a1
-		bclr	#3,$22(a1)
-		bclr	#3,$22(a0)
+		bclr	#3,cddat(a1)
+		bclr	#3,cddat(a0)
 		bra.w	loc_BFE6
 ; ===========================================================================
 
@@ -14756,14 +14765,14 @@ locret_C184:
 ; ===========================================================================
 
 loc_C186:				; XREF: loc_BF6E
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		beq.w	loc_C218
 		subq.b	#2,d0
 		bne.b	loc_C1AA
 		bsr.w	ExitPlatform
-		btst	#3,$22(a1)
+		btst	#3,cddat(a1)
 		bne.b	loc_C1A4
-		clr.b	$25(a0)
+		clr.b	r_no1(a0)
 		rts	
 ; ===========================================================================
 
@@ -14782,7 +14791,7 @@ loc_C1AA:
 		bpl.w	locret_C1F0
 		add.w	d1,$C(a0)
 		clr.w	$12(a0)
-		clr.b	$25(a0)
+		clr.b	r_no1(a0)
 		move.w	(a1),d0
 		andi.w	#$3FF,d0
 		cmpi.w	#$16A,d0
@@ -14805,7 +14814,7 @@ loc_C1F2:
 		andi.w	#-$10,8(a0)
 		move.w	$10(a0),$30(a0)
 		clr.w	$10(a0)
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		rts	
 ; ===========================================================================
 
@@ -14823,7 +14832,7 @@ loc_C230:
 		tst.w	d0
 		beq.w	locret_C2E4
 		bmi.b	loc_C268
-		btst	#0,$22(a1)
+		btst	#0,cddat(a1)
 		bne.w	locret_C2E4
 		move.w	d0,-(sp)
 		moveq	#0,d3
@@ -14839,7 +14848,7 @@ loc_C230:
 ; ===========================================================================
 
 loc_C268:
-		btst	#0,$22(a1)
+		btst	#0,cddat(a1)
 		beq.b	locret_C2E4
 		move.w	d0,-(sp)
 		moveq	#0,d3
@@ -14862,7 +14871,7 @@ loc_C294:
 		move.w	#$A7,d0
 		jsr	(soundset).l ;	play pushing sound
 		move.w	(sp)+,d0
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		bmi.b	locret_C2E4
 		move.w	d0,-(sp)
 		jsr	emycol_d
@@ -14875,7 +14884,7 @@ loc_C294:
 		neg.w	$10(a0)
 
 loc_C2D8:
-		move.b	#6,$25(a0)
+		move.b	#6,r_no1(a0)
 		bra.b	locret_C2E4
 ; ===========================================================================
 
@@ -14898,7 +14907,7 @@ Map_box:
 
 Obj34:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj34_Index(pc,d0.w),d1
 		jmp	Obj34_Index(pc,d1.w)
 ; ===========================================================================
@@ -14936,7 +14945,7 @@ Obj34_Loop:
 		move.w	(a3)+,$32(a1)	; load finish x-position (same as start)
 		move.w	(a3)+,$30(a1)	; load main x-position
 		move.w	(a2)+,$A(a1)
-		move.b	(a2)+,$24(a1)
+		move.b	(a2)+,r_no0(a1)
 		move.b	(a2)+,d0
 		bne.b	Obj34_ActNumber
 		move.b	d2,d0
@@ -15014,7 +15023,7 @@ locret_C412:
 ; ===========================================================================
 
 Obj34_ChangeArt:			; XREF: Obj34_ChkPos2
-		cmpi.b	#4,$24(a0)
+		cmpi.b	#4,r_no0(a0)
 		bne.b	Obj34_Delete
 		moveq	#2,d0
 		jsr	(LoadPLC).l	; load explosion patterns
@@ -15054,7 +15063,7 @@ Obj34_ConData:	dc.w 0,	$120, $FEFC, $13C, $414, $154, $214, $154 ; GHZ
 
 Obj39:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj39_Index(pc,d0.w),d1
 		jmp	Obj39_Index(pc,d1.w)
 ; ===========================================================================
@@ -15070,7 +15079,7 @@ Obj39_ChkPLC:				; XREF: Obj39_Index
 ; ===========================================================================
 
 Obj39_Main:
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#$50,8(a0)	; set x-position
 		btst	#0,$1A(a0)	; is the object	"OVER"?
 		beq.b	loc_C4EC	; if not, branch
@@ -15097,7 +15106,7 @@ Obj39_Move:
 
 Obj39_SetWait:				; XREF: Obj39_Main
 		move.w	#720,$1E(a0)	; set time delay to 12 seconds
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		rts	
 ; ===========================================================================
 
@@ -15124,7 +15133,7 @@ Obj39_ChgMode:				; XREF: Obj39_Wait
 ; ===========================================================================
 
 Obj39_ResetLvl:				; XREF: Obj39_ChgMode
-		move.w	#1,($FFFFFE02).w ; restart level
+		move.w	#1,gameflag ; restart level
 
 Obj39_Display:				; XREF: Obj39_ChgMode
 		bra.w	actionsub
@@ -15135,7 +15144,7 @@ Obj39_Display:				; XREF: Obj39_ChgMode
 
 Obj3A:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj3A_Index(pc,d0.w),d1
 		jmp	Obj3A_Index(pc,d1.w)
 ; ===========================================================================
@@ -15167,7 +15176,7 @@ Obj3A_Loop:
 		move.w	(a2)+,$32(a1)	; load finish x-position (same as start)
 		move.w	(a2)+,$30(a1)	; load main x-position
 		move.w	(a2)+,$A(a1)	; load y-position
-		move.b	(a2)+,$24(a1)
+		move.b	(a2)+,r_no0(a1)
 		move.b	(a2)+,d0
 		cmpi.b	#6,d0
 		bne.b	loc_C5CA
@@ -15205,7 +15214,7 @@ locret_C60E:
 ; ===========================================================================
 
 loc_C610:				; XREF: loc_C61A
-		move.b	#$E,$24(a0)
+		move.b	#$E,r_no0(a0)
 		bra.w	Obj3A_ChkPos2
 ; ===========================================================================
 
@@ -15214,13 +15223,13 @@ loc_C61A:				; XREF: Obj3A_ChkPos
 		beq.b	loc_C610
 		cmpi.b	#4,$1A(a0)
 		bne.b	loc_C5FE
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#180,$1E(a0)	; set time delay to 3 seconds
 
 Obj3A_Wait:				; XREF: Obj3A_Index
 		subq.w	#1,$1E(a0)	; subtract 1 from time delay
 		bne.b	Obj3A_Display
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 Obj3A_Display:
 		bra.w	actionsub
@@ -15246,10 +15255,10 @@ Obj3A_ChkBonus:
 		bne.b	Obj3A_AddBonus	; if yes, branch
 		move.w	#$C5,d0
 		jsr	(soundset).l ;	play "ker-ching" sound
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		cmpi.w	#$501,stageno
 		bne.b	Obj3A_SetDelay
-		addq.b	#4,$24(a0)
+		addq.b	#4,r_no0(a0)
 
 Obj3A_SetDelay:
 		move.w	#180,$1E(a0)	; set time delay to 3 seconds
@@ -15260,7 +15269,7 @@ locret_C692:
 
 Obj3A_AddBonus:				; XREF: Obj3A_ChkBonus
 		jsr	scoreup
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		andi.b	#3,d0
 		bne.b	locret_C692
 		move.w	#$CD,d0
@@ -15285,14 +15294,14 @@ Obj3A_NextLevel:			; XREF: Obj3A_Index
 
 Obj3A_ChkSS:				; XREF: Obj3A_NextLevel
 		clr.b	saveno	; clear	lamppost counter
-		tst.b	($FFFFF7CD).w	; has Sonic jumped into	a giant	ring?
+		tst.b	special_flag	; has Sonic jumped into	a giant	ring?
 		beq.b	loc_C6EA	; if not, branch
 		move.b	#$10,gmmode ; set game mode to Special Stage (10)
 		bra.b	Obj3A_Display2
 ; ===========================================================================
 
 loc_C6EA:				; XREF: Obj3A_ChkSS
-		move.w	#1,($FFFFFE02).w ; restart level
+		move.w	#1,gameflag ; restart level
 
 Obj3A_Display2:				; XREF: Obj3A_NextLevel, Obj3A_ChkSS
 		bra.w	actionsub
@@ -15328,7 +15337,7 @@ locret_C748:
 Obj3A_SBZ2:				; XREF: Obj3A_ChkPos2
 		cmpi.b	#4,$1A(a0)
 		bne.w	frameout
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		clr.b	plautoflag	; unlock controls
 		move.w	#$8D,d0
 		jmp	(bgmset).l	; play FZ music
@@ -15361,7 +15370,7 @@ Obj3A_Config:	dc.w 4,	$124, $BC	; x-start, x-main, y-main
 
 Obj7E:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj7E_Index(pc,d0.w),d1
 		jmp	Obj7E_Index(pc,d1.w)
 ; ===========================================================================
@@ -15397,7 +15406,7 @@ Obj7E_Loop:
 		move.w	(a2)+,8(a1)	; load start x-position
 		move.w	(a2)+,$30(a1)	; load main x-position
 		move.w	(a2)+,$A(a1)	; load y-position
-		move.b	(a2)+,$24(a1)
+		move.b	(a2)+,r_no0(a1)
 		move.b	(a2)+,$1A(a1)
 		move.l	#Map_obj7E,4(a1)
 		move.w	#$8580,2(a1)
@@ -15444,14 +15453,14 @@ locret_C86A:
 loc_C86C:				; XREF: Obj7E_ChkPos
 		cmpi.b	#2,$1A(a0)
 		bne.b	loc_C85A
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#180,$1E(a0)	; set time delay to 3 seconds
 		move.b	#$7F,($FFFFD800).w ; load chaos	emerald	object
 
 Obj7E_Wait:				; XREF: Obj7E_Index
 		subq.w	#1,$1E(a0)	; subtract 1 from time delay
 		bne.b	Obj7E_Display
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 Obj7E_Display:
 		bra.w	actionsub
@@ -15465,7 +15474,7 @@ Obj7E_RingBonus:			; XREF: Obj7E_Index
 		subi.w	#10,($FFFFF7D4).w ; subtract 10	from ring bonus
 		moveq	#10,d0		; add 10 to score
 		jsr	scoreup
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		andi.b	#3,d0
 		bne.b	locret_C8EA
 		move.w	#$CD,d0
@@ -15475,19 +15484,19 @@ Obj7E_RingBonus:			; XREF: Obj7E_Index
 loc_C8C4:				; XREF: Obj7E_RingBonus
 		move.w	#$C5,d0
 		jsr	(soundset).l ;	play "ker-ching" sound
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#180,$1E(a0)	; set time delay to 3 seconds
 		cmpi.w	#50,plring ; do you have	at least 50 rings?
 		bcs.b	locret_C8EA	; if not, branch
 		move.w	#60,$1E(a0)	; set time delay to 1 second
-		addq.b	#4,$24(a0)	; goto "Obj7E_Continue"	routine
+		addq.b	#4,r_no0(a0)	; goto "Obj7E_Continue"	routine
 
 locret_C8EA:
 		rts	
 ; ===========================================================================
 
 Obj7E_Exit:				; XREF: Obj7E_Index
-		move.w	#1,($FFFFFE02).w ; restart level
+		move.w	#1,gameflag ; restart level
 		bra.w	actionsub
 ; ===========================================================================
 
@@ -15496,13 +15505,13 @@ Obj7E_Continue:				; XREF: Obj7E_Index
 		move.b	#$14,($FFFFD6E4).w
 		move.w	#$BF,d0
 		jsr	(soundset).l ;	play continues music
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#360,$1E(a0)	; set time delay to 6 seconds
 		bra.w	actionsub
 ; ===========================================================================
 
 loc_C91A:				; XREF: Obj7E_Index
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		andi.b	#$F,d0
 		bne.b	Obj7E_Display2
 		bchg	#0,$1A(a0)
@@ -15527,7 +15536,7 @@ Obj7E_Config:	dc.w $20, $120,	$C4	; start	x-pos, main x-pos, y-pos
 
 Obj7F:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj7F_Index(pc,d0.w),d1
 		jmp	Obj7F_Index(pc,d1.w)
 ; ===========================================================================
@@ -15558,7 +15567,7 @@ Obj7F_Loop:
 		move.b	d3,$1A(a1)
 		move.b	d3,$1C(a1)
 		addq.b	#1,d2
-		addq.b	#2,$24(a1)
+		addq.b	#2,r_no0(a1)
 		move.l	#Map_obj7F,4(a1)
 		move.w	#$8541,2(a1)
 		move.b	#0,1(a1)
@@ -15845,7 +15854,7 @@ Map_obj7F:
 
 toge:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	toge_Index(pc,d0.w),d1
 		jmp	toge_Index(pc,d1.w)
 ; ===========================================================================
@@ -15861,13 +15870,13 @@ toge_Var:	dc.b 0,	$14		; frame	number,	object width
 ; ===========================================================================
 
 toge_Main:				; XREF: toge_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#togepat,4(a0)
 		move.w	#$51B,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#4,$18(a0)
-		move.b	$28(a0),d0
-		andi.b	#$F,$28(a0)
+		move.b	userflag(a0),d0
+		andi.b	#$F,userflag(a0)
 		andi.w	#$F0,d0
 		lea	(toge_Var).l,a1
 		lsr.w	#3,d0
@@ -15894,7 +15903,7 @@ toge_SideWays:				; XREF: toge_Solid
 		addq.w	#1,d3
 		move.w	8(a0),d4
 		bsr.w	hitchk
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		bne.b	toge_Display
 		cmpi.w	#1,d4
 		beq.b	toge_Hurt
@@ -15911,7 +15920,7 @@ toge_Upright:				; XREF: toge_Solid
 		move.w	#$11,d3
 		move.w	8(a0),d4
 		bsr.w	hitchk
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		bne.b	toge_Hurt
 		tst.w	d4
 		bpl.b	toge_Display
@@ -15922,7 +15931,7 @@ toge_Hurt:				; XREF: toge_SideWays; toge_Upright
 		move.l	a0,-(sp)
 		movea.l	a0,a2
 		lea	playerwk,a0
-		cmpi.b	#4,$24(a0)
+		cmpi.b	#4,r_no0(a0)
 		bcc.b	loc_CF20
 		move.l	$C(a0),d3
 		move.w	$12(a0),d0
@@ -15950,7 +15959,7 @@ toge_Display:
 
 toge_Type0x:				; XREF: toge_Solid
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		add.w	d0,d0
 		move.w	toge_TypeIndex(pc,d0.w),d1
 		jmp	toge_TypeIndex(pc,d1.w)
@@ -16030,16 +16039,16 @@ jyama:
 		move.w	jyama_move_tbl(pc,d0.w),d1
 		jmp		jyama_move_tbl(pc,d1.w)
 jyama_move_tbl:
-		dc.w	jyamainit-jyama_move_tbl
-		dc.w	jyamamove-jyama_move_tbl
-jyamainit:
+		dc.w	jyama_init-jyama_move_tbl
+		dc.w	jyama_main-jyama_move_tbl
+jyama_init:
 		addq.b	#word,r_no0(a0)
 		move.l	#jyamapat,patbase(a0)
 		move.w	#$63d0,sproffset(a0)
 		move.b	#4,actflg(a0)
 		move.b	#19,sprhs(a0)
 		move.b	#4,sprpri(a0)
-jyamamove:
+jyama_main:
 		move.w	#27,d1
 		move.w	#16,d2
 		move.w	#16,d3
@@ -16047,12 +16056,12 @@ jyamamove:
 		bsr.w	hitchk
 		bsr.w	actionsub
 		move.w	xposi(a0),d0
-		andi.w	#$ff80,d0
+		andi.w	#-128,d0
 		move.w	scra_h_posit,d1
-		subi.w	#$80,d1
-		andi.w	#$ff80,d1
+		subi.w	#128,d1
+		andi.w	#-128,d1
 		sub.w	d1,d0
-		cmpi.w	#$280,d0
+		cmpi.w	#640,d0
 		bhi.w	frameout
 		rts	
 
@@ -16062,74 +16071,73 @@ taki:
 		move.w	taki_move_tbl(pc,d0.w),d1
 		jmp		taki_move_tbl(pc,d1.w)
 taki_move_tbl:
-		dc.w	takiinit-taki_move_tbl
-		dc.w	takimove-taki_move_tbl
-takiinit:
+		dc.w	taki_init-taki_move_tbl
+		dc.w	taki_move-taki_move_tbl
+taki_init:
 		addq.b	#word,r_no0(a0)
 		move.b	#4,actflg(a0)
-
-takimove:
-		move.b	($FFFFFE0F).w,d0
-		andi.b	#$3F,d0
+taki_move:
+		move.b	systemtimer+3,d0
+		andi.b	#63,d0
 		bne.b	?jump
-		move.w	#$D0,d0
+		move.w	#$d0,d0
 		jsr		soundset
-
 ?jump:
 		move.w	xposi(a0),d0
-		andi.w	#$ff80,d0
+		andi.w	#-128,d0
 		move.w	scra_h_posit,d1
-		subi.w	#$80,d1
-		andi.w	#$ff80,d1
+		subi.w	#128,d1
+		andi.w	#-128,d1
 		sub.w	d1,d0
-		cmpi.w	#$280,d0
+		cmpi.w	#640,d0
 		bhi.w	frameout
 		rts
 
 jyamapat:
-	include "_maps\jyama.asm"
+		dc.w	jyamasp0-jyamapat
+jyamasp0:
+		dc.b	2
+		dc.b	$f0,$0b,$00,$00,$e8
+		dc.b	$f0,$0b,$00,$0c,$00
 
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Object 3C - smashable	wall (GHZ, SLZ)
-; ---------------------------------------------------------------------------
+;------------------------------------------------------------------------------
+		align
+;------------------------------------------------------------------------------
 
-brkabe:					; XREF: act_tbl
+brkabe:
 		moveq	#0,d0
-		move.b	$24(a0),d0
-		move.w	brkabe_Index(pc,d0.w),d1
-		jsr	brkabe_Index(pc,d1.w)
+		move.b	r_no0(a0),d0
+		move.w	brkabe_move_tbl(pc,d0.w),d1
+		jsr		brkabe_move_tbl(pc,d1.w)
 		bra.w	frameoutchk
-; ===========================================================================
-brkabe_Index:	dc.w brkabe_Main-brkabe_Index
-		dc.w brkabe_Solid-brkabe_Index
-		dc.w brkabe_FragMove-brkabe_Index
-; ===========================================================================
-
-brkabe_Main:				; XREF: brkabe_Index
-		addq.b	#2,$24(a0)
+brkabe_move_tbl:
+		dc.w	brkabe_init-brkabe_move_tbl
+		dc.w	brkabe_move-brkabe_move_tbl
+		dc.w	brkabe_move2-brkabe_move_tbl
+brkabe_init:
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_brkabe,4(a0)
 		move.w	#$450F,2(a0)
 		move.b	#4,1(a0)
 		move.b	#$10,$19(a0)
 		move.b	#4,$18(a0)
-		move.b	$28(a0),$1A(a0)
+		move.b	userflag(a0),$1A(a0)
 
-brkabe_Solid:				; XREF: brkabe_Index
+brkabe_move:				; XREF: brkabe_move_tbl
 		move.w	($FFFFD010).w,$30(a0) ;	load Sonic's horizontal speed
 		move.w	#$1B,d1
 		move.w	#$20,d2
 		move.w	#$20,d3
 		move.w	8(a0),d4
 		bsr.w	hitchk
-		btst	#5,$22(a0)
+		btst	#5,cddat(a0)
 		bne.b	brkabe_ChkRoll
 
 locret_D180:
 		rts	
 ; ===========================================================================
 
-brkabe_ChkRoll:				; XREF: brkabe_Solid
+brkabe_ChkRoll:				; XREF: brkabe_move
 		cmpi.b	#2,$1C(a1)	; is Sonic rolling?
 		bne.b	locret_D180	; if not, branch
 		move.w	$30(a0),d0
@@ -16150,13 +16158,13 @@ brkabe_ChkSpeed:
 
 brkabe_Smash:
 		move.w	$10(a1),$14(a1)
-		bclr	#5,$22(a0)
-		bclr	#5,$22(a1)
+		bclr	#5,cddat(a0)
+		bclr	#5,cddat(a1)
 		moveq	#7,d1		; load 8 fragments
 		move.w	#$70,d2
 		bsr.b	SmashObject
 
-brkabe_FragMove:				; XREF: brkabe_Index
+brkabe_move2:				; XREF: brkabe_move_tbl
 		bsr.w	speedset2
 		addi.w	#$70,$12(a0)	; make fragment	fall faster
 		bsr.w	actionsub
@@ -16191,7 +16199,7 @@ Smash_Loop:
 		addq.w	#5,a3
 
 Smash_LoadFrag:				; XREF: SmashObject
-		move.b	#4,$24(a1)
+		move.b	#4,r_no0(a1)
 		move.b	d4,0(a1)
 		move.l	a3,4(a1)
 		move.b	d5,1(a1)
@@ -16245,38 +16253,30 @@ brkabe_FragSpd2:	dc.w $FA00, $FA00
 Map_brkabe:
 	include "_maps\brkabe.asm"
 
-; ---------------------------------------------------------------------------
-; Object code loading subroutine
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-action:				; XREF: TitleScreen; et al
-		lea	($FFFFD000).w,a0 ; set address for object RAM
+action:
+		lea		actwk,a0
 		moveq	#$7F,d7
 		moveq	#0,d0
-		cmpi.b	#6,($FFFFD024).w
+		cmpi.b	#6,playerwk+r_no0
 		bcc.b	loc_D362
 
-loc_D348:
-		move.b	(a0),d0		; load object number from RAM
+actloop:
+		move.b	(a0),d0
 		beq.b	loc_D358
 		add.w	d0,d0
 		add.w	d0,d0
 		movea.l	act_tbl-4(pc,d0.w),a1
-		jsr	(a1)		; run the object's code
+		jsr		(a1)
 		moveq	#0,d0
 
 loc_D358:
-		lea	$40(a0),a0	; next object
-		dbra	d7,loc_D348
-		rts	
-; ===========================================================================
+		lea		$40(a0),a0
+		dbra	d7,actloop
+		rts
 
 loc_D362:
 		moveq	#$1F,d7
-		bsr.b	loc_D348
+		bsr.b	actloop
 		moveq	#$5F,d7
 
 loc_D368:
@@ -16288,23 +16288,25 @@ loc_D368:
 		bsr.w	actionsub
 
 loc_D378:
-		lea	$40(a0),a0
+		lea		$40(a0),a0
 
 loc_D37C:
 		dbra	d7,loc_D368
 		rts
 
 act_tbl:
-		dc.l	play00,speedset,speedset,speedset,speedset,speedset,speedset,Obj08
-		dc.l	play01,plawa,bou,ben,gole,Obj0E,Obj0F,play02
-		dc.l	hashi,signal,mfire,fire,buranko,yari,thashi,shima
-		dc.l	Obj19,break,water,bgspr,switch,buta,kani,Obj20
-		dc.l	score,hachi,Obj23,Obj24,ring,item,bakuhatu,usagi
-		dc.l	ten,door,fish,fish2,mogura,item2,yuka,ochi
+		dc.l	play00,speedset,speedset,speedset,speedset,speedset
+		dc.l	speedset,Obj08,play01,plawa,bou,ben
+		dc.l	gole,Obj0E,Obj0F,play02,hashi,signal
+		dc.l	mfire,fire,buranko,yari,thashi,shima
+		dc.l	Obj19,break,wave,bgspr,switch,buta
+		dc.l	kani,Obj20,score,hachi,Obj23,Obj24
+		dc.l	ring,item,bakuhatu,usagi,ten,door
+		dc.l	fish,fish2,mogura,item2,yuka,ochi
 		dc.l	turi,switch2,box,Obj34,Obj35,toge,flyring,effect
 		dc.l	Obj39,Obj3A,jyama,brkabe,boss1,masin,Obj3F,musi
 		dc.l	sjump,kamere,aruma,kageb,Obj45,fblock,bobin,btama
-		dc.l	taki,Obj4A,Obj4B,myogan,yogan,yogan2,usa,yado
+		dc.l	taki,Obj4A,bigring,myogan,yogan,yogan2,usa,yado
 		dc.l	bryuka,dai,break2,yoganc,bat,dai2,Obj57,Obj58
 		dc.l	elev,pedal,step,Obj5C,fun,sisoo,brobo,uni
 		dc.l	dai3,kazari,kassya,awa,mizu,mawaru,haguruma,beltcon
@@ -16352,12 +16354,11 @@ actionsub:
 		andi.w	#$380,d0
 		adda.w	d0,a1
 		cmpi.w	#$7E,(a1)
-		bcc.b	locret_D620
+		bcc.b	?end
 		addq.w	#2,(a1)
 		adda.w	(a1),a1
 		move.w	a0,(a1)
-
-locret_D620:
+?end:
 		rts
 
 actionsub2:
@@ -16367,39 +16368,27 @@ actionsub2:
 		andi.w	#$380,d0
 		adda.w	d0,a2
 		cmpi.w	#$7E,(a2)
-		bcc.b	locret_D63E
+		bcc.b	?end
 		addq.w	#2,(a2)
 		adda.w	(a2),a2
 		move.w	a1,(a2)
-
-locret_D63E:
+?end:
 		rts
-
-; ---------------------------------------------------------------------------
-; Subroutine to	delete an object
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
 
 frameout:
 		movea.l	a0,a1
-
 frameout2:
 		moveq	#0,d1
 		moveq	#$F,d0
-
 loc_D646:
-		move.l	d1,(a1)+	; clear	the object RAM
-		dbra	d0,loc_D646	; repeat $F times (length of object RAM)
-		rts	
-; End of function frameout
+		move.l	d1,(a1)+
+		dbra	d0,loc_D646
+		rts
 
-; ===========================================================================
-BldSpr_ScrPos:	dc.l 0			; blank
-		dc.l scra_h_posit		; main screen x-position
-		dc.l scrb_h_posit		; background x-position	1
-		dc.l scrz_h_posit		; background x-position	2
+BldSpr_ScrPos:	dc.l 0
+		dc.l scra_h_posit
+		dc.l scrb_h_posit
+		dc.l scrz_h_posit
 ; ---------------------------------------------------------------------------
 ; Subroutine to	convert	mappings (etc) to proper Megadrive sprites
 ; ---------------------------------------------------------------------------
@@ -16769,7 +16758,7 @@ OPL_Main:				; XREF: OPL_Index
 		adda.w	2(a1,d0.w),a1
 		move.l	a1,($FFFFF778).w
 		move.l	a1,($FFFFF77C).w
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		move.w	#$101,(a2)+
 		move.w	#$5E,d0
 
@@ -16777,7 +16766,7 @@ OPL_ClrList:
 		clr.l	(a2)+
 		dbra	d0,OPL_ClrList	; clear	pre-destroyed object list
 
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d2
 		move.w	scra_h_posit,d6
 		subi.w	#$80,d6
@@ -16824,7 +16813,7 @@ loc_D976:
 		move.w	#-1,($FFFFF76E).w
 
 OPL_Next:				; XREF: OPL_Index
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d2
 		move.w	scra_h_posit,d6
 		andi.w	#$FF80,d6
@@ -16945,15 +16934,15 @@ OPL_MakeItem:
 		rol.w	#2,d1
 		andi.b	#3,d1
 		move.b	d1,1(a1)
-		move.b	d1,$22(a1)
+		move.b	d1,cddat(a1)
 		move.b	(a0)+,d0
 		bpl.b	loc_DA80
 		andi.b	#$7F,d0
-		move.b	d2,$23(a1)
+		move.b	d2,cdsts(a1)
 
 loc_DA80:
 		move.b	d0,0(a1)
-		move.b	(a0)+,$28(a1)
+		move.b	(a0)+,userflag(a1)
 		moveq	#0,d0
 
 locret_DA8A:
@@ -17008,7 +16997,7 @@ locret_DABC:
 
 sjump:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	sjump_Index(pc,d0.w),d1
 		jsr	sjump_Index(pc,d1.w)
 		bsr.w	actionsub
@@ -17038,16 +17027,16 @@ sjump_Powers:	dc.w -$1000		; power	of red spring
 ; ===========================================================================
 
 sjump_Main:				; XREF: sjump_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#sjumppat,4(a0)
 		move.w	#$523,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#$10,$19(a0)
 		move.b	#4,$18(a0)
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		btst	#4,d0		; does the spring face left/right?
 		beq.b	loc_DB54	; if not, branch
-		move.b	#8,$24(a0)	; use "sjump_LR" routine
+		move.b	#8,r_no0(a0)	; use "sjump_LR" routine
 		move.b	#1,$1C(a0)
 		move.b	#3,$1A(a0)
 		move.w	#$533,2(a0)
@@ -17056,8 +17045,8 @@ sjump_Main:				; XREF: sjump_Index
 loc_DB54:
 		btst	#5,d0		; does the spring face downwards?
 		beq.b	loc_DB66	; if not, branch
-		move.b	#$E,$24(a0)	; use "sjump_Dwn" routine
-		bset	#1,$22(a0)
+		move.b	#$E,r_no0(a0)	; use "sjump_Dwn" routine
+		bset	#1,cddat(a0)
 
 loc_DB66:
 		btst	#1,d0
@@ -17076,21 +17065,21 @@ sjump_Up:				; XREF: sjump_Index
 		move.w	#$10,d3
 		move.w	8(a0),d4
 		bsr.w	hitchk
-		tst.b	$25(a0)		; is Sonic on top of the spring?
+		tst.b	r_no1(a0)		; is Sonic on top of the spring?
 		bne.b	sjump_BounceUp	; if yes, branch
 		rts	
 ; ===========================================================================
 
 sjump_BounceUp:				; XREF: sjump_Up
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		addq.w	#8,$C(a1)
 		move.w	$30(a0),$12(a1)	; move Sonic upwards
-		bset	#1,$22(a1)
-		bclr	#3,$22(a1)
+		bset	#1,cddat(a1)
+		bclr	#3,cddat(a1)
 		move.b	#$10,$1C(a1)	; use "bouncing" animation
-		move.b	#2,$24(a1)
-		bclr	#3,$22(a0)
-		clr.b	$25(a0)
+		move.b	#2,r_no0(a1)
+		bclr	#3,cddat(a0)
+		clr.b	r_no1(a0)
 		move.w	#$CC,d0
 		jsr	(soundset).l ;	play spring sound
 
@@ -17101,7 +17090,7 @@ sjump_AniUp:				; XREF: sjump_Index
 
 sjump_ResetUp:				; XREF: sjump_Index
 		move.b	#1,$1D(a0)	; reset	animation
-		subq.b	#4,$24(a0)	; goto "sjump_Up" routine
+		subq.b	#4,r_no0(a0)	; goto "sjump_Up" routine
 		rts	
 ; ===========================================================================
 
@@ -17111,21 +17100,21 @@ sjump_LR:				; XREF: sjump_Index
 		move.w	#$F,d3
 		move.w	8(a0),d4
 		bsr.w	hitchk
-		cmpi.b	#2,$24(a0)
+		cmpi.b	#2,r_no0(a0)
 		bne.b	loc_DC0C
-		move.b	#8,$24(a0)
+		move.b	#8,r_no0(a0)
 
 loc_DC0C:
-		btst	#5,$22(a0)
+		btst	#5,cddat(a0)
 		bne.b	sjump_BounceLR
 		rts	
 ; ===========================================================================
 
 sjump_BounceLR:				; XREF: sjump_LR
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	$30(a0),$10(a1)	; move Sonic to	the left
 		addq.w	#8,8(a1)
-		btst	#0,$22(a0)	; is object flipped?
+		btst	#0,cddat(a0)	; is object flipped?
 		bne.b	loc_DC36	; if yes, branch
 		subi.w	#$10,8(a1)
 		neg.w	$10(a1)		; move Sonic to	the right
@@ -17133,14 +17122,14 @@ sjump_BounceLR:				; XREF: sjump_LR
 loc_DC36:
 		move.w	#$F,$3E(a1)
 		move.w	$10(a1),$14(a1)
-		bchg	#0,$22(a1)
-		btst	#2,$22(a1)
+		bchg	#0,cddat(a1)
+		btst	#2,cddat(a1)
 		bne.b	loc_DC56
 		move.b	#0,$1C(a1)	; use running animation
 
 loc_DC56:
-		bclr	#5,$22(a0)
-		bclr	#5,$22(a1)
+		bclr	#5,cddat(a0)
+		bclr	#5,cddat(a1)
 		move.w	#$CC,d0
 		jsr	(soundset).l ;	play spring sound
 
@@ -17151,7 +17140,7 @@ sjump_AniLR:				; XREF: sjump_Index
 
 sjump_ResetLR:				; XREF: sjump_Index
 		move.b	#2,$1D(a0)	; reset	animation
-		subq.b	#4,$24(a0)	; goto "sjump_LR" routine
+		subq.b	#4,r_no0(a0)	; goto "sjump_LR" routine
 		rts	
 ; ===========================================================================
 
@@ -17161,12 +17150,12 @@ sjump_Dwn:				; XREF: sjump_Index
 		move.w	#$10,d3
 		move.w	8(a0),d4
 		bsr.w	hitchk
-		cmpi.b	#2,$24(a0)
+		cmpi.b	#2,r_no0(a0)
 		bne.b	loc_DCA4
-		move.b	#$E,$24(a0)
+		move.b	#$E,r_no0(a0)
 
 loc_DCA4:
-		tst.b	$25(a0)
+		tst.b	r_no1(a0)
 		bne.b	locret_DCAE
 		tst.w	d4
 		bmi.b	sjump_BounceDwn
@@ -17176,15 +17165,15 @@ locret_DCAE:
 ; ===========================================================================
 
 sjump_BounceDwn:			; XREF: sjump_Dwn
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		subq.w	#8,$C(a1)
 		move.w	$30(a0),$12(a1)
 		neg.w	$12(a1)		; move Sonic downwards
-		bset	#1,$22(a1)
-		bclr	#3,$22(a1)
-		move.b	#2,$24(a1)
-		bclr	#3,$22(a0)
-		clr.b	$25(a0)
+		bset	#1,cddat(a1)
+		bclr	#3,cddat(a1)
+		move.b	#2,r_no0(a1)
+		bclr	#3,cddat(a0)
+		clr.b	r_no1(a0)
 		move.w	#$CC,d0
 		jsr	(soundset).l ;	play spring sound
 
@@ -17195,7 +17184,7 @@ sjump_AniDwn:				; XREF: sjump_Index
 
 sjump_ResetDwn:				; XREF: sjump_Index
 		move.b	#1,$1D(a0)	; reset	animation
-		subq.b	#4,$24(a0)	; goto "sjump_Dwn" routine
+		subq.b	#4,r_no0(a0)	; goto "sjump_Dwn" routine
 		rts	
 ; ===========================================================================
 Ani_sjump:
@@ -17214,7 +17203,7 @@ sjumppat:
 
 kamere:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	kamere_Index(pc,d0.w),d1
 		jmp	kamere_Index(pc,d1.w)
 ; ===========================================================================
@@ -17224,7 +17213,7 @@ kamere_Index:	dc.w kamere_Main-kamere_Index
 ; ===========================================================================
 
 kamere_Main:				; XREF: kamere_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#kamerepat,4(a0)
 		move.w	#$49B,2(a0)
 		move.b	#4,1(a0)
@@ -17235,7 +17224,7 @@ kamere_Main:				; XREF: kamere_Index
 
 kamere_Action:				; XREF: kamere_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	kamere_Index2(pc,d0.w),d1
 		jsr	kamere_Index2(pc,d1.w)
 		lea	(Ani_kamere).l,a1
@@ -17250,22 +17239,22 @@ kamere_Index2:	dc.w kamere_ChkDist-kamere_Index2
 ; ===========================================================================
 
 kamere_ChkDist:				; XREF: kamere_Index2
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		move.w	playerwk+xposi,d0
 		sub.w	8(a0),d0
 		bcc.b	loc_DDEA
 		neg.w	d0
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 
 loc_DDEA:
 		cmpi.w	#$80,d0		; is Sonic within $80 pixels of	the newtron?
 		bcc.b	locret_DE12	; if not, branch
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.b	#1,$1C(a0)
-		tst.b	$28(a0)		; check	object type
+		tst.b	userflag(a0)		; check	object type
 		beq.b	locret_DE12	; if type is 00, branch
 		move.w	#$249B,2(a0)
-		move.b	#8,$25(a0)	; run type 01 newtron subroutine
+		move.b	#8,r_no1(a0)	; run type 01 newtron subroutine
 		move.b	#4,$1C(a0)	; use different	animation
 
 locret_DE12:
@@ -17275,11 +17264,11 @@ locret_DE12:
 kamere_Type00:				; XREF: kamere_Index2
 		cmpi.b	#4,$1A(a0)	; has "appearing" animation finished?
 		bcc.b	kamere_Fall	; is yes, branch
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		move.w	playerwk+xposi,d0
 		sub.w	8(a0),d0
 		bcc.b	locret_DE32
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 
 locret_DE32:
 		rts	
@@ -17288,7 +17277,7 @@ locret_DE32:
 kamere_Fall:				; XREF: kamere_Type00
 		cmpi.b	#1,$1A(a0)
 		bne.b	loc_DE42
-		move.b	#$C,$20(a0)
+		move.b	#$C,colino(a0)
 
 loc_DE42:
 		bsr.w	speedset
@@ -17297,16 +17286,16 @@ loc_DE42:
 		bpl.b	locret_DE86	; if not, branch
 		add.w	d1,$C(a0)
 		move.w	#0,$12(a0)	; stop newtron falling
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.b	#2,$1C(a0)
 		btst	#5,2(a0)
 		beq.b	kamere_Move
 		addq.b	#1,$1C(a0)
 
 kamere_Move:
-		move.b	#$D,$20(a0)
+		move.b	#$D,colino(a0)
 		move.w	#$200,$10(a0)	; move newtron horizontally
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	locret_DE86
 		neg.w	$10(a0)
 
@@ -17326,7 +17315,7 @@ kamere_MatchFloor:			; XREF: kamere_Index2
 ; ===========================================================================
 
 loc_DEA2:
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		rts	
 ; ===========================================================================
 
@@ -17338,7 +17327,7 @@ kamere_Speed:				; XREF: kamere_Index2
 kamere_Type01:				; XREF: kamere_Index2
 		cmpi.b	#1,$1A(a0)
 		bne.b	kamere_FireMissile
-		move.b	#$C,$20(a0)
+		move.b	#$C,colino(a0)
 
 kamere_FireMissile:
 		cmpi.b	#2,$1A(a0)
@@ -17354,15 +17343,15 @@ kamere_FireMissile:
 		subq.w	#8,$C(a1)
 		move.w	#$200,$10(a1)
 		move.w	#$14,d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	loc_DF04
 		neg.w	d0
 		neg.w	$10(a1)
 
 loc_DF04:
 		add.w	d0,8(a1)
-		move.b	$22(a0),$22(a1)
-		move.b	#1,$28(a1)
+		move.b	cddat(a0),cddat(a1)
+		move.b	#1,userflag(a1)
 
 locret_DF14:
 		rts	
@@ -17387,7 +17376,7 @@ kamerepat:
 
 aruma:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	aruma_Index(pc,d0.w),d1
 		jmp	aruma_Index(pc,d1.w)
 ; ===========================================================================
@@ -17404,7 +17393,7 @@ aruma_Main:				; XREF: aruma_Index
 		bpl.b	locret_E052
 		add.w	d1,$C(a0)	; match	roller's position with the floor
 		move.w	#0,$12(a0)
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_aruma,4(a0)
 		move.w	#$4B8,2(a0)
 		move.b	#4,1(a0)
@@ -17417,7 +17406,7 @@ locret_E052:
 
 aruma_Action:				; XREF: aruma_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	aruma_Index2(pc,d0.w),d1
 		jsr	aruma_Index2(pc,d1.w)
 		lea	(Ani_aruma).l,a1
@@ -17434,9 +17423,9 @@ aruma_Action:				; XREF: aruma_Index
 ; ===========================================================================
 
 aruma_ChkGone:				; XREF: aruma_Action
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	aruma_Delete
 		bclr	#7,2(a2,d0.w)
 
@@ -17455,10 +17444,10 @@ aruma_RollChk:				; XREF: aruma_Index2
 		bcs.b	loc_E0D2
 		sub.w	8(a0),d0	; check	distance between Roller	and Sonic
 		bcs.b	loc_E0D2
-		addq.b	#4,$25(a0)
+		addq.b	#4,r_no1(a0)
 		move.b	#2,$1C(a0)
 		move.w	#$700,$10(a0)	; move Roller horizontally
-		move.b	#$8E,$20(a0)	; make Roller invincible
+		move.b	#$8E,colino(a0)	; make Roller invincible
 
 loc_E0D2:
 		addq.l	#4,sp
@@ -17472,14 +17461,14 @@ aruma_RollNoChk:			; XREF: aruma_Index2
 		bpl.b	locret_E0F6
 		move.b	#1,$1C(a0)
 		move.w	#$700,$10(a0)
-		move.b	#$8E,$20(a0)
+		move.b	#$8E,colino(a0)
 
 locret_E0F6:
 		rts	
 ; ===========================================================================
 
 loc_E0F8:
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		rts	
 ; ===========================================================================
 
@@ -17496,7 +17485,7 @@ aruma_ChkJump:				; XREF: aruma_Index2
 ; ===========================================================================
 
 aruma_Jump:
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		bset	#0,$32(a0)
 		beq.b	locret_E12E
 		move.w	#-$600,$12(a0)	; move Roller vertically
@@ -17513,7 +17502,7 @@ aruma_MatchFloor:			; XREF: aruma_Index2
 		tst.w	d1
 		bpl.b	locret_E150
 		add.w	d1,$C(a0)	; match	Roller's position with the floor
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		move.w	#0,$12(a0)
 
 locret_E150:
@@ -17530,10 +17519,10 @@ aruma_Stop:				; XREF: aruma_ChkJump
 		sub.w	8(a0),d0
 		bcc.b	locret_E188
 		move.b	#0,$1C(a0)
-		move.b	#$E,$20(a0)
+		move.b	#$E,colino(a0)
 		clr.w	$10(a0)
 		move.w	#120,$30(a0)	; set waiting time to 2	seconds
-		move.b	#2,$25(a0)
+		move.b	#2,r_no1(a0)
 		bset	#7,$32(a0)
 
 locret_E188:
@@ -17557,7 +17546,7 @@ Map_aruma:
 
 kageb:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	kageb_Index(pc,d0.w),d1
 		jmp	kageb_Index(pc,d1.w)
 ; ===========================================================================
@@ -17567,16 +17556,16 @@ kageb_Index:	dc.w kageb_Main-kageb_Index
 ; ===========================================================================
 
 kageb_Main:				; XREF: kageb_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#kagebpat,4(a0)
 		move.w	#$434C,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#8,$19(a0)
 		move.b	#6,$18(a0)
-		move.b	$28(a0),$1A(a0)	; copy object type number to frame number
+		move.b	userflag(a0),$1A(a0)	; copy object type number to frame number
 		bclr	#4,$1A(a0)	; clear	4th bit	(deduct	$10)
 		beq.b	kageb_Solid	; make object solid if 4th bit = 0
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		bra.b	kageb_Display	; don't make it solid if 4th bit = 1
 ; ===========================================================================
 
@@ -17610,7 +17599,7 @@ kagebpat:
 
 mfire:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	mfire_Index(pc,d0.w),d1
 		jsr	mfire_Index(pc,d1.w)
 		bra.w	fire_ChkDel
@@ -17625,13 +17614,13 @@ mfire_Rates:	dc.b 30, 60, 90, 120, 150, 180
 ; ===========================================================================
 
 mfire_Main:				; XREF: mfire_Index
-		addq.b	#2,$24(a0)
-		move.b	$28(a0),d0
+		addq.b	#2,r_no0(a0)
+		move.b	userflag(a0),d0
 		lsr.w	#4,d0
 		andi.w	#$F,d0
 		move.b	mfire_Rates(pc,d0.w),$1F(a0)
 		move.b	$1F(a0),$1E(a0)	; set time delay for lava balls
-		andi.b	#$F,$28(a0)
+		andi.b	#$F,userflag(a0)
 
 mfire_MakeLava:				; XREF: mfire_Index
 		subq.b	#1,$1E(a0)	; subtract 1 from time delay
@@ -17644,7 +17633,7 @@ mfire_MakeLava:				; XREF: mfire_Index
 		move.b	#$14,0(a1)	; load lava ball object
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
-		move.b	$28(a0),$28(a1)
+		move.b	userflag(a0),userflag(a1)
 
 locret_E302:
 		rts	
@@ -17655,7 +17644,7 @@ locret_E302:
 
 fire:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	fire_Index(pc,d0.w),d1
 		jsr	fire_Index(pc,d1.w)
 		bra.w	actionsub
@@ -17669,7 +17658,7 @@ fire_Speeds:	dc.w $FC00, $FB00, $FA00, $F900, $FE00
 ; ===========================================================================
 
 fire_Main:				; XREF: fire_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#8,$16(a0)
 		move.b	#8,$17(a0)
 		move.l	#Map_fire,4(a0)
@@ -17681,7 +17670,7 @@ fire_Main:				; XREF: fire_Index
 loc_E35A:
 		move.b	#4,1(a0)
 		move.b	#3,$18(a0)
-		move.b	#$8B,$20(a0)
+		move.b	#$8B,colino(a0)
 		move.w	$C(a0),$30(a0)
 		tst.b	$29(a0)
 		beq.b	fire_SetSpeed
@@ -17689,11 +17678,11 @@ loc_E35A:
 
 fire_SetSpeed:
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		add.w	d0,d0
 		move.w	fire_Speeds(pc,d0.w),$12(a0) ;	load object speed (vertical)
 		move.b	#8,$19(a0)
-		cmpi.b	#6,$28(a0)	; is object type below $6 ?
+		cmpi.b	#6,userflag(a0)	; is object type below $6 ?
 		bcs.b	fire_PlaySnd	; if yes, branch
 		move.b	#$10,$19(a0)
 		move.b	#2,$1C(a0)	; use horizontal animation
@@ -17706,7 +17695,7 @@ fire_PlaySnd:
 
 fire_Action:				; XREF: fire_Index
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		add.w	d0,d0
 		move.w	fire_TypeIndex(pc,d0.w),d1
 		jsr	fire_TypeIndex(pc,d1.w)
@@ -17738,13 +17727,13 @@ fire_Type00:				; XREF: fire_TypeIndex
 		move.w	$30(a0),d0
 		cmp.w	$C(a0),d0	; has object fallen back to its	original position?
 		bcc.b	loc_E41E	; if not, branch
-		addq.b	#2,$24(a0)	; goto "fire_Delete" routine
+		addq.b	#2,r_no0(a0)	; goto "fire_Delete" routine
 
 loc_E41E:
-		bclr	#1,$22(a0)
+		bclr	#1,cddat(a0)
 		tst.w	$12(a0)
 		bpl.b	locret_E430
-		bset	#1,$22(a0)
+		bset	#1,cddat(a0)
 
 locret_E430:
 		rts	
@@ -17752,11 +17741,11 @@ locret_E430:
 ; lavaball type	04 flies up until it hits the ceiling
 
 fire_Type04:				; XREF: fire_TypeIndex
-		bset	#1,$22(a0)
+		bset	#1,cddat(a0)
 		bsr.w	ObjHitCeiling
 		tst.w	d1
 		bpl.b	locret_E452
-		move.b	#8,$28(a0)
+		move.b	#8,userflag(a0)
 		move.b	#1,$1C(a0)
 		move.w	#0,$12(a0)	; stop the object when it touches the ceiling
 
@@ -17766,11 +17755,11 @@ locret_E452:
 ; lavaball type	05 falls down until it hits the	floor
 
 fire_Type05:				; XREF: fire_TypeIndex
-		bclr	#1,$22(a0)
+		bclr	#1,cddat(a0)
 		bsr.w	emycol_d
 		tst.w	d1
 		bpl.b	locret_E474
-		move.b	#8,$28(a0)
+		move.b	#8,userflag(a0)
 		move.b	#1,$1C(a0)
 		move.w	#0,$12(a0)	; stop the object when it touches the floor
 
@@ -17780,12 +17769,12 @@ locret_E474:
 ; lavaball types 06-07 move sideways
 
 fire_Type06:				; XREF: fire_TypeIndex
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		moveq	#-8,d3
 		bsr.w	ObjHitWallLeft
 		tst.w	d1
 		bpl.b	locret_E498
-		move.b	#8,$28(a0)
+		move.b	#8,userflag(a0)
 		move.b	#3,$1C(a0)
 		move.w	#0,$10(a0)	; stop object when it touches a	wall
 
@@ -17794,12 +17783,12 @@ locret_E498:
 ; ===========================================================================
 
 fire_Type07:				; XREF: fire_TypeIndex
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 		moveq	#8,d3
 		bsr.w	ObjHitWallRight
 		tst.w	d1
 		bpl.b	locret_E4BC
-		move.b	#8,$28(a0)
+		move.b	#8,userflag(a0)
 		move.b	#3,$1C(a0)
 		move.w	#0,$10(a0)	; stop object when it touches a	wall
 
@@ -17824,7 +17813,7 @@ Ani_fire:
 
 fire6:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	fire6_Index(pc,d0.w),d1
 		jmp	fire6_Index(pc,d1.w)
 ; ===========================================================================
@@ -17833,24 +17822,24 @@ fire6_Index:	dc.w fire6_Main-fire6_Index
 ; ===========================================================================
 
 fire6_Main:				; XREF: fire6_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_fire6,4(a0)
 		move.w	#$83D9,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#1,$18(a0)
 		move.w	$C(a0),$30(a0)
 		move.b	#$C,$19(a0)
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#$F0,d0		; read 1st digit of object type
 		add.w	d0,d0		; multiply by 2
 		move.w	d0,$30(a0)
 		move.w	d0,$32(a0)	; set flaming time
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#$F,d0		; read 2nd digit of object type
 		lsl.w	#5,d0		; multiply by $20
 		move.w	d0,$34(a0)	; set pause time
 		move.b	#$A,$36(a0)
-		btst	#1,$22(a0)
+		btst	#1,cddat(a0)
 		beq.b	fire6_Action
 		move.b	#2,$1C(a0)
 		move.b	#$15,$36(a0)
@@ -17868,11 +17857,11 @@ fire6_Action:				; XREF: fire6_Index
 loc_E57A:
 		lea	(Ani_fire6).l,a1
 		bsr.w	patchg
-		move.b	#0,$20(a0)
+		move.b	#0,colino(a0)
 		move.b	$36(a0),d0
 		cmp.b	$1A(a0),d0
 		bne.b	fire6_ChkDel
-		move.b	#$A3,$20(a0)
+		move.b	#$A3,colino(a0)
 
 fire6_ChkDel:
 		move.w	8(a0),d0
@@ -17901,7 +17890,7 @@ Map_fire6:
 
 fblock:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	fblock_Index(pc,d0.w),d1
 		jmp	fblock_Index(pc,d1.w)
 ; ===========================================================================
@@ -17910,7 +17899,7 @@ fblock_Index:	dc.w fblock_Main-fblock_Index
 ; ===========================================================================
 
 fblock_Main:				; XREF: fblock_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#$F,$16(a0)
 		move.b	#$F,$17(a0)
 		move.l	#Map_fblock,4(a0)
@@ -17925,7 +17914,7 @@ fblock_Action:				; XREF: fblock_Index
 		tst.b	1(a0)
 		bpl.b	fblock_ChkDel
 		moveq	#0,d0
-		move.b	$28(a0),d0	; get object type
+		move.b	userflag(a0),d0	; get object type
 		andi.w	#7,d0		; read only the	1st digit
 		add.w	d0,d0
 		move.w	fblock_TypeIndex(pc,d0.w),d1
@@ -17968,12 +17957,12 @@ fblock_Type02:				; XREF: fblock_TypeIndex
 loc_E888:
 		cmpi.w	#$90,d0		; is Sonic within $90 pixels of	the block?
 		bcc.b	fblock_Type01	; if not, resume wobbling
-		move.b	#3,$28(a0)	; if yes, make the block fall
+		move.b	#3,userflag(a0)	; if yes, make the block fall
 
 fblock_Type01:				; XREF: fblock_TypeIndex
 		moveq	#0,d0
 		move.b	($FFFFFE74).w,d0
-		btst	#3,$28(a0)
+		btst	#3,userflag(a0)
 		beq.b	loc_E8A8
 		neg.w	d0
 		addi.w	#$10,d0
@@ -17994,12 +17983,12 @@ fblock_Type03:				; XREF: fblock_TypeIndex
 		add.w	d1,$C(a0)
 		clr.w	$12(a0)		; stop the block falling
 		move.w	$C(a0),$30(a0)
-		move.b	#4,$28(a0)
+		move.b	#4,userflag(a0)
 		move.w	(a1),d0
 		andi.w	#$3FF,d0
 		cmpi.w	#$2E8,d0
 		bcc.b	locret_E8EE
-		move.b	#0,$28(a0)
+		move.b	#0,userflag(a0)
 
 locret_E8EE:
 		rts	
@@ -18027,7 +18016,7 @@ Map_fblock:
 
 signal:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	signal_Index(pc,d0.w),d1
 		jmp	signal_Index(pc,d1.w)
 ; ===========================================================================
@@ -18036,7 +18025,7 @@ signal_Index:	dc.w signal_Main-signal_Index
 ; ===========================================================================
 
 signal_Main:				; XREF: signal_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_signal,4(a0)
 		move.w	#0,2(a0)
 		move.b	#4,1(a0)
@@ -18076,7 +18065,7 @@ Map_signal:
 
 bobin:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	bobin_Index(pc,d0.w),d1
 		jmp	bobin_Index(pc,d1.w)
 ; ===========================================================================
@@ -18085,18 +18074,18 @@ bobin_Index:	dc.w bobin_Main-bobin_Index
 ; ===========================================================================
 
 bobin_Main:				; XREF: bobin_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_bobin,4(a0)
 		move.w	#$380,2(a0)
 		move.b	#4,1(a0)
 		move.b	#$10,$19(a0)
 		move.b	#1,$18(a0)
-		move.b	#$D7,$20(a0)
+		move.b	#$D7,colino(a0)
 
 bobin_Hit:				; XREF: bobin_Index
-		tst.b	$21(a0)		; has Sonic touched the	bumper?
+		tst.b	colicnt(a0)		; has Sonic touched the	bumper?
 		beq.w	bobin_Display	; if not, branch
-		clr.b	$21(a0)
+		clr.b	colicnt(a0)
 		lea	playerwk,a1
 		move.w	8(a0),d1
 		move.w	$C(a0),d2
@@ -18110,16 +18099,16 @@ bobin_Hit:				; XREF: bobin_Index
 		muls.w	#-$700,d0
 		asr.l	#8,d0
 		move.w	d0,$12(a1)	; bounce Sonic away
-		bset	#1,$22(a1)
-		bclr	#4,$22(a1)
-		bclr	#5,$22(a1)
+		bset	#1,cddat(a1)
+		bclr	#4,cddat(a1)
+		bclr	#5,cddat(a1)
 		clr.b	$3C(a1)
 		move.b	#1,$1C(a0)
 		move.w	#$B4,d0
 		jsr	(soundset).l ;	play bumper sound
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	bobin_Score
 		cmpi.b	#$8A,2(a2,d0.w)	; has bumper been hit $8A times?
 		bcc.b	bobin_Display	; if yes, Sonic	gets no	points
@@ -18150,9 +18139,9 @@ bobin_Display:
 ; ===========================================================================
 
 bobin_ChkHit:				; XREF: bobin_Display
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	bobin_Delete
 		bclr	#7,2(a2,d0.w)
 
@@ -18175,7 +18164,7 @@ Map_bobin:
 
 gole:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	gole_Index(pc,d0.w),d1
 		jsr	gole_Index(pc,d1.w)
 		lea	(Ani_gole).l,a1
@@ -18199,7 +18188,7 @@ gole_Index:	dc.w gole_Main-gole_Index
 ; ===========================================================================
 
 gole_Main:				; XREF: gole_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_gole,4(a0)
 		move.w	#$680,2(a0)
 		move.b	#4,1(a0)
@@ -18216,7 +18205,7 @@ gole_Touch:				; XREF: gole_Index
 		jsr	(bgmset).l	; play signpost	sound
 		clr.b	pltime_f	; stop time counter
 		move.w	scralim_right,scralim_left ; lock screen position
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 locret_EBBA:
 		rts	
@@ -18229,7 +18218,7 @@ gole_Spin:				; XREF: gole_Index
 		addq.b	#1,$1C(a0)	; next spin cycle
 		cmpi.b	#3,$1C(a0)	; have 3 spin cycles completed?
 		bne.b	gole_Sparkle	; if not, branch
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 gole_Sparkle:
 		subq.w	#1,$32(a0)	; subtract 1 from time delay
@@ -18243,7 +18232,7 @@ gole_Sparkle:
 		bsr.w	actwkchk
 		bne.b	locret_EC42
 		move.b	#$25,0(a1)	; load rings object
-		move.b	#6,$24(a1)	; jump to ring sparkle subroutine
+		move.b	#6,r_no0(a1)	; jump to ring sparkle subroutine
 		move.b	(a2)+,d0
 		ext.w	d0
 		add.w	8(a0),d0
@@ -18289,7 +18278,7 @@ loc_EC70:
 		bcs.b	locret_ECEE
 
 loc_EC86:
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	set up bonuses at the end of an	act
@@ -18357,7 +18346,7 @@ Map_gole:
 
 myogan:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	myogan_Index(pc,d0.w),d1
 		jsr	myogan_Index(pc,d1.w)
 		bra.w	yogan_ChkDel
@@ -18371,7 +18360,7 @@ myogan_Index:	dc.w myogan_Main-myogan_Index
 ; ===========================================================================
 
 myogan_Main:				; XREF: myogan_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_myogan,4(a0)
 		move.w	#$E3A8,2(a0)
 		move.b	#4,1(a0)
@@ -18390,25 +18379,25 @@ loc_EDCC:				; XREF: myogan_Index
 		subi.w	#$170,d1
 		cmp.w	d1,d0
 		bcs.b	locret_EDF0
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 locret_EDF0:
 		rts	
 ; ===========================================================================
 
 myogan_MakeLava:				; XREF: myogan_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		bsr.w	actwkchk2
 		bne.b	loc_EE18
 		move.b	#$4D,0(a1)	; load lavafall	object
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
-		move.b	$28(a0),$28(a1)
+		move.b	userflag(a0),userflag(a1)
 		move.l	a0,$3C(a1)
 
 loc_EE18:
 		move.b	#1,$1C(a0)
-		tst.b	$28(a0)		; is object type 00 (geyser) ?
+		tst.b	userflag(a0)		; is object type 00 (geyser) ?
 		beq.b	myogan_Type00	; if yes, branch
 		move.b	#4,$1C(a0)
 		bra.b	myogan_Display
@@ -18416,15 +18405,15 @@ loc_EE18:
 
 myogan_Type00:				; XREF: myogan_MakeLava
 		movea.l	$3C(a0),a1	; load geyser object
-		bset	#1,$22(a1)
+		bset	#1,cddat(a1)
 		move.w	#-$580,$12(a1)
 		bra.b	myogan_Display
 ; ===========================================================================
 
 loc_EE3E:				; XREF: myogan_Index
-		tst.b	$28(a0)		; is object type 00 (geyser) ?
+		tst.b	userflag(a0)		; is object type 00 (geyser) ?
 		beq.b	myogan_Display	; if yes, branch
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		rts	
 ; ===========================================================================
 
@@ -18437,8 +18426,8 @@ myogan_Display:				; XREF: myogan_Index
 
 myogan_Delete:				; XREF: myogan_Index
 		move.b	#0,$1C(a0)
-		move.b	#2,$24(a0)
-		tst.b	$28(a0)
+		move.b	#2,r_no0(a0)
+		tst.b	userflag(a0)
 		beq.w	frameout
 		rts	
 ; ===========================================================================
@@ -18448,7 +18437,7 @@ myogan_Delete:				; XREF: myogan_Index
 
 yogan:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	yogan_Index(pc,d0.w),d1
 		jsr	yogan_Index(pc,d1.w)
 		bra.w	actionsub
@@ -18462,15 +18451,15 @@ yogan_Speeds:	dc.w $FB00, 0
 ; ===========================================================================
 
 yogan_Main:				; XREF: yogan_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	$C(a0),$30(a0)
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		beq.b	loc_EEA4
 		subi.w	#$250,$C(a0)
 
 loc_EEA4:
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		add.w	d0,d0
 		move.w	yogan_Speeds(pc,d0.w),$12(a0)
 		movea.l	a0,a1
@@ -18491,10 +18480,10 @@ yogan_MakeLava:				; XREF: yogan_Main
 		move.b	#$20,$19(a1)
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
-		move.b	$28(a0),$28(a1)
+		move.b	userflag(a0),userflag(a1)
 		move.b	#1,$18(a1)
 		move.b	#5,$1C(a1)
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		beq.b	loc_EF0A
 		move.b	#2,$1C(a1)
 
@@ -18507,22 +18496,22 @@ loc_EF10:				; XREF: yogan_Main
 		addi.w	#$60,$C(a1)
 		move.w	$30(a0),$30(a1)
 		addi.w	#$60,$30(a1)
-		move.b	#$93,$20(a1)
+		move.b	#$93,colino(a1)
 		move.b	#$80,$16(a1)
 		bset	#4,1(a1)
-		addq.b	#4,$24(a1)
+		addq.b	#4,r_no0(a1)
 		move.l	a0,$3C(a1)
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		beq.b	yogan_PlaySnd
 		moveq	#0,d1
 		bsr.w	yogan_Loop
-		addq.b	#2,$24(a1)
+		addq.b	#2,r_no0(a1)
 		bset	#4,2(a1)
 		addi.w	#$100,$C(a1)
 		move.b	#0,$18(a1)
 		move.w	$30(a0),$30(a1)
 		move.l	$3C(a0),$3C(a1)
-		move.b	#0,$28(a0)
+		move.b	#0,userflag(a0)
 
 yogan_PlaySnd:
 		move.w	#$C8,d0
@@ -18530,7 +18519,7 @@ yogan_PlaySnd:
 
 yogan_Action:				; XREF: yogan_Index
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		add.w	d0,d0
 		move.w	yogan_TypeIndex(pc,d0.w),d1
 		jsr	yogan_TypeIndex(pc,d1.w)
@@ -18558,7 +18547,7 @@ yogan_Type00:				; XREF: yogan_TypeIndex
 		move.w	$30(a0),d0
 		cmp.w	$C(a0),d0
 		bcc.b	locret_EFDA
-		addq.b	#4,$24(a0)
+		addq.b	#4,r_no0(a0)
 		movea.l	$3C(a0),a1
 		move.b	#3,$1C(a1)
 
@@ -18571,7 +18560,7 @@ yogan_Type01:				; XREF: yogan_TypeIndex
 		move.w	$30(a0),d0
 		cmp.w	$C(a0),d0
 		bcc.b	locret_EFFA
-		addq.b	#4,$24(a0)
+		addq.b	#4,r_no0(a0)
 		movea.l	$3C(a0),a1
 		move.b	#1,$1C(a1)
 
@@ -18581,7 +18570,7 @@ locret_EFFA:
 
 loc_EFFC:				; XREF: yogan_Index
 		movea.l	$3C(a0),a1
-		cmpi.b	#6,$24(a1)
+		cmpi.b	#6,r_no0(a1)
 		beq.w	yogan_Delete
 		move.w	$C(a1),d0
 		addi.w	#$60,d0
@@ -18623,7 +18612,7 @@ yogan_Delete:				; XREF: yogan_Index
 
 yogan2:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	yogan2_Index(pc,d0.w),d1
 		jmp	yogan2_Index(pc,d1.w)
 ; ===========================================================================
@@ -18635,7 +18624,7 @@ yogan2_Index:	dc.w yogan2_Main-yogan2_Index
 ; ===========================================================================
 
 yogan2_Main:				; XREF: yogan2_Index
-		addq.b	#4,$24(a0)
+		addq.b	#4,r_no0(a0)
 		movea.l	a0,a1
 		moveq	#1,d1
 		bra.b	yogan2_Main2
@@ -18655,13 +18644,13 @@ yogan2_Main2:				; XREF: yogan2_Main
 		move.w	$C(a0),$C(a1)
 		move.b	#1,$18(a1)
 		move.b	#0,$1C(a1)
-		move.b	#$94,$20(a1)
+		move.b	#$94,colino(a1)
 		move.l	a0,$3C(a1)
 
 loc_F0C8:
 		dbra	d1,yogan2_Loop	; repeat sequence once
 
-		addq.b	#6,$24(a1)
+		addq.b	#6,r_no0(a1)
 		move.b	#4,$1A(a1)
 
 yogan2_Action:				; XREF: yogan2_Index
@@ -18689,7 +18678,7 @@ yogan2_Move:				; XREF: yogan2_ChkSonic
 		tst.b	$36(a0)		; is object set	to move?
 		beq.b	yogan2_Solid	; if not, branch
 		move.w	#$180,$10(a0)	; set object speed
-		subq.b	#2,$24(a0)
+		subq.b	#2,r_no0(a0)
 
 yogan2_Solid:				; XREF: yogan2_Index
 		move.w	#$2B,d1
@@ -18697,11 +18686,11 @@ yogan2_Solid:				; XREF: yogan2_Index
 		move.w	d2,d3
 		addq.w	#1,d3
 		move.w	8(a0),d4
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	d0,-(sp)
 		bsr.w	hitchk
 		move.w	(sp)+,d0
-		move.b	d0,$24(a0)
+		move.b	d0,r_no0(a0)
 		cmpi.w	#$6A0,8(a0)	; has object reached $6A0 on the x-axis?
 		bne.b	yogan2_Animate	; if not, branch
 		clr.w	$10(a0)		; stop object moving
@@ -18732,17 +18721,17 @@ locret_F17E:
 ; ===========================================================================
 
 yogan2_ChkGone:				; XREF: yogan2_ChkDel
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		bclr	#7,2(a2,d0.w)
-		move.b	#8,$24(a0)
+		move.b	#8,r_no0(a0)
 		rts	
 ; ===========================================================================
 
 yogan2_Move2:				; XREF: yogan2_Index
 		movea.l	$3C(a0),a1
-		cmpi.b	#8,$24(a1)
+		cmpi.b	#8,r_no0(a1)
 		beq.b	yogan2_Delete
 		move.w	8(a1),8(a0)	; move rest of lava wall
 		subi.w	#$80,8(a0)
@@ -18758,7 +18747,7 @@ yogan2_Delete:				; XREF: yogan2_Index
 
 yoganc:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	yoganc_Index(pc,d0.w),d1
 		jmp	yoganc_Index(pc,d1.w)
 ; ===========================================================================
@@ -18769,10 +18758,10 @@ yoganc_Sizes:	dc.b $96, $94, $95, 0
 ; ===========================================================================
 
 yoganc_Main:				; XREF: yoganc_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
-		move.b	yoganc_Sizes(pc,d0.w),$20(a0)
+		move.b	userflag(a0),d0
+		move.b	yoganc_Sizes(pc,d0.w),colino(a0)
 		move.l	#Map_yoganc,4(a0)
 		move.b	#$84,1(a0)
 
@@ -18819,7 +18808,7 @@ Map_yogan2:
 
 musi:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	musi_Index(pc,d0.w),d1
 		jmp	musi_Index(pc,d1.w)
 ; ===========================================================================
@@ -18839,28 +18828,28 @@ musi_Main:				; XREF: musi_Index
 		bne.b	musi_SetSmoke	; if yes, branch
 		move.b	#$E,$16(a0)
 		move.b	#8,$17(a0)
-		move.b	#$C,$20(a0)
+		move.b	#$C,colino(a0)
 		bsr.w	speedset
 		jsr	emycol_d
 		tst.w	d1
 		bpl.b	locret_F68A
 		add.w	d1,$C(a0)	; match	object's position with the floor
 		move.w	#0,$12(a0)
-		addq.b	#2,$24(a0)
-		bchg	#0,$22(a0)
+		addq.b	#2,r_no0(a0)
+		bchg	#0,cddat(a0)
 
 locret_F68A:
 		rts	
 ; ===========================================================================
 
 musi_SetSmoke:				; XREF: musi_Main
-		addq.b	#4,$24(a0)
+		addq.b	#4,r_no0(a0)
 		bra.w	musi_Animate
 ; ===========================================================================
 
 musi_Action:				; XREF: musi_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	musi_Index2(pc,d0.w),d1
 		jsr	musi_Index2(pc,d1.w)
 		lea	(Ani_musi).l,a1
@@ -18883,9 +18872,9 @@ frameoutchk:
 ; ===========================================================================
 
 Mark_ChkGone:
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	Mark_Delete
 		bclr	#7,2(a2,d0.w)
 
@@ -18900,10 +18889,10 @@ musi_Index2:	dc.w musi_Move-musi_Index2
 musi_Move:				; XREF: musi_Index2
 		subq.w	#1,$30(a0)	; subtract 1 from pause	time
 		bpl.b	locret_F70A	; if time remains, branch
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#-$100,$10(a0)	; move object to the left
 		move.b	#1,$1C(a0)
-		bchg	#0,$22(a0)
+		bchg	#0,cddat(a0)
 		bne.b	locret_F70A
 		neg.w	$10(a0)		; change direction
 
@@ -18927,7 +18916,7 @@ musi_FixToFloor:			; XREF: musi_Index2
 		move.b	#$40,0(a1)	; load exhaust smoke object
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
-		move.b	$22(a0),$22(a1)
+		move.b	cddat(a0),cddat(a1)
 		move.b	#2,$1C(a1)
 
 locret_F756:
@@ -18935,7 +18924,7 @@ locret_F756:
 ; ===========================================================================
 
 musi_Pause:				; XREF: musi_FixToFloor
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		move.w	#59,$30(a0)	; set pause time to 1 second
 		move.w	#0,$10(a0)	; stop the object moving
 		move.b	#0,$1C(a0)
@@ -19007,7 +18996,7 @@ loc_F836:
 
 yado:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	yado_Index(pc,d0.w),d1
 		jmp	yado_Index(pc,d1.w)
 ; ===========================================================================
@@ -19023,15 +19012,15 @@ yado_Main:				; XREF: yado_Index
 		move.b	#$14,$19(a0)
 		move.b	#$11,$16(a0)
 		move.b	#8,$17(a0)
-		move.b	#$CC,$20(a0)
+		move.b	#$CC,colino(a0)
 		bsr.w	speedset
 		bsr.w	emycol_d
 		tst.w	d1
 		bpl.b	locret_F89E
 		add.w	d1,$C(a0)	; match	object's position with the floor
 		move.w	#0,$12(a0)
-		addq.b	#2,$24(a0)
-		bchg	#0,$22(a0)
+		addq.b	#2,r_no0(a0)
+		bchg	#0,cddat(a0)
 
 locret_F89E:
 		rts	
@@ -19039,7 +19028,7 @@ locret_F89E:
 
 yado_Action:				; XREF: yado_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	yado_Index2(pc,d0.w),d1
 		jsr	yado_Index2(pc,d1.w)
 		lea	(Ani_yado).l,a1
@@ -19053,10 +19042,10 @@ yado_Index2:	dc.w yado_Move-yado_Index2
 yado_Move:				; XREF: yado_Index2
 		subq.w	#1,$30(a0)	; subtract 1 from pause	time
 		bpl.b	locret_F8E2	; if time remains, branch
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#-$100,$10(a0)	; move object
 		move.b	#1,$1C(a0)
-		bchg	#0,$22(a0)
+		bchg	#0,cddat(a0)
 		bne.b	locret_F8E2
 		neg.w	$10(a0)		; change direction
 
@@ -19078,7 +19067,7 @@ yado_FixToFloor:			; XREF: yado_Index2
 ; ===========================================================================
 
 yado_Pause:				; XREF: yado_FixToFloor
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		move.w	#59,$30(a0)	; set pause time to 1 second
 		move.w	#0,$10(a0)
 		move.b	#0,$1C(a0)
@@ -19107,12 +19096,12 @@ Map_yado:
 
 
 hitchk:
-		tst.b	$25(a0)
+		tst.b	r_no1(a0)
 		beq.w	loc_FAC8
 		move.w	d1,d2
 		add.w	d2,d2
 		lea	playerwk,a1
-		btst	#1,$22(a1)
+		btst	#1,cddat(a1)
 		bne.b	loc_F9FE
 		move.w	8(a1),d0
 		sub.w	8(a0),d0
@@ -19122,9 +19111,9 @@ hitchk:
 		bcs.b	loc_FA12
 
 loc_F9FE:
-		bclr	#3,$22(a1)
-		bclr	#3,$22(a0)
-		clr.b	$25(a0)
+		bclr	#3,cddat(a1)
+		bclr	#3,cddat(a0)
+		clr.b	r_no1(a0)
 		moveq	#0,d4
 		rts	
 ; ===========================================================================
@@ -19137,12 +19126,12 @@ loc_FA12:
 ; ===========================================================================
 
 hitchk71:				; XREF: scoli_Solid
-		tst.b	$25(a0)
+		tst.b	r_no1(a0)
 		beq.w	loc_FAD0
 		move.w	d1,d2
 		add.w	d2,d2
 		lea	playerwk,a1
-		btst	#1,$22(a1)
+		btst	#1,cddat(a1)
 		bne.b	loc_FA44
 		move.w	8(a1),d0
 		sub.w	8(a0),d0
@@ -19152,9 +19141,9 @@ hitchk71:				; XREF: scoli_Solid
 		bcs.b	loc_FA58
 
 loc_FA44:
-		bclr	#3,$22(a1)
-		bclr	#3,$22(a0)
-		clr.b	$25(a0)
+		bclr	#3,cddat(a1)
+		bclr	#3,cddat(a0)
+		clr.b	r_no1(a0)
 		moveq	#0,d4
 		rts	
 ; ===========================================================================
@@ -19280,10 +19269,10 @@ loc_FB64:
 
 loc_FB70:
 		sub.w	d0,8(a1)
-		btst	#1,$22(a1)
+		btst	#1,cddat(a1)
 		bne.b	loc_FB8C
-		bset	#5,$22(a1)
-		bset	#5,$22(a0)
+		bset	#5,cddat(a1)
+		bset	#5,cddat(a0)
 		moveq	#1,d4
 		rts	
 ; ===========================================================================
@@ -19295,13 +19284,13 @@ loc_FB8C:
 ; ===========================================================================
 
 loc_FB92:
-		btst	#5,$22(a0)
+		btst	#5,cddat(a0)
 		beq.b	loc_FBAC
 		move.w	#1,$1C(a1)	; use walking animation
 
 loc_FBA0:
-		bclr	#5,$22(a0)
-		bclr	#5,$22(a1)
+		bclr	#5,cddat(a0)
+		bclr	#5,cddat(a1)
 
 loc_FBAC:
 		moveq	#0,d4
@@ -19331,7 +19320,7 @@ loc_FBD2:
 ; ===========================================================================
 
 loc_FBD6:
-		btst	#1,$22(a1)
+		btst	#1,cddat(a1)
 		bne.b	loc_FBD2
 		move.l	a0,-(sp)
 		movea.l	a1,a0
@@ -19357,8 +19346,8 @@ loc_FBEE:
 		sub.w	d3,$C(a1)
 		subq.w	#1,$C(a1)
 		bsr.b	sub_FC2C
-		move.b	#2,$25(a0)
-		bset	#3,$22(a0)
+		move.b	#2,r_no1(a0)
+		bset	#3,cddat(a0)
 		moveq	#-1,d4
 		rts	
 ; ===========================================================================
@@ -19373,15 +19362,15 @@ loc_FC28:
 
 
 sub_FC2C:				; XREF: hitchk
-		btst	#3,$22(a1)
+		btst	#3,cddat(a1)
 		beq.b	loc_FC4E
 		moveq	#0,d0
 		move.b	$3D(a1),d0
 		lsl.w	#6,d0
 		addi.l	#$FFD000,d0
 		movea.l	d0,a2
-		bclr	#3,$22(a2)
-		clr.b	$25(a2)
+		bclr	#3,cddat(a2)
+		clr.b	r_no1(a2)
 
 loc_FC4E:
 		move.w	a0,d0
@@ -19389,10 +19378,10 @@ loc_FC4E:
 		lsr.w	#6,d0
 		andi.w	#$7F,d0
 		move.b	d0,$3D(a1)
-		move.b	#0,$26(a1)
+		move.b	#0,direc(a1)
 		move.w	#0,$12(a1)
 		move.w	$10(a1),$14(a1)
-		btst	#1,$22(a1)
+		btst	#1,cddat(a1)
 		beq.b	loc_FC84
 		move.l	a0,-(sp)
 		movea.l	a1,a0
@@ -19400,8 +19389,8 @@ loc_FC4E:
 		movea.l	(sp)+,a0
 
 loc_FC84:
-		bset	#3,$22(a1)
-		bset	#3,$22(a0)
+		bset	#3,cddat(a1)
+		bset	#3,cddat(a0)
 		rts	
 ; End of function sub_FC2C
 
@@ -19412,7 +19401,7 @@ loc_FC84:
 
 bryuka:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	bryuka_Index(pc,d0.w),d1
 		jsr	bryuka_Index(pc,d1.w)
 		bra.w	frameoutchk
@@ -19423,13 +19412,13 @@ bryuka_Index:	dc.w bryuka_Main-bryuka_Index
 ; ===========================================================================
 
 bryuka_Main:				; XREF: bryuka_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_bryuka,4(a0)
 		move.w	#$42B8,2(a0)
 		move.b	#4,1(a0)
 		move.b	#$10,$19(a0)
 		move.b	#4,$18(a0)
-		move.b	$28(a0),$1A(a0)
+		move.b	userflag(a0),$1A(a0)
 
 bryuka_Solid:				; XREF: bryuka_Index
 		move.w	emyscorecnt,$34(a0)
@@ -19439,7 +19428,7 @@ bryuka_Solid:				; XREF: bryuka_Index
 		move.w	#$11,d3
 		move.w	8(a0),d4
 		bsr.w	hitchk
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		bne.b	bryuka_Smash
 
 locret_FCFC:
@@ -19450,16 +19439,16 @@ bryuka_Smash:				; XREF: bryuka_Solid
 		cmpi.b	#2,$32(a0)	; is Sonic rolling/jumping?
 		bne.b	locret_FCFC	; if not, branch
 		move.w	$34(a0),emyscorecnt
-		bset	#2,$22(a1)
+		bset	#2,cddat(a1)
 		move.b	#$E,$16(a1)
 		move.b	#7,$17(a1)
 		move.b	#2,$1C(a1)
 		move.w	#-$300,$12(a1)	; bounce Sonic upwards
-		bset	#1,$22(a1)
-		bclr	#3,$22(a1)
-		move.b	#2,$24(a1)
-		bclr	#3,$22(a0)
-		clr.b	$25(a0)
+		bset	#1,cddat(a1)
+		bclr	#3,cddat(a1)
+		move.b	#2,r_no0(a1)
+		bclr	#3,cddat(a0)
+		clr.b	r_no1(a0)
 		move.b	#1,$1A(a0)
 		lea	(bryuka_Speeds).l,a4 ; load broken	fragment speed data
 		moveq	#3,d1		; set number of	fragments to 4
@@ -19516,7 +19505,7 @@ Map_bryuka:
 
 dai:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	dai_Index(pc,d0.w),d1
 		jmp	dai_Index(pc,d1.w)
 ; ===========================================================================
@@ -19532,7 +19521,7 @@ dai_Var:	dc.b $10, 0		; object width,	frame number
 ; ===========================================================================
 
 dai_Main:				; XREF: dai_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_dai,4(a0)
 		move.w	#$42B8,2(a0)
 		cmpi.b	#1,stageno ; check if level is LZ
@@ -19545,14 +19534,14 @@ loc_FE44:
 		cmpi.b	#5,stageno ; check if level is SBZ
 		bne.b	loc_FE60
 		move.w	#$22C0,2(a0)	; SBZ specific code (object 5228)
-		cmpi.b	#$28,$28(a0)	; is object 5228 ?
+		cmpi.b	#$28,userflag(a0)	; is object 5228 ?
 		beq.b	loc_FE60	; if yes, branch
 		move.w	#$4460,2(a0)	; SBZ specific code (object 523x)
 
 loc_FE60:
 		move.b	#4,1(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		lsr.w	#3,d0
 		andi.w	#$1E,d0
 		lea	dai_Var(pc,d0.w),a2
@@ -19561,7 +19550,7 @@ loc_FE60:
 		move.b	#4,$18(a0)
 		move.w	8(a0),$30(a0)
 		move.w	$C(a0),$32(a0)
-		andi.b	#$F,$28(a0)
+		andi.b	#$F,userflag(a0)
 
 dai_Platform:				; XREF: dai_Index
 		bsr.w	dai_Move
@@ -19594,7 +19583,7 @@ dai_ChkDel:				; XREF: dai_Platform
 
 dai_Move:				; XREF: dai_Platform; dai_StandOn
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#$F,d0
 		add.w	d0,d0
 		move.w	dai_TypeIndex(pc,d0.w),d1
@@ -19615,7 +19604,7 @@ dai_Type00:				; XREF: dai_TypeIndex
 dai_Type01:				; XREF: dai_TypeIndex
 		move.b	($FFFFFE6C).w,d0
 		move.w	#$60,d1
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_FF26
 		neg.w	d0
 		add.w	d1,d0
@@ -19628,9 +19617,9 @@ loc_FF26:
 ; ===========================================================================
 
 dai_Type02:				; XREF: dai_TypeIndex
-		cmpi.b	#4,$24(a0)	; is Sonic standing on the platform?
+		cmpi.b	#4,r_no0(a0)	; is Sonic standing on the platform?
 		bne.b	dai_02_Wait
-		addq.b	#1,$28(a0)	; if yes, add 1	to type
+		addq.b	#1,userflag(a0)	; if yes, add 1	to type
 
 dai_02_Wait:
 		rts	
@@ -19648,7 +19637,7 @@ dai_Type03:				; XREF: dai_TypeIndex
 ; ===========================================================================
 
 dai_03_End:
-		clr.b	$28(a0)		; change to type 00 (non-moving	type)
+		clr.b	userflag(a0)		; change to type 00 (non-moving	type)
 		rts	
 ; ===========================================================================
 
@@ -19664,7 +19653,7 @@ dai_Type05:				; XREF: dai_TypeIndex
 ; ===========================================================================
 
 dai_05_End:
-		addq.b	#1,$28(a0)	; change to type 06 (falling)
+		addq.b	#1,userflag(a0)	; change to type 06 (falling)
 		rts	
 ; ===========================================================================
 
@@ -19676,7 +19665,7 @@ dai_Type06:				; XREF: dai_TypeIndex
 		bpl.w	locret_FFA0	; if not, branch
 		add.w	d1,$C(a0)
 		clr.w	$12(a0)		; stop platform	falling
-		clr.b	$28(a0)		; change to type 00 (non-moving)
+		clr.b	userflag(a0)		; change to type 00 (non-moving)
 
 locret_FFA0:
 		rts	
@@ -19685,7 +19674,7 @@ locret_FFA0:
 dai_Type07:				; XREF: dai_TypeIndex
 		tst.b	($FFFFF7E2).w	; has switch number 02 been pressed?
 		beq.b	dai_07_ChkDel
-		subq.b	#3,$28(a0)	; if yes, change object	type to	04
+		subq.b	#3,userflag(a0)	; if yes, change object	type to	04
 
 dai_07_ChkDel:
 		addq.l	#4,sp
@@ -19703,7 +19692,7 @@ dai_07_ChkDel:
 dai_Type08:				; XREF: dai_TypeIndex
 		move.b	($FFFFFE7C).w,d0
 		move.w	#$80,d1
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_FFE2
 		neg.w	d0
 		add.w	d1,d0
@@ -19720,7 +19709,7 @@ dai_Type0A:				; XREF: dai_TypeIndex
 		move.b	$19(a0),d3
 		add.w	d3,d3
 		moveq	#8,d1
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_10004
 		neg.w	d1
 		neg.w	d3
@@ -19756,7 +19745,7 @@ dai_0A_Back:
 
 dai_0A_Reset:
 		clr.w	$36(a0)
-		subq.b	#1,$28(a0)
+		subq.b	#1,userflag(a0)
 		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -19778,7 +19767,7 @@ Map_daia:
 
 bat:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	bat_Index(pc,d0.w),d1
 		jmp	bat_Index(pc,d1.w)
 ; ===========================================================================
@@ -19787,18 +19776,18 @@ bat_Index:	dc.w bat_Main-bat_Index
 ; ===========================================================================
 
 bat_Main:				; XREF: bat_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_bat,4(a0)
 		move.w	#$84B8,2(a0)
 		move.b	#4,1(a0)
 		move.b	#$C,$16(a0)
 		move.b	#2,$18(a0)
-		move.b	#$B,$20(a0)
+		move.b	#$B,colino(a0)
 		move.b	#$10,$19(a0)
 
 bat_Action:				; XREF: bat_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	bat_Index2(pc,d0.w),d1
 		jsr	bat_Index2(pc,d1.w)
 		lea	(Ani_bat).l,a1
@@ -19823,12 +19812,12 @@ bat_ChkDrop:				; XREF: bat_Index2
 		bcc.b	bat_NoDrop	; if not, branch
 		tst.w	editmode	; is debug mode	on?
 		bne.b	bat_NoDrop	; if yes, branch
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		add.b	d7,d0
 		andi.b	#7,d0
 		bne.b	bat_NoDrop
 		move.b	#1,$1C(a0)
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 
 bat_NoDrop:
 		rts	
@@ -19847,7 +19836,7 @@ bat_DropFly:				; XREF: bat_Index2
 		move.w	d1,$10(a0)	; make basaran fly horizontally
 		move.w	#0,$12(a0)	; stop basaran falling
 		move.b	#2,$1C(a0)
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 
 locret_10180:
 		rts	
@@ -19860,7 +19849,7 @@ bat_ChkDel:				; XREF: bat_DropFly
 ; ===========================================================================
 
 bat_PlaySnd:				; XREF: bat_Index2
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		andi.b	#$F,d0
 		bne.b	loc_101A0
 		move.w	#$C0,d0
@@ -19876,11 +19865,11 @@ loc_101A0:
 loc_101B0:
 		cmpi.w	#$80,d0
 		bcs.b	locret_101C6
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		add.b	d7,d0
 		andi.b	#7,d0
 		bne.b	locret_101C6
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 
 locret_101C6:
 		rts	
@@ -19897,7 +19886,7 @@ bat_FlyUp:				; XREF: bat_Index2
 		clr.w	$10(a0)		; stop basaran moving
 		clr.w	$12(a0)
 		clr.b	$1C(a0)
-		clr.b	$25(a0)
+		clr.b	r_no1(a0)
 
 locret_101F4:
 		rts	
@@ -19905,13 +19894,13 @@ locret_101F4:
 
 bat_ChkSonic:				; XREF: bat_ChkDrop
 		move.w	#$100,d1
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		move.w	playerwk+xposi,d0
 		sub.w	8(a0),d0
 		bcc.b	loc_10214
 		neg.w	d0
 		neg.w	d1
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 
 loc_10214:
 		cmp.w	d2,d0
@@ -19939,7 +19928,7 @@ Map_bat:
 
 dai2:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	dai2_Index(pc,d0.w),d1
 		jmp	dai2_Index(pc,d1.w)
 ; ===========================================================================
@@ -19957,7 +19946,7 @@ dai2_Var:	dc.b  $10, $10		; width, height
 ; ===========================================================================
 
 dai2_Main:				; XREF: dai2_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_dai2,4(a0)
 		move.w	#$4000,2(a0)
 		cmpi.b	#1,stageno ; check if level is LZ
@@ -19968,7 +19957,7 @@ loc_102C8:
 		move.b	#4,1(a0)
 		move.b	#3,$18(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		lsr.w	#3,d0
 		andi.w	#$E,d0
 		lea	dai2_Var(pc,d0.w),a2
@@ -19985,7 +19974,7 @@ loc_102C8:
 		moveq	#0,d0
 		cmpi.b	#1,stageno ; check if level is LZ
 		beq.b	loc_10332
-		move.b	$28(a0),d0	; SYZ/SLZ specific code
+		move.b	userflag(a0),d0	; SYZ/SLZ specific code
 		andi.w	#$F,d0
 		subq.w	#8,d0
 		bcs.b	loc_10332
@@ -19994,34 +19983,34 @@ loc_102C8:
 		lea	(a2,d0.w),a2
 		tst.w	(a2)
 		bpl.b	loc_10332
-		bchg	#0,$22(a0)
+		bchg	#0,cddat(a0)
 
 loc_10332:
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		bpl.b	dai2_Action
 		andi.b	#$F,d0
 		move.b	d0,$3C(a0)
-		move.b	#5,$28(a0)
+		move.b	#5,userflag(a0)
 		cmpi.b	#7,$1A(a0)
 		bne.b	dai2_ChkGone
-		move.b	#$C,$28(a0)
+		move.b	#$C,userflag(a0)
 		move.w	#$80,$3A(a0)
 
 dai2_ChkGone:
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	dai2_Action
 		bclr	#7,2(a2,d0.w)
 		btst	#0,2(a2,d0.w)
 		beq.b	dai2_Action
-		addq.b	#1,$28(a0)
+		addq.b	#1,userflag(a0)
 		clr.w	$3A(a0)
 
 dai2_Action:				; XREF: dai2_Index
 		move.w	8(a0),-(sp)
 		moveq	#0,d0
-		move.b	$28(a0),d0	; get object type
+		move.b	userflag(a0),d0	; get object type
 		andi.w	#$F,d0		; read only the	2nd digit
 		add.w	d0,d0
 		move.w	dai2_TypeIndex(pc,d0.w),d1
@@ -20075,7 +20064,7 @@ dai2_Type02:				; XREF: dai2_TypeIndex
 		move.b	($FFFFFE7C).w,d0
 
 dai2_Move_LR:
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_10416
 		neg.w	d0
 		add.w	d1,d0
@@ -20100,7 +20089,7 @@ dai2_Type04:				; XREF: dai2_TypeIndex
 		move.b	($FFFFFE7C).w,d0
 
 dai2_Move_UD:
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_10444
 		neg.w	d0
 		add.w	d1,d0
@@ -20147,7 +20136,7 @@ loc_104A4:
 
 loc_104AE:
 		move.w	$3A(a0),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_104BC
 		neg.w	d0
 
@@ -20159,11 +20148,11 @@ loc_104BC:
 ; ===========================================================================
 
 loc_104C8:
-		addq.b	#1,$28(a0)
+		addq.b	#1,userflag(a0)
 		clr.b	$38(a0)
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	loc_104AE
 		bset	#0,2(a2,d0.w)
 		bra.b	loc_104AE
@@ -20189,7 +20178,7 @@ loc_10500:
 
 loc_10512:
 		move.w	$3A(a0),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_10520
 		neg.w	d0
 
@@ -20201,11 +20190,11 @@ loc_10520:
 ; ===========================================================================
 
 loc_1052C:
-		subq.b	#1,$28(a0)
+		subq.b	#1,userflag(a0)
 		clr.b	$38(a0)
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	loc_10512
 		bclr	#0,2(a2,d0.w)
 		bra.b	loc_10512
@@ -20225,7 +20214,7 @@ loc_1055E:
 		addq.w	#1,$3A(a0)
 		cmpi.w	#$380,$3A(a0)
 		bne.b	locret_10578
-		clr.b	$28(a0)
+		clr.b	userflag(a0)
 
 locret_10578:
 		rts	
@@ -20248,7 +20237,7 @@ loc_10598:
 
 loc_105A2:
 		move.w	$3A(a0),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_105B4
 		neg.w	d0
 		addi.w	#$80,d0
@@ -20261,11 +20250,11 @@ loc_105B4:
 ; ===========================================================================
 
 loc_105C0:
-		addq.b	#1,$28(a0)
+		addq.b	#1,userflag(a0)
 		clr.b	$38(a0)
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	loc_105A2
 		bset	#0,2(a2,d0.w)
 		bra.b	loc_105A2
@@ -20289,7 +20278,7 @@ loc_105F8:
 
 loc_10606:
 		move.w	$3A(a0),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_10618
 		neg.w	d0
 		addi.w	#$80,d0
@@ -20302,11 +20291,11 @@ loc_10618:
 ; ===========================================================================
 
 loc_10624:
-		subq.b	#1,$28(a0)
+		subq.b	#1,userflag(a0)
 		clr.b	$38(a0)
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	loc_10606
 		bclr	#0,2(a2,d0.w)
 		bra.b	loc_10606
@@ -20346,11 +20335,11 @@ dai2_Type0B:				; XREF: dai2_TypeIndex
 dai2_Move_Sqr:
 		tst.w	d3
 		bne.b	loc_1068E
-		addq.b	#1,$22(a0)
-		andi.b	#3,$22(a0)
+		addq.b	#1,cddat(a0)
+		andi.b	#3,cddat(a0)
 
 loc_1068E:
-		move.b	$22(a0),d2
+		move.b	cddat(a0),d2
 		andi.b	#3,d2
 		bne.b	loc_106AE
 		sub.w	d1,d0
@@ -20412,7 +20401,7 @@ Map_dai2:
 
 Obj57:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj57_Index(pc,d0.w),d1
 		jmp	Obj57_Index(pc,d1.w)
 ; ===========================================================================
@@ -20422,7 +20411,7 @@ Obj57_Index:	dc.w Obj57_Main-Obj57_Index
 ; ===========================================================================
 
 Obj57_Main:				; XREF: Obj57_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_obj57,4(a0)
 		move.w	#$3BA,2(a0)
 		move.b	#4,1(a0)
@@ -20430,25 +20419,25 @@ Obj57_Main:				; XREF: Obj57_Index
 		move.b	#8,$19(a0)
 		move.w	8(a0),$3A(a0)
 		move.w	$C(a0),$38(a0)
-		move.b	#$98,$20(a0)	; SYZ specific code (chain hurts Sonic)
+		move.b	#$98,colino(a0)	; SYZ specific code (chain hurts Sonic)
 		cmpi.b	#1,stageno ; check if level is LZ
 		bne.b	loc_107E8
-		move.b	#0,$20(a0)	; LZ specific code (chain doesn't hurt)
+		move.b	#0,colino(a0)	; LZ specific code (chain doesn't hurt)
 		move.w	#$310,2(a0)
 		move.l	#Map_obj57a,4(a0)
 
 loc_107E8:
-		move.b	$28(a0),d1	; get object type
+		move.b	userflag(a0),d1	; get object type
 		andi.b	#$F0,d1		; read only the	1st digit
 		ext.w	d1
 		asl.w	#3,d1		; multiply by 8
 		move.w	d1,$3E(a0)	; set object twirl speed
-		move.b	$22(a0),d0
+		move.b	cddat(a0),d0
 		ror.b	#2,d0
 		andi.b	#-$40,d0
-		move.b	d0,$26(a0)
+		move.b	d0,direc(a0)
 		lea	$29(a0),a2
-		move.b	$28(a0),d1	; get object type
+		move.b	userflag(a0),d1	; get object type
 		andi.w	#7,d1		; read only the	2nd digit
 		move.b	#0,(a2)+
 		move.w	d1,d3
@@ -20456,7 +20445,7 @@ loc_107E8:
 		move.b	d3,$3C(a0)
 		subq.w	#1,d1		; set chain length (type-1)
 		bcs.b	loc_10894
-		btst	#3,$28(a0)
+		btst	#3,userflag(a0)
 		beq.b	Obj57_MakeChain
 		subq.w	#1,d1
 		bcs.b	loc_10894
@@ -20470,14 +20459,14 @@ Obj57_MakeChain:
 		lsr.w	#6,d5
 		andi.w	#$7F,d5
 		move.b	d5,(a2)+
-		move.b	#4,$24(a1)
+		move.b	#4,r_no0(a1)
 		move.b	0(a0),0(a1)
 		move.l	4(a0),4(a1)
 		move.w	2(a0),2(a1)
 		move.b	1(a0),1(a1)
 		move.b	$18(a0),$18(a1)
 		move.b	$19(a0),$19(a1)
-		move.b	$20(a0),$20(a1)
+		move.b	colino(a0),colino(a1)
 		subi.b	#$10,d3
 		move.b	d3,$3C(a1)
 		cmpi.b	#1,stageno
@@ -20497,7 +20486,7 @@ loc_10894:
 		move.b	d5,(a2)+
 		cmpi.b	#1,stageno ; check if level is LZ
 		bne.b	Obj57_Move
-		move.b	#$8B,$20(a0)	; if yes, make last spikeball larger
+		move.b	#$8B,colino(a0)	; if yes, make last spikeball larger
 		move.b	#1,$1A(a0)	; use different	frame
 
 Obj57_Move:				; XREF: Obj57_Index
@@ -20507,8 +20496,8 @@ Obj57_Move:				; XREF: Obj57_Index
 
 Obj57_MoveSub:				; XREF: Obj57_Move
 		move.w	$3E(a0),d0
-		add.w	d0,$26(a0)
-		move.b	$26(a0),d0
+		add.w	d0,direc(a0)
+		move.b	direc(a0),d0
 		jsr	(sinset).l
 		move.w	$38(a0),d2
 		move.w	$3A(a0),d3
@@ -20588,7 +20577,7 @@ Map_obj57a:
 
 Obj58:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj58_Index(pc,d0.w),d1
 		jmp	Obj58_Index(pc,d1.w)
 ; ===========================================================================
@@ -20597,7 +20586,7 @@ Obj58_Index:	dc.w Obj58_Main-Obj58_Index
 ; ===========================================================================
 
 Obj58_Main:				; XREF: Obj58_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_burankob,4(a0)
 		move.w	#$396,2(a0)
 		move.b	#4,1(a0)
@@ -20605,21 +20594,21 @@ Obj58_Main:				; XREF: Obj58_Index
 		move.b	#$18,$19(a0)
 		move.w	8(a0),$3A(a0)
 		move.w	$C(a0),$38(a0)
-		move.b	#$86,$20(a0)
-		move.b	$28(a0),d1	; get object type
+		move.b	#$86,colino(a0)
+		move.b	userflag(a0),d1	; get object type
 		andi.b	#$F0,d1		; read only the	1st digit
 		ext.w	d1
 		asl.w	#3,d1		; multiply by 8
 		move.w	d1,$3E(a0)	; set object speed
-		move.b	$22(a0),d0
+		move.b	cddat(a0),d0
 		ror.b	#2,d0
 		andi.b	#$C0,d0
-		move.b	d0,$26(a0)
+		move.b	d0,direc(a0)
 		move.b	#$50,$3C(a0)	; set diameter of circle of rotation
 
 Obj58_Move:				; XREF: Obj58_Index
 		moveq	#0,d0
-		move.b	$28(a0),d0	; get object type
+		move.b	userflag(a0),d0	; get object type
 		andi.w	#7,d0		; read only the	2nd digit
 		add.w	d0,d0
 		move.w	Obj58_TypeIndex(pc,d0.w),d1
@@ -20648,7 +20637,7 @@ Obj58_Type01:				; XREF: Obj58_TypeIndex
 		move.w	#$60,d1
 		moveq	#0,d0
 		move.b	($FFFFFE6C).w,d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_10A38
 		neg.w	d0
 		add.w	d1,d0
@@ -20664,7 +20653,7 @@ Obj58_Type02:				; XREF: Obj58_TypeIndex
 		move.w	#$60,d1
 		moveq	#0,d0
 		move.b	($FFFFFE6C).w,d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_10A5C
 		neg.w	d0
 		addi.w	#$80,d0
@@ -20678,8 +20667,8 @@ loc_10A5C:
 
 Obj58_Type03:				; XREF: Obj58_TypeIndex
 		move.w	$3E(a0),d0
-		add.w	d0,$26(a0)
-		move.b	$26(a0),d0
+		add.w	d0,direc(a0)
+		move.b	direc(a0),d0
 		jsr	(sinset).l
 		move.w	$38(a0),d2
 		move.w	$3A(a0),d3
@@ -20709,7 +20698,7 @@ Map_burankob:
 
 elev:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	elev_Index(pc,d0.w),d1
 		jsr	elev_Index(pc,d1.w)
 		move.w	$32(a0),d0
@@ -20747,11 +20736,11 @@ elev_Var2:	dc.b $10, 1		; width, action	type
 ; ===========================================================================
 
 elev_Main:				; XREF: elev_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		bpl.b	elev_Main2
-		addq.b	#4,$24(a0)
+		addq.b	#4,r_no0(a0)
 		andi.w	#$7F,d0
 		mulu.w	#6,d0
 		move.w	d0,$3C(a0)
@@ -20767,14 +20756,14 @@ elev_Main2:
 		move.b	(a2)+,$19(a0)
 		move.b	(a2)+,$1A(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		add.w	d0,d0
 		andi.w	#$1E,d0
 		lea	elev_Var2(pc,d0.w),a2
 		move.b	(a2)+,d0
 		lsl.w	#2,d0
 		move.w	d0,$3C(a0)
-		move.b	(a2)+,$28(a0)
+		move.b	(a2)+,userflag(a0)
 		move.l	#Map_elev,4(a0)
 		move.w	#$4000,2(a0)
 		move.b	#4,1(a0)
@@ -20807,7 +20796,7 @@ locret_10BD4:
 
 elev_Types:
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#$F,d0
 		add.w	d0,d0
 		move.w	elev_TypeIndex(pc,d0.w),d1
@@ -20825,9 +20814,9 @@ elev_Type00:				; XREF: elev_TypeIndex
 ; ===========================================================================
 
 elev_Type01:				; XREF: elev_TypeIndex
-		cmpi.b	#4,$24(a0)	; check	if Sonic is standing on	the object
+		cmpi.b	#4,r_no0(a0)	; check	if Sonic is standing on	the object
 		bne.b	locret_10C0C
-		addq.b	#1,$28(a0)	; if yes, add 1	to type
+		addq.b	#1,userflag(a0)	; if yes, add 1	to type
 
 locret_10C0C:
 		rts	
@@ -20882,17 +20871,17 @@ elev_Type09:				; XREF: elev_TypeIndex
 		neg.w	d0
 		add.w	$30(a0),d0
 		move.w	d0,$C(a0)
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		beq.w	loc_10C94
 		rts	
 ; ===========================================================================
 
 loc_10C94:
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		beq.b	elev_Delete
-		bset	#1,$22(a1)
-		bclr	#3,$22(a1)
-		move.b	#2,$24(a1)
+		bset	#1,cddat(a1)
+		bclr	#3,cddat(a1)
+		move.b	#2,r_no0(a1)
 
 elev_Delete:
 		bra.w	frameout
@@ -20931,7 +20920,7 @@ loc_10CF0:
 		add.w	d2,d2
 		cmp.w	d2,d0
 		bne.b	locret_10CFA
-		clr.b	$28(a0)
+		clr.b	userflag(a0)
 
 locret_10CFA:
 		rts	
@@ -20948,7 +20937,7 @@ elev_MakeMulti:			; XREF: elev_Index
 		move.b	#$59,0(a1)	; duplicate the	object
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
-		move.b	#$E,$28(a1)
+		move.b	#$E,userflag(a1)
 
 elev_ChkDel:
 		addq.l	#4,sp
@@ -20975,7 +20964,7 @@ Map_elev:
 
 pedal:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	pedal_Index(pc,d0.w),d1
 		jsr	pedal_Index(pc,d1.w)
 		move.w	$32(a0),d0
@@ -20994,7 +20983,7 @@ pedal_Index:	dc.w pedal_Main-pedal_Index
 ; ===========================================================================
 
 pedal_Main:				; XREF: pedal_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_pedal,4(a0)
 		move.w	#$4000,2(a0)
 		move.b	#4,1(a0)
@@ -21022,7 +21011,7 @@ pedal_Action:				; XREF: pedal_Index
 
 pedal_Types:
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#$C,d0
 		lsr.w	#1,d0
 		move.w	pedal_TypeIndex(pc,d0.w),d1
@@ -21039,13 +21028,13 @@ pedal_Type00:				; XREF: pedal_TypeIndex
 		move.b	($FFFFFE84).w,d2
 		subi.b	#$50,d2
 		ext.w	d2
-		btst	#0,$28(a0)
+		btst	#0,userflag(a0)
 		beq.b	loc_10E24
 		neg.w	d1
 		neg.w	d2
 
 loc_10E24:
-		btst	#1,$28(a0)
+		btst	#1,userflag(a0)
 		beq.b	loc_10E30
 		neg.w	d1
 		exg	d1,d2
@@ -21065,13 +21054,13 @@ pedal_Type04:				; XREF: pedal_TypeIndex
 		move.b	($FFFFFE84).w,d2
 		subi.b	#$50,d2
 		ext.w	d2
-		btst	#0,$28(a0)
+		btst	#0,userflag(a0)
 		beq.b	loc_10E62
 		neg.w	d1
 		neg.w	d2
 
 loc_10E62:
-		btst	#1,$28(a0)
+		btst	#1,userflag(a0)
 		beq.b	loc_10E6E
 		neg.w	d1
 		exg	d1,d2
@@ -21097,7 +21086,7 @@ Map_pedal:
 
 step:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	step_Index(pc,d0.w),d1
 		jsr	step_Index(pc,d1.w)
 		move.w	$30(a0),d0
@@ -21116,10 +21105,10 @@ step_Index:	dc.w step_Main-step_Index
 ; ===========================================================================
 
 step_Main:				; XREF: step_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		moveq	#$38,d3
 		moveq	#1,d4
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_10EDA
 		moveq	#$3B,d3
 		moveq	#-1,d4
@@ -21134,7 +21123,7 @@ loc_10EDA:
 step_Loop:
 		bsr.w	actwkchk2
 		bne.w	step_Move
-		move.b	#4,$24(a1)
+		move.b	#4,r_no0(a1)
 
 step_MakeBlocks:			; XREF: step_Main
 		move.b	#$5B,0(a1)	; load another block object
@@ -21143,7 +21132,7 @@ step_MakeBlocks:			; XREF: step_Main
 		move.b	#4,1(a1)
 		move.b	#3,$18(a1)
 		move.b	#$10,$19(a1)
-		move.b	$28(a0),$28(a1)
+		move.b	userflag(a0),userflag(a1)
 		move.w	d2,8(a1)
 		move.w	$C(a0),$C(a1)
 		move.w	8(a0),$30(a1)
@@ -21156,7 +21145,7 @@ step_MakeBlocks:			; XREF: step_Main
 
 step_Move:				; XREF: step_Index
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#7,d0
 		add.w	d0,d0
 		move.w	step_TypeIndex(pc,d0.w),d1
@@ -21181,7 +21170,7 @@ step_Solid:				; XREF: step_Index
 		move.b	d4,$36(a2)
 
 loc_10F92:
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		beq.b	locret_10FA0
 		move.b	#1,$36(a2)
 
@@ -21208,7 +21197,7 @@ locret_10FBE:
 loc_10FC0:
 		subq.w	#1,$34(a0)
 		bne.b	locret_10FBE
-		addq.b	#1,$28(a0)	; add 1	to type
+		addq.b	#1,userflag(a0)	; add 1	to type
 		rts	
 ; ===========================================================================
 
@@ -21226,7 +21215,7 @@ locret_10FDE:
 loc_10FE0:
 		subq.w	#1,$34(a0)
 		bne.b	loc_10FEC
-		addq.b	#1,$28(a0)	; add 1	to type
+		addq.b	#1,userflag(a0)	; add 1	to type
 		rts	
 ; ===========================================================================
 
@@ -21282,7 +21271,7 @@ Map_step:
 
 Obj5C:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj5C_Index(pc,d0.w),d1
 		jmp	Obj5C_Index(pc,d1.w)
 ; ===========================================================================
@@ -21291,7 +21280,7 @@ Obj5C_Index:	dc.w Obj5C_Main-Obj5C_Index
 ; ===========================================================================
 
 Obj5C_Main:				; XREF: Obj5C_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_obj5C,4(a0)
 		move.w	#$83CC,2(a0)
 		move.b	#$10,$19(a0)
@@ -21317,73 +21306,7 @@ Obj5C_Display:				; XREF: Obj5C_Index
 Map_obj5C:
 	include "_maps\obj5C.asm"
 
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Object 1B - water surface (LZ)
-; ---------------------------------------------------------------------------
-
-water:					; XREF: act_tbl
-		moveq	#0,d0
-		move.b	$24(a0),d0
-		move.w	water_Index(pc,d0.w),d1
-		jmp	water_Index(pc,d1.w)
-; ===========================================================================
-water_Index:	dc.w water_Main-water_Index
-		dc.w water_Action-water_Index
-; ===========================================================================
-
-water_Main:				; XREF: water_Index
-		addq.b	#2,$24(a0)
-		move.l	#Map_water,4(a0)
-		move.w	#$C300,2(a0)
-		move.b	#4,1(a0)
-		move.b	#$80,$19(a0)
-		move.w	8(a0),$30(a0)
-
-water_Action:				; XREF: water_Index
-		move.w	scra_h_posit,d1
-		andi.w	#$FFE0,d1
-		add.w	$30(a0),d1
-		btst	#0,($FFFFFE05).w
-		beq.b	loc_11114
-		addi.w	#$20,d1
-
-loc_11114:
-		move.w	d1,8(a0)	; match	obj x-position to screen position
-		move.w	waterposi,d1
-		move.w	d1,$C(a0)	; match	obj y-position to water	height
-		tst.b	$32(a0)
-		bne.b	water_Animate
-		btst	#7,swdata1+1 ; is Start button pressed?
-		beq.b	loc_1114A	; if not, branch
-		addq.b	#3,$1A(a0)	; use different	frames
-		move.b	#1,$32(a0)	; stop animation
-		bra.b	water_Display
-; ===========================================================================
-
-water_Animate:				; XREF: loc_11114
-		tst.w	pauseflag	; is the game paused?
-		bne.b	water_Display	; if yes, branch
-		move.b	#0,$32(a0)	; resume animation
-		subq.b	#3,$1A(a0)	; use normal frames
-
-loc_1114A:				; XREF: loc_11114
-		subq.b	#1,$1E(a0)
-		bpl.b	water_Display
-		move.b	#7,$1E(a0)
-		addq.b	#1,$1A(a0)
-		cmpi.b	#3,$1A(a0)
-		bcs.b	water_Display
-		move.b	#0,$1A(a0)
-
-water_Display:
-		bra.w	actionsub
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Sprite mappings - water surface (LZ)
-; ---------------------------------------------------------------------------
-Map_water:
-	include "_maps\water.asm"
+		include	'WAVE.ASM'
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -21392,7 +21315,7 @@ Map_water:
 
 bou:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	bou_Index(pc,d0.w),d1
 		jmp	bou_Index(pc,d1.w)
 ; ===========================================================================
@@ -21402,15 +21325,15 @@ bou_Index:	dc.w bou_Main-bou_Index
 ; ===========================================================================
 
 bou_Main:				; XREF: bou_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_bou,4(a0)
 		move.w	#$43DE,2(a0)
 		move.b	#4,1(a0)
 		move.b	#8,$19(a0)
 		move.b	#4,$18(a0)
-		move.b	#$E1,$20(a0)
+		move.b	#$E1,colino(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0	; get object type
+		move.b	userflag(a0),d0	; get object type
 		mulu.w	#60,d0		; multiply by 60 (1 second)
 		move.w	d0,$30(a0)	; set breakage time
 
@@ -21451,8 +21374,8 @@ bou_LetGo:
 		beq.b	bou_Display
 
 bou_Release:				; XREF: bou_Action
-		clr.b	$20(a0)
-		addq.b	#2,$24(a0)
+		clr.b	colino(a0)
+		addq.b	#2,r_no0(a0)
 		clr.b	($FFFFF7C8).w
 		clr.b	($FFFFF7C9).w
 		clr.b	$32(a0)
@@ -21460,22 +21383,22 @@ bou_Release:				; XREF: bou_Action
 ; ===========================================================================
 
 bou_Grab:				; XREF: bou_Action
-		tst.b	$21(a0)		; has Sonic touched the	pole?
+		tst.b	colicnt(a0)		; has Sonic touched the	pole?
 		beq.b	bou_Display	; if not, branch
 		lea	playerwk,a1
 		move.w	8(a0),d0
 		addi.w	#$14,d0
 		cmp.w	8(a1),d0
 		bcc.b	bou_Display
-		clr.b	$21(a0)
-		cmpi.b	#4,$24(a1)
+		clr.b	colicnt(a0)
+		cmpi.b	#4,r_no0(a1)
 		bcc.b	bou_Display
 		clr.w	$10(a1)		; stop Sonic moving
 		clr.w	$12(a1)		; stop Sonic moving
 		move.w	8(a0),d0
 		addi.w	#$14,d0
 		move.w	d0,8(a1)
-		bclr	#0,$22(a1)
+		bclr	#0,cddat(a1)
 		move.b	#$11,$1C(a1)	; set Sonic's animation to "hanging" ($11)
 		move.b	#1,($FFFFF7C8).w ; lock	controls
 		move.b	#1,($FFFFF7C9).w ; disable wind	tunnel
@@ -21497,7 +21420,7 @@ Map_bou:
 
 ben:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	ben_Index(pc,d0.w),d1
 		jmp	ben_Index(pc,d1.w)
 ; ===========================================================================
@@ -21506,13 +21429,13 @@ ben_Index:	dc.w ben_Main-ben_Index
 ; ===========================================================================
 
 ben_Main:				; XREF: ben_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_ben,4(a0)
 		move.w	#$4328,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#$28,$19(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0	; get object type
+		move.b	userflag(a0),d0	; get object type
 		mulu.w	#60,d0		; multiply by 60 (1 second)
 		move.w	d0,$32(a0)	; set flap delay time
 
@@ -21562,7 +21485,7 @@ Map_ben:
 
 scoli:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	scoli_Index(pc,d0.w),d1
 		jmp	scoli_Index(pc,d1.w)
 ; ===========================================================================
@@ -21571,11 +21494,11 @@ scoli_Index:	dc.w scoli_Main-scoli_Index
 ; ===========================================================================
 
 scoli_Main:				; XREF: scoli_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_scoli,4(a0)
 		move.w	#$8680,2(a0)
 		ori.b	#4,1(a0)
-		move.b	$28(a0),d0	; get object type
+		move.b	userflag(a0),d0	; get object type
 		move.b	d0,d1
 		andi.w	#$F0,d0		; read only the	1st byte
 		addi.w	#$10,d0
@@ -21633,7 +21556,7 @@ Map_scoli:
 
 fun:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	fun_Index(pc,d0.w),d1
 		jmp	fun_Index(pc,d1.w)
 ; ===========================================================================
@@ -21642,7 +21565,7 @@ fun_Index:	dc.w fun_Main-fun_Index
 ; ===========================================================================
 
 fun_Main:				; XREF: fun_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_fun,4(a0)
 		move.w	#$43A0,2(a0)
 		ori.b	#4,1(a0)
@@ -21650,7 +21573,7 @@ fun_Main:				; XREF: fun_Index
 		move.b	#4,$18(a0)
 
 fun_Delay:				; XREF: fun_Index
-		btst	#1,$28(a0)	; is object type 02/03?
+		btst	#1,userflag(a0)	; is object type 02/03?
 		bne.b	fun_Blow	; if yes, branch
 		subq.w	#1,$30(a0)	; subtract 1 from time delay
 		bpl.b	fun_Blow	; if time remains, branch
@@ -21665,7 +21588,7 @@ fun_Blow:
 		lea	playerwk,a1
 		move.w	8(a1),d0
 		sub.w	8(a0),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	fun_ChkSonic
 		neg.w	d0
 
@@ -21686,14 +21609,14 @@ fun_ChkSonic:
 
 loc_1159A:
 		addi.w	#$60,d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	loc_115A8
 		neg.w	d0
 
 loc_115A8:
 		neg.b	d0
 		asr.w	#4,d0
-		btst	#0,$28(a0)
+		btst	#0,userflag(a0)
 		beq.b	fun_MoveSonic
 		neg.w	d0
 
@@ -21711,7 +21634,7 @@ fun_Animate:				; XREF: fun_ChkSonic
 
 loc_115D8:
 		moveq	#0,d0
-		btst	#0,$28(a0)
+		btst	#0,userflag(a0)
 		beq.b	loc_115E4
 		moveq	#2,d0
 
@@ -21744,7 +21667,7 @@ Map_fun:
 
 sisoo:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	sisoo_Index(pc,d0.w),d1
 		jsr	sisoo_Index(pc,d1.w)
 		move.w	$30(a0),d0
@@ -21767,26 +21690,26 @@ sisoo_Index:	dc.w sisoo_Main-sisoo_Index
 ; ===========================================================================
 
 sisoo_Main:				; XREF: sisoo_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_sisoo,4(a0)
 		move.w	#$374,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#4,$18(a0)
 		move.b	#$30,$19(a0)
 		move.w	8(a0),$30(a0)
-		tst.b	$28(a0)		; is object type 00 ?
+		tst.b	userflag(a0)		; is object type 00 ?
 		bne.b	loc_116D2	; if not, branch
 		bsr.w	actwkchk2
 		bne.b	loc_116D2
 		move.b	#$5E,0(a1)	; load spikeball object
-		addq.b	#6,$24(a1)
+		addq.b	#6,r_no0(a1)
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
-		move.b	$22(a0),$22(a1)
+		move.b	cddat(a0),cddat(a1)
 		move.l	a0,$3C(a1)
 
 loc_116D2:
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_116E0
 		move.b	#2,$1A(a0)
 
@@ -21860,18 +21783,18 @@ locret_11790:
 ; ===========================================================================
 
 sisoo_Spikeball:			; XREF: sisoo_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_sisooa,4(a0)
 		move.w	#$4F0,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#4,$18(a0)
-		move.b	#$8B,$20(a0)
+		move.b	#$8B,colino(a0)
 		move.b	#$C,$19(a0)
 		move.w	8(a0),$30(a0)
 		addi.w	#$28,8(a0)
 		move.w	$C(a0),$34(a0)
 		move.b	#1,$1A(a0)
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	sisoo_MoveSpike
 		subi.w	#$50,8(a0)
 		move.b	#2,$3A(a0)
@@ -21906,7 +21829,7 @@ loc_11822:
 		neg.w	$10(a0)
 
 loc_11838:
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		bra.b	sisoo_SpikeFall
 ; ===========================================================================
 
@@ -21975,25 +21898,25 @@ sisoo_Spring:
 		move.b	d1,$3A(a0)
 		cmp.b	$1A(a1),d1
 		beq.b	loc_1192C
-		bclr	#3,$22(a1)
+		bclr	#3,cddat(a1)
 		beq.b	loc_1192C
-		clr.b	$25(a1)
-		move.b	#2,$24(a1)
+		clr.b	r_no1(a1)
+		move.b	#2,r_no0(a1)
 		lea	playerwk,a2
 		move.w	$12(a0),$12(a2)
 		neg.w	$12(a2)
-		bset	#1,$22(a2)
-		bclr	#3,$22(a2)
+		bset	#1,cddat(a2)
+		bclr	#3,cddat(a2)
 		clr.b	$3C(a2)
 		move.b	#$10,$1C(a2)	; change Sonic's animation to "spring" ($10)
-		move.b	#2,$24(a2)
+		move.b	#2,r_no0(a2)
 		move.w	#$CC,d0
 		jsr	(soundset).l ;	play spring sound
 
 loc_1192C:
 		clr.w	$10(a0)
 		clr.w	$12(a0)
-		subq.b	#2,$24(a0)
+		subq.b	#2,r_no0(a0)
 
 locret_11938:
 		rts	
@@ -22023,7 +21946,7 @@ Map_sisooa:
 
 brobo:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	brobo_Index(pc,d0.w),d1
 		jmp	brobo_Index(pc,d1.w)
 ; ===========================================================================
@@ -22034,25 +21957,25 @@ brobo_Index:	dc.w brobo_Main-brobo_Index
 ; ===========================================================================
 
 brobo_Main:				; XREF: brobo_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_brobo,4(a0)
 		move.w	#$400,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#3,$18(a0)
 		move.b	#$C,$19(a0)
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		beq.b	loc_11A3C
-		move.b	d0,$24(a0)
+		move.b	d0,r_no0(a0)
 		rts	
 ; ===========================================================================
 
 loc_11A3C:
-		move.b	#$9A,$20(a0)
-		bchg	#0,$22(a0)
+		move.b	#$9A,colino(a0)
+		bchg	#0,cddat(a0)
 
 brobo_Action:				; XREF: brobo_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	brobo_Index2(pc,d0.w),d1
 		jsr	brobo_Index2(pc,d1.w)
 		lea	(Ani_brobo).l,a1
@@ -22068,11 +21991,11 @@ brobo_Walk:				; XREF: brobo_Index2
 		bsr.w	brobo_ChkSonic
 		subq.w	#1,$30(a0)	; subtract 1 from time delay
 		bpl.b	locret_11A96	; if time remains, branch
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#1535,$30(a0)	; set time delay to 25 seconds
 		move.w	#$10,$10(a0)
 		move.b	#1,$1C(a0)
-		bchg	#0,$22(a0)
+		bchg	#0,cddat(a0)
 		beq.b	locret_11A96
 		neg.w	$10(a0)		; change direction
 
@@ -22089,7 +22012,7 @@ brobo_Wait:				; XREF: brobo_Index2
 ; ===========================================================================
 
 loc_11AA8:
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		move.w	#179,$30(a0)	; set time delay to 3 seconds
 		clr.w	$10(a0)		; stop walking
 		move.b	#0,$1C(a0)	; stop animation
@@ -22099,8 +22022,8 @@ loc_11AA8:
 brobo_Explode:				; XREF: brobo_Index2
 		subq.w	#1,$30(a0)
 		bpl.b	locret_11AD0
-		move.b	#$3F,0(a0)	; change bomb into an explosion
-		move.b	#0,$24(a0)
+		move.b	#$3F,actno(a0)	; change bomb into an explosion
+		move.b	#0,r_no0(a0)
 
 locret_11AD0:
 		rts	
@@ -22125,21 +22048,21 @@ brobo_MakeFuse:
 		bcc.b	locret_11B5E
 		tst.w	editmode
 		bne.b	locret_11B5E
-		move.b	#4,$25(a0)
+		move.b	#4,r_no1(a0)
 		move.w	#143,$30(a0)	; set fuse time
 		clr.w	$10(a0)
 		move.b	#2,$1C(a0)
 		bsr.w	actwkchk2
 		bne.b	locret_11B5E
-		move.b	#$5F,0(a1)	; load fuse object
+		move.b	#$5F,actno(a1)	; load fuse object
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
 		move.w	$C(a0),$34(a1)
-		move.b	$22(a0),$22(a1)
-		move.b	#4,$28(a1)
+		move.b	cddat(a0),cddat(a1)
+		move.b	#4,userflag(a1)
 		move.b	#3,$1C(a1)
 		move.w	#$10,$12(a1)
-		btst	#1,$22(a0)
+		btst	#1,cddat(a0)
 		beq.b	loc_11B54
 		neg.w	$12(a1)
 
@@ -22167,7 +22090,7 @@ loc_11B70:
 
 loc_11B7C:
 		clr.w	$30(a0)
-		clr.b	$24(a0)
+		clr.b	r_no0(a0)
 		move.w	$34(a0),$C(a0)
 		moveq	#3,d1
 		movea.l	a0,a1
@@ -22180,20 +22103,20 @@ brobo_Loop:
 		bne.b	loc_11BCE
 
 brobo_MakeShrap:			; XREF: loc_11B7C
-		move.b	#$5F,0(a1)	; load shrapnel	object
+		move.b	#$5F,actno(a1)	; load shrapnel	object
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
-		move.b	#6,$28(a1)
+		move.b	#6,userflag(a1)
 		move.b	#4,$1C(a1)
 		move.w	(a2)+,$10(a1)
 		move.w	(a2)+,$12(a1)
-		move.b	#$98,$20(a1)
+		move.b	#$98,colino(a1)
 		bset	#7,1(a1)
 
 loc_11BCE:
 		dbra	d1,brobo_Loop	; repeat 3 more	times
 
-		move.b	#6,$24(a0)
+		move.b	#6,r_no0(a0)
 
 brobo_End:				; XREF: brobo_Index
 		bsr.w	speedset2
@@ -22222,7 +22145,7 @@ Map_brobo:
 
 uni:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	uni_Index(pc,d0.w),d1
 		jmp	uni_Index(pc,d1.w)
 ; ===========================================================================
@@ -22248,7 +22171,7 @@ loc_11D02:
 loc_11D10:
 		ori.b	#4,1(a0)
 		move.b	#4,$18(a0)
-		move.b	#$B,$20(a0)
+		move.b	#$B,colino(a0)
 		move.b	#$C,$19(a0)
 		moveq	#0,d2
 		lea	$37(a0),a2
@@ -22265,32 +22188,32 @@ uni_MakeOrbs:
 		lsr.w	#6,d5
 		andi.w	#$7F,d5
 		move.b	d5,(a2)+
-		move.b	0(a0),0(a1)	; load spiked orb object
-		move.b	#6,$24(a1)
+		move.b	actno(a0),actno(a1)	; load spiked orb object
+		move.b	#6,r_no0(a1)
 		move.l	4(a0),4(a1)
 		move.w	2(a0),2(a1)
 		ori.b	#4,1(a1)
 		move.b	#4,$18(a1)
 		move.b	#8,$19(a1)
 		move.b	#3,$1A(a1)
-		move.b	#$98,$20(a1)
-		move.b	d2,$26(a1)
+		move.b	#$98,colino(a1)
+		move.b	d2,direc(a1)
 		addi.b	#$40,d2
 		move.l	a0,$3C(a1)
 		dbra	d1,uni_MakeOrbs ; repeat sequence 3 more times
 
 loc_11D90:
 		moveq	#1,d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	uni_Move
 		neg.w	d0
 
 uni_Move:
 		move.b	d0,$36(a0)
-		move.b	$28(a0),$24(a0)	; if type is 02, skip the firing rountine
-		addq.b	#2,$24(a0)
+		move.b	userflag(a0),r_no0(a0)	; if type is 02, skip the firing rountine
+		addq.b	#2,r_no0(a0)
 		move.w	#-$40,$10(a0)	; move orbinaut	to the left
-		btst	#0,$22(a0)	; is orbinaut reversed?
+		btst	#0,cddat(a0)	; is orbinaut reversed?
 		beq.b	locret_11DBC	; if not, branch
 		neg.w	$10(a0)		; move orbinaut	to the right
 
@@ -22341,9 +22264,9 @@ uni_ChkDel:				; XREF: uni_Animate
 ; ===========================================================================
 
 uni_ChkGone:				; XREF: uni_ChkDel
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	loc_11E34
 		bclr	#7,2(a2,d0.w)
 
@@ -22369,20 +22292,20 @@ uni_Delete:
 
 uni_MoveOrb:				; XREF: uni_Index
 		movea.l	$3C(a0),a1
-		cmpi.b	#$60,0(a1)
+		cmpi.b	#$60,actno(a1)
 		bne.w	frameout
 		cmpi.b	#2,$1A(a1)
 		bne.b	uni_Circle
-		cmpi.b	#$40,$26(a0)
+		cmpi.b	#$40,direc(a0)
 		bne.b	uni_Circle
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		subq.b	#1,$37(a1)
 		bne.b	uni_FireOrb
-		addq.b	#2,$24(a1)
+		addq.b	#2,r_no0(a1)
 
 uni_FireOrb:
 		move.w	#-$200,$10(a0)	; move orb to the left (quickly)
-		btst	#0,$22(a1)
+		btst	#0,cddat(a1)
 		beq.b	uni_Display2
 		neg.w	$10(a0)
 
@@ -22391,7 +22314,7 @@ uni_Display2:
 ; ===========================================================================
 
 uni_Circle:				; XREF: uni_MoveOrb
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		jsr	(sinset).l
 		asr.w	#4,d1
 		add.w	8(a1),d1
@@ -22400,7 +22323,7 @@ uni_Circle:				; XREF: uni_MoveOrb
 		add.w	$C(a1),d0
 		move.w	d0,$C(a0)
 		move.b	$36(a1),d0
-		add.b	d0,$26(a0)
+		add.b	d0,direc(a0)
 		bra.w	actionsub
 ; ===========================================================================
 
@@ -22426,7 +22349,7 @@ Map_uni:
 
 yari:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	yari_Index(pc,d0.w),d1
 		jmp	yari_Index(pc,d1.w)
 ; ===========================================================================
@@ -22436,12 +22359,12 @@ yari_Index:	dc.w yari_Main-yari_Index
 ; ===========================================================================
 
 yari_Main:				; XREF: yari_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_yari,4(a0)
 		move.w	#$3CC,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#4,$18(a0)
-		move.b	$28(a0),$1C(a0)
+		move.b	userflag(a0),$1C(a0)
 		move.b	#$14,$19(a0)
 		move.w	#60,$30(a0)
 
@@ -22450,7 +22373,7 @@ yari_Move:				; XREF: yari_Index
 		bsr.w	patchg
 		moveq	#0,d0
 		move.b	$1A(a0),d0	; move frame number to d0
-		move.b	yari_Data(pc,d0.w),$20(a0) ; load collision response (based on	d0)
+		move.b	yari_Data(pc,d0.w),colino(a0) ; load collision response (based on	d0)
 		bra.w	frameoutchk
 ; ===========================================================================
 yari_Data:	dc.b $9B, $9C, $9D, $9E, $9F, $A0
@@ -22460,7 +22383,7 @@ yari_Wait:				; XREF: yari_Index
 		subq.w	#1,$30(a0)
 		bpl.b	yari_ChkDel
 		move.w	#60,$30(a0)
-		subq.b	#2,$24(a0)	; run "yari_Move" subroutine
+		subq.b	#2,r_no0(a0)	; run "yari_Move" subroutine
 		bchg	#0,$1C(a0)	; reverse animation
 
 yari_ChkDel:
@@ -22482,7 +22405,7 @@ Map_yari:
 
 dai3:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	dai3_Index(pc,d0.w),d1
 		jmp	dai3_Index(pc,d1.w)
 ; ===========================================================================
@@ -22496,13 +22419,13 @@ dai3_Var:	dc.b $10, $10		; width, height
 ; ===========================================================================
 
 dai3_Main:				; XREF: dai3_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_dai3,4(a0)
 		move.w	#$43E6,2(a0)
 		move.b	#4,1(a0)
 		move.b	#3,$18(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		lsr.w	#3,d0
 		andi.w	#$E,d0
 		lea	dai3_Var(pc,d0.w),a2
@@ -22512,7 +22435,7 @@ dai3_Main:				; XREF: dai3_Index
 		move.b	d0,$1A(a0)
 		move.w	8(a0),$34(a0)
 		move.w	$C(a0),$30(a0)
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.b	#$F,d0
 		beq.b	dai3_Action
 		cmpi.b	#7,d0
@@ -22522,7 +22445,7 @@ dai3_Main:				; XREF: dai3_Index
 dai3_Action:				; XREF: dai3_Index
 		move.w	8(a0),-(sp)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#$F,d0
 		add.w	d0,d0
 		move.w	dai3_TypeIndex(pc,d0.w),d1
@@ -22565,7 +22488,7 @@ dai3_Type00:				; XREF: dai3_TypeIndex
 dai3_Type01:				; XREF: dai3_TypeIndex
 		tst.w	$36(a0)		; is Sonic standing on the object?
 		bne.b	loc_120D6	; if yes, branch
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		beq.b	locret_120D4
 		move.w	#30,$36(a0)	; wait for « second
 
@@ -22576,7 +22499,7 @@ locret_120D4:
 loc_120D6:
 		subq.w	#1,$36(a0)	; subtract 1 from waiting time
 		bne.b	locret_120D4	; if time remains, branch
-		addq.b	#1,$28(a0)	; add 1	to type
+		addq.b	#1,userflag(a0)	; add 1	to type
 		clr.b	$38(a0)
 		rts	
 ; ===========================================================================
@@ -22590,7 +22513,7 @@ dai3_Type02:				; XREF: dai3_TypeIndex
 		addq.w	#1,d1
 		add.w	d1,$C(a0)
 		clr.w	$12(a0)		; stop when it touches the floor
-		clr.b	$28(a0)		; set type to 00 (non-moving type)
+		clr.b	userflag(a0)		; set type to 00 (non-moving type)
 
 locret_12106:
 		rts	
@@ -22604,7 +22527,7 @@ dai3_Type04:				; XREF: dai3_TypeIndex
 		bpl.w	locret_12126
 		sub.w	d1,$C(a0)
 		clr.w	$12(a0)		; stop when it touches the ceiling
-		clr.b	$28(a0)		; set type to 00 (non-moving type)
+		clr.b	userflag(a0)		; set type to 00 (non-moving type)
 
 locret_12126:
 		rts	
@@ -22613,7 +22536,7 @@ locret_12126:
 dai3_Type05:				; XREF: dai3_TypeIndex
 		cmpi.b	#1,$3F(a0)	; is Sonic touching the	object?
 		bne.b	locret_12138	; if not, branch
-		addq.b	#1,$28(a0)	; if yes, add 1	to type
+		addq.b	#1,userflag(a0)	; if yes, add 1	to type
 		clr.b	$38(a0)
 
 locret_12138:
@@ -22660,7 +22583,7 @@ locret_1217E:
 loc_12180:				; XREF: dai3_Action
 		tst.b	$38(a0)
 		beq.b	locret_121C0
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		bne.b	loc_1219A
 		tst.b	$3E(a0)
 		beq.b	locret_121C0
@@ -22698,7 +22621,7 @@ Map_dai3:
 
 kazari:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	kazari_Index(pc,d0.w),d1
 		jsr	kazari_Index(pc,d1.w)
 		bra.w	frameoutchk
@@ -22712,17 +22635,17 @@ kazari_SpitRate:	dc.b 30, 60, 90, 120, 150, 180,	210, 240
 ; ===========================================================================
 
 kazari_Main:				; XREF: kazari_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_kazari,4(a0)
 		move.w	#$42E9,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#3,$18(a0)
 		move.b	#$10,$19(a0)
-		move.b	$28(a0),d0	; get object type
+		move.b	userflag(a0),d0	; get object type
 		andi.w	#$F,d0		; read only the	2nd digit
 		move.b	kazari_SpitRate(pc,d0.w),$1F(a0)	; set fireball spit rate
 		move.b	$1F(a0),$1E(a0)
-		andi.b	#$F,$28(a0)
+		andi.b	#$F,userflag(a0)
 
 kazari_MakeFire:				; XREF: kazari_Index
 		subq.b	#1,$1E(a0)
@@ -22732,31 +22655,31 @@ kazari_MakeFire:				; XREF: kazari_Index
 		bne.b	kazari_NoFire
 		bsr.w	actwkchk
 		bne.b	kazari_NoFire
-		move.b	#$62,0(a1)	; load fireball	object
-		addq.b	#4,$24(a1)
+		move.b	#$62,actno(a1)	; load fireball	object
+		addq.b	#4,r_no0(a1)
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
 		move.b	1(a0),1(a1)
-		move.b	$22(a0),$22(a1)
+		move.b	cddat(a0),cddat(a1)
 
 kazari_NoFire:
 		rts	
 ; ===========================================================================
 
 kazari_FireBall:				; XREF: kazari_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#8,$16(a0)
 		move.b	#8,$17(a0)
 		move.l	#Map_kazari,4(a0)
 		move.w	#$2E9,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#4,$18(a0)
-		move.b	#$98,$20(a0)
+		move.b	#$98,colino(a0)
 		move.b	#8,$19(a0)
 		move.b	#2,$1A(a0)
 		addq.w	#8,$C(a0)
 		move.w	#$200,$10(a0)
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	kazari_Sound
 		neg.w	$10(a0)
 
@@ -22765,14 +22688,14 @@ kazari_Sound:
 		jsr	(soundset).l ;	play lava ball sound
 
 kazari_AniFire:				; XREF: kazari_Index
-		move.b	($FFFFFE05).w,d0
+		move.b	gametimer+1,d0
 		andi.b	#7,d0
 		bne.b	kazari_StopFire
 		bchg	#0,$1A(a0)	; switch between frame 01 and 02
 
 kazari_StopFire:
 		bsr.w	speedset2
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	kazari_StopFire2
 		moveq	#-8,d3
 		bsr.w	ObjHitWallLeft
@@ -22801,7 +22724,7 @@ Map_kazari:
 
 kassya:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	kassya_Index(pc,d0.w),d1
 		jsr	kassya_Index(pc,d1.w)
 		move.w	$30(a0),d0
@@ -22838,17 +22761,17 @@ kassya_Index:	dc.w kassya_Main-kassya_Index
 ; ===========================================================================
 
 kassya_Main:				; XREF: kassya_Index
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		bmi.w	loc_12460
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_kassya,4(a0)
 		move.w	#$43F6,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#$10,$19(a0)
 		move.b	#4,$18(a0)
-		cmpi.b	#$7F,$28(a0)
+		cmpi.b	#$7F,userflag(a0)
 		bne.b	loc_123E2
-		addq.b	#4,$24(a0)
+		addq.b	#4,r_no0(a0)
 		move.w	#$3F6,2(a0)
 		move.b	#1,$18(a0)
 		bra.w	loc_124DE
@@ -22857,7 +22780,7 @@ kassya_Main:				; XREF: kassya_Index
 loc_123E2:
 		move.b	#4,$1A(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		move.w	d0,d1
 		lsr.w	#3,d0
 		andi.w	#$1E,d0
@@ -22917,11 +22840,11 @@ kassya_Loop:
 		bne.b	loc_124AA
 
 kassya_MakePtfms:			; XREF: loc_12460
-		move.b	#$63,0(a1)
+		move.b	#$63,actno(a1)
 		move.w	(a2)+,8(a1)
 		move.w	(a2)+,$C(a1)
 		move.w	(a2)+,d0
-		move.b	d0,$28(a1)
+		move.b	d0,userflag(a1)
 
 loc_124AA:
 		dbra	d1,kassya_Loop
@@ -23100,7 +23023,7 @@ Map_kassya:
 
 awa:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	awa_Index(pc,d0.w),d1
 		jmp	awa_Index(pc,d1.w)
 ; ===========================================================================
@@ -23113,15 +23036,15 @@ awa_Index:	dc.w awa_Main-awa_Index
 ; ===========================================================================
 
 awa_Main:				; XREF: awa_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_awa,4(a0)
 		move.w	#$8348,2(a0)
 		move.b	#$84,1(a0)
 		move.b	#$10,$19(a0)
 		move.b	#1,$18(a0)
-		move.b	$28(a0),d0	; get object type
+		move.b	userflag(a0),d0	; get object type
 		bpl.b	awa_Bubble	; if type is $0-$7F, branch
-		addq.b	#8,$24(a0)
+		addq.b	#8,r_no0(a0)
 		andi.w	#$7F,d0		; read only last 7 bits	(deduct	$80)
 		move.b	d0,$32(a0)
 		move.b	d0,$33(a0)
@@ -23134,7 +23057,7 @@ awa_Bubble:				; XREF: awa_Main
 		move.w	8(a0),$30(a0)
 		move.w	#-$88,$12(a0)	; float	bubble upwards
 		jsr	(random).l
-		move.b	d0,$26(a0)
+		move.b	d0,direc(a0)
 
 awa_Animate:				; XREF: awa_Index
 		lea	(Ani_awa).l,a1
@@ -23149,14 +23072,14 @@ awa_ChkWater:				; XREF: awa_Index
 		bcs.b	awa_Wobble	; if yes, branch
 
 awa_Burst:				; XREF: awa_Wobble
-		move.b	#6,$24(a0)
+		move.b	#6,r_no0(a0)
 		addq.b	#3,$1C(a0)	; run "bursting" animation
 		bra.w	awa_Display2
 ; ===========================================================================
 
 awa_Wobble:				; XREF: awa_ChkWater
-		move.b	$26(a0),d0
-		addq.b	#1,$26(a0)
+		move.b	direc(a0),d0
+		addq.b	#1,direc(a0)
 		andi.w	#$7F,d0
 		lea	(plawa_WobbleData).l,a1
 		move.b	(a1,d0.w),d0
@@ -23168,7 +23091,7 @@ awa_Wobble:				; XREF: awa_ChkWater
 		bsr.w	awa_ChkSonic	; has Sonic touched the	bubble?
 		beq.b	awa_Display	; if not, branch
 
-		bsr.w	ResumeMusic	; cancel countdown music
+		bsr.w	plairset	; cancel countdown music
 		move.w	#$AD,d0
 		jsr	(soundset).l ;	play collecting	bubble sound
 		lea	playerwk,a1
@@ -23178,11 +23101,11 @@ awa_Wobble:				; XREF: awa_ChkWater
 		move.b	#$15,$1C(a1)
 		move.w	#$23,$3E(a1)
 		move.b	#0,$3C(a1)
-		bclr	#5,$22(a1)
-		bclr	#4,$22(a1)
-		btst	#2,$22(a1)
+		bclr	#5,cddat(a1)
+		bclr	#4,cddat(a1)
+		btst	#2,cddat(a1)
 		beq.w	awa_Burst
-		bclr	#2,$22(a1)
+		bclr	#2,cddat(a1)
 		move.b	#$13,$16(a1)
 		move.b	#9,$17(a1)
 		subq.w	#5,$C(a1)
@@ -23259,7 +23182,7 @@ loc_1287C:
 		move.w	d0,$38(a0)
 		bsr.w	actwkchk
 		bne.b	loc_128F8
-		move.b	#$64,0(a1)	; load bubble object
+		move.b	#$64,actno(a1)	; load bubble object
 		move.w	8(a0),8(a1)
 		jsr	(random).l
 		andi.w	#$F,d0
@@ -23269,7 +23192,7 @@ loc_1287C:
 		moveq	#0,d0
 		move.b	$34(a0),d0
 		movea.l	$3C(a0),a2
-		move.b	(a2,d0.w),$28(a1)
+		move.b	(a2,d0.w),userflag(a1)
 		btst	#7,$36(a0)
 		beq.b	loc_128F8
 		jsr	(random).l
@@ -23277,14 +23200,14 @@ loc_1287C:
 		bne.b	loc_128E4
 		bset	#6,$36(a0)
 		bne.b	loc_128F8
-		move.b	#2,$28(a1)
+		move.b	#2,userflag(a1)
 
 loc_128E4:
 		tst.b	$34(a0)
 		bne.b	loc_128F8
 		bset	#6,$36(a0)
 		bne.b	loc_128F8
-		move.b	#2,$28(a1)
+		move.b	#2,userflag(a1)
 
 loc_128F8:
 		subq.b	#1,$34(a0)
@@ -23364,7 +23287,7 @@ Map_awa:
 
 mizu:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	mizu_Index(pc,d0.w),d1
 		jmp	mizu_Index(pc,d1.w)
 ; ===========================================================================
@@ -23376,13 +23299,13 @@ mizu_Index:	dc.w mizu_Main-mizu_Index
 ; ===========================================================================
 
 mizu_Main:				; XREF: mizu_Index
-		addq.b	#4,$24(a0)
+		addq.b	#4,r_no0(a0)
 		move.l	#Map_mizu,4(a0)
 		move.w	#$4259,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#$18,$19(a0)
 		move.b	#1,$18(a0)
-		move.b	$28(a0),d0	; get object type
+		move.b	userflag(a0),d0	; get object type
 		bpl.b	loc_12AE6
 		bset	#7,2(a0)
 
@@ -23392,15 +23315,15 @@ loc_12AE6:
 		cmpi.b	#9,d0		; is object type $x9 ?
 		bne.b	mizu_ChkDel	; if not, branch
 		clr.b	$18(a0)
-		subq.b	#2,$24(a0)
-		btst	#6,$28(a0)	; is object type $4x ?
+		subq.b	#2,r_no0(a0)
+		btst	#6,userflag(a0)	; is object type $4x ?
 		beq.b	loc_12B0A	; if not, branch
-		move.b	#6,$24(a0)
+		move.b	#6,r_no0(a0)
 
 loc_12B0A:
-		btst	#5,$28(a0)	; is object type $Ax ?
+		btst	#5,userflag(a0)	; is object type $Ax ?
 		beq.b	mizu_Animate	; if not, branch
-		move.b	#8,$24(a0)
+		move.b	#8,r_no0(a0)
 
 mizu_Animate:				; XREF: mizu_Index
 		lea	(Ani_mizu).l,a1
@@ -23464,7 +23387,7 @@ play00init:
 		move.b	#24,sprhs(a0)
 		move.b	#4,actflg(a0)
 		move.w	#$0600,plmaxspdwk
-		move.w	#$000C,pladdspdwk
+		move.w	#$000c,pladdspdwk
 		move.w	#$0080,plretspdwk
 play00move:
 		tst.w	debugflag
@@ -23483,7 +23406,7 @@ play00move:
 		btst.b	#0,($FFFFF7C8).w
 		bne.b	?jump2
 		moveq	#0,d0
-		move.b	$22(a0),d0
+		move.b	cddat(a0),d0
 		andi.w	#6,d0
 		move.w	play00_move_tbl2(pc,d0.w),d1
 		jsr		play00_move_tbl2(pc,d1.w)
@@ -23497,7 +23420,7 @@ play00move:
 		beq.b	?jump3
 		tst.b	mstno(a0)
 		bne.b	?jump3
-		move.b	$1D(a0),mstno(a0)
+		move.b	mstno+1(a0),mstno(a0)
 ?jump3:
 		bsr.w	spatset
 		tst.b	($FFFFF7C8).w
@@ -23550,21 +23473,21 @@ playpowercnt:
 		move.b	(a1,d0.w),d0
 		jsr		bgmset
 ?jump3:
-		move.b	#0,plpower_m ; cancel invincibility
+		move.b	#0,plpower_m
 ?jump4:
-		tst.b	plpower_s	; does Sonic have speed	shoes?
-		beq.b	play00_ExitChk	; if not, branch
-		tst.w	$34(a0)		; check	time remaining
-		beq.b	play00_ExitChk
-		subq.w	#1,$34(a0)	; subtract 1 from time
-		bne.b	play00_ExitChk
-		move.w	#$600,plmaxspdwk ; restore Sonic's speed
-		move.w	#$C,pladdspdwk ; restore Sonic's acceleration
-		move.w	#$80,plretspdwk ; restore Sonic's deceleration
-		move.b	#0,plpower_s ; cancel speed	shoes
+		tst.b	plpower_s
+		beq.b	?jump5
+		tst.w	$34(a0)
+		beq.b	?jump5
+		subq.w	#1,$34(a0)
+		bne.b	?jump5
+		move.w	#$600,plmaxspdwk
+		move.w	#$C,pladdspdwk
+		move.w	#$80,plretspdwk
+		move.b	#0,plpower_s
 		move.w	#$E3,d0
-		jmp		bgmset	; run music at normal speed
-play00_ExitChk:
+		jmp		bgmset
+?jump5:
 		rts	
 
 playposiwkset:
@@ -23576,90 +23499,83 @@ playposiwkset:
 		addq.b	#long,plposiwkadr+1
 		rts
 
-plwaterchk:				; XREF: ?jump2
-		cmpi.b	#1,stageno ; is level LZ?
-		beq.b	play00_InWater	; if yes, branch
+plwaterchk:
+		cmpi.b	#1,stageno
+		beq.b	?jump0
 
-locret_12D80:
+?end:
 		rts
 
-play00_InWater:
+?jump0:
 		move.w	waterposi,d0
-		cmp.w	$C(a0),d0	; is Sonic above the water?
-		bge.b	play00_OutWater	; if yes, branch
-		bset	#6,$22(a0)
-		bne.b	locret_12D80
-		bsr.w	ResumeMusic
-		move.b	#$A,($FFFFD340).w ; load bubbles object	from Sonic's mouth
+		cmp.w	$C(a0),d0
+		bge.b	?jump1	
+		bset	#6,cddat(a0)
+		bne.b	?end
+		bsr.w	plairset
+		move.b	#$A,($FFFFD340).w
 		move.b	#$81,($FFFFD368).w
-		move.w	#$300,plmaxspdwk ; change Sonic's top speed
-		move.w	#6,pladdspdwk ; change Sonic's acceleration
-		move.w	#$40,plretspdwk ; change Sonic's deceleration
+		move.w	#$300,plmaxspdwk
+		move.w	#6,pladdspdwk
+		move.w	#$40,plretspdwk
 		asr	xspeed(a0)
 		asr	$12(a0)
 		asr	$12(a0)
-		beq.b	locret_12D80
+		beq.b	?end
 		move.b	#8,($FFFFD300).w
-		move.w	#$AA,d0
+		move.w	#$aa,d0
 		jmp		soundset
 
-play00_OutWater:
-		bclr	#6,$22(a0)
-		beq.b	locret_12D80
-		bsr.w	ResumeMusic
+?jump1:
+		bclr	#6,cddat(a0)
+		beq.b	?end
+		bsr.w	plairset
 		move.w	#$600,plmaxspdwk ; restore Sonic's speed
 		move.w	#$C,pladdspdwk ; restore Sonic's acceleration
 		move.w	#$80,plretspdwk ; restore Sonic's deceleration
 		asl	$12(a0)
-		beq.w	locret_12D80
+		beq.w	?end
 		move.b	#8,($FFFFD300).w ; load	splash object
 		cmpi.w	#-$1000,$12(a0)
-		bgt.b	loc_12E0E
+		bgt.b	?jump2
 		move.w	#-$1000,$12(a0)	; set maximum speed on leaving water
 
-loc_12E0E:
-		move.w	#$AA,d0
-		jmp	(soundset).l ;	play splash sound
-; End of function plwaterchk
+?jump2:
+		move.w	#$aa,d0
+		jmp		soundset
 
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Modes	for controlling	Sonic
-; ---------------------------------------------------------------------------
-
-play00walk:				; XREF: play00_move_tbl2
+play00walk:
 		bsr.w	jumpchk
-		bsr.w	Sonic_SlopeResist
-		bsr.w	Sonic_Move
+		bsr.w	keispd
+		bsr.w	levermove
 		bsr.w	ballchk
 		bsr.w	limitchk
-		jsr	speedset2
-		bsr.w	Sonic_AnglePos
-		bsr.w	Sonic_SlopeRepel
-		rts	
-; ===========================================================================
+		jsr		speedset2
+		bsr.w	fcol
+		bsr.w	fallchk
+		rts
 
-play00jump:				; XREF: play00_move_tbl2
+play00jump:
 		bsr.w	jumpchk2
 		bsr.w	jumpmove
 		bsr.w	limitchk
 		jsr		speedset
-		btst	#6,$22(a0)
+		btst.b	#cd_water,cddat(a0)
 		beq.b	?jump
-		subi.w	#$28,$12(a0)
+		subi.w	#40,yspeed(a0)
 ?jump:
-		bsr.w	jumpchkAngle
-		bsr.w	Sonic_Floor
+		bsr.w	direcchg
+		bsr.w	jumpcolchk
 		rts	
 
 ball00walk:
 		bsr.w	jumpchk
-		bsr.w	ballchkRepel
+		bsr.w	keispd2
 		bsr.w	balllmove
 		bsr.w	limitchk
-		jsr	speedset2
-		bsr.w	Sonic_AnglePos
-		bsr.w	Sonic_SlopeRepel
+		jsr		speedset2
+		bsr.w	fcol
+		bsr.w	fallchk
 		rts	
 ; ===========================================================================
 
@@ -23668,13 +23584,13 @@ ball00jump:				; XREF: play00_move_tbl2
 		bsr.w	jumpmove
 		bsr.w	limitchk
 		jsr	speedset
-		btst	#6,$22(a0)
+		btst	#6,cddat(a0)
 		beq.b	loc_12EA6
 		subi.w	#$28,$12(a0)
 
 loc_12EA6:
-		bsr.w	jumpchkAngle
-		bsr.w	Sonic_Floor
+		bsr.w	direcchg
+		bsr.w	jumpcolchk
 		rts	
 ; ---------------------------------------------------------------------------
 ; Subroutine to	make Sonic walk/run
@@ -23683,7 +23599,7 @@ loc_12EA6:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_Move:				; XREF: play00walk
+levermove:				; XREF: play00walk
 		move.w	plmaxspdwk,d6
 		move.w	pladdspdwk,d5
 		move.w	plretspdwk,d4
@@ -23701,22 +23617,22 @@ play00_NotLeft:
 		bsr.w	plwalk_r
 
 play00_NotRight:
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		addi.b	#$20,d0
 		andi.b	#$C0,d0		; is Sonic on a	slope?
 		bne.w	play00_ResetScr	; if yes, branch
 		tst.w	$14(a0)		; is Sonic moving?
 		bne.w	play00_ResetScr	; if yes, branch
-		bclr	#5,$22(a0)
+		bclr	#5,cddat(a0)
 		move.b	#5,$1C(a0)	; use "standing" animation
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		beq.b	Sonic_Balance
 		moveq	#0,d0
 		move.b	$3D(a0),d0
 		lsl.w	#6,d0
 		lea	playerwk,a1
 		lea	(a1,d0.w),a1
-		tst.b	$22(a1)
+		tst.b	cddat(a1)
 		bmi.b	Sonic_LookUp
 		moveq	#0,d1
 		move.b	$19(a1),d1
@@ -23740,7 +23656,7 @@ Sonic_Balance:
 		bne.b	loc_12F62
 
 loc_12F5A:
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 		bra.b	loc_12F70
 ; ===========================================================================
 
@@ -23749,7 +23665,7 @@ loc_12F62:
 		bne.b	Sonic_LookUp
 
 loc_12F6A:
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 
 loc_12F70:
 		move.b	#6,$1C(a0)	; use "balancing" animation
@@ -23810,7 +23726,7 @@ loc_12FEA:
 		move.w	d0,$14(a0)
 
 loc_12FEE:
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		jsr	(sinset).l
 		muls.w	$14(a0),d1
 		asr.l	#8,d1
@@ -23820,7 +23736,7 @@ loc_12FEE:
 		move.w	d0,$12(a0)
 
 loc_1300C:
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		addi.b	#$40,d0
 		bmi.b	locret_1307C
 		move.b	#$40,d1
@@ -23830,7 +23746,7 @@ loc_1300C:
 		neg.w	d1
 
 loc_13024:
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		add.b	d1,d0
 		move.w	d0,-(sp)
 		bsr.w	Sonic_WalkSpeed
@@ -23846,7 +23762,7 @@ loc_13024:
 		cmpi.b	#$80,d0
 		beq.b	loc_13060
 		add.w	d1,$10(a0)
-		bset	#5,$22(a0)
+		bset	#5,cddat(a0)
 		move.w	#0,$14(a0)
 		rts	
 ; ===========================================================================
@@ -23858,7 +23774,7 @@ loc_13060:
 
 loc_13066:
 		sub.w	d1,$10(a0)
-		bset	#5,$22(a0)
+		bset	#5,cddat(a0)
 		move.w	#0,$14(a0)
 		rts	
 ; ===========================================================================
@@ -23868,21 +23784,21 @@ loc_13078:
 
 locret_1307C:
 		rts	
-; End of function Sonic_Move
+; End of function levermove
 
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-plwalk_l:				; XREF: Sonic_Move
+plwalk_l:				; XREF: levermove
 		move.w	$14(a0),d0
 		beq.b	loc_13086
 		bpl.b	loc_130B2
 
 loc_13086:
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		bne.b	loc_1309A
-		bclr	#5,$22(a0)
+		bclr	#5,cddat(a0)
 		move.b	#1,$1D(a0)
 
 loc_1309A:
@@ -23906,14 +23822,14 @@ loc_130B2:				; XREF: plwalk_l
 
 loc_130BA:
 		move.w	d0,$14(a0)
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		addi.b	#$20,d0
 		andi.b	#$C0,d0
 		bne.b	locret_130E8
 		cmpi.w	#$400,d0
 		blt.b	locret_130E8
 		move.b	#$D,$1C(a0)	; use "stopping" animation
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 		move.w	#$A4,d0
 		jsr	(soundset).l ;	play stopping sound
 
@@ -23925,12 +23841,12 @@ locret_130E8:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-plwalk_r:			; XREF: Sonic_Move
+plwalk_r:			; XREF: levermove
 		move.w	$14(a0),d0
 		bmi.b	loc_13118
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 		beq.b	loc_13104
-		bclr	#5,$22(a0)
+		bclr	#5,cddat(a0)
 		move.b	#1,$1D(a0)
 
 loc_13104:
@@ -23952,14 +23868,14 @@ loc_13118:				; XREF: plwalk_r
 
 loc_13120:
 		move.w	d0,$14(a0)
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		addi.b	#$20,d0
 		andi.b	#$C0,d0
 		bne.b	locret_1314E
 		cmpi.w	#-$400,d0
 		bgt.b	locret_1314E
 		move.b	#$D,$1C(a0)	; use "stopping" animation
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		move.w	#$A4,d0
 		jsr	(soundset).l ;	play stopping sound
 
@@ -24011,14 +23927,14 @@ loc_131A6:
 loc_131AA:
 		tst.w	$14(a0)		; is Sonic moving?
 		bne.b	loc_131CC	; if yes, branch
-		bclr	#2,$22(a0)
+		bclr	#2,cddat(a0)
 		move.b	#$13,$16(a0)
 		move.b	#9,$17(a0)
 		move.b	#5,$1C(a0)	; use "standing" animation
 		subq.w	#5,$C(a0)
 
 loc_131CC:
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		jsr	(sinset).l
 		muls.w	$14(a0),d0
 		asr.l	#8,d0
@@ -24049,7 +23965,7 @@ ballwalk_l:				; XREF: balllmove
 		bpl.b	loc_13218
 
 loc_1320A:
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		move.b	#2,$1C(a0)	; use "rolling"	animation
 		rts	
 ; ===========================================================================
@@ -24071,7 +23987,7 @@ loc_13220:
 ballwalk_r:			; XREF: balllmove
 		move.w	$14(a0),d0
 		bmi.b	loc_1323A
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 		move.b	#2,mstno(a0)
 		rts	
 ; ===========================================================================
@@ -24089,12 +24005,12 @@ jumpmove:			; XREF: play00jump; ball00jump
 		move.w	plmaxspdwk,d6
 		move.w	pladdspdwk,d5
 		asl.w	#1,d5
-		btst	#4,$22(a0)
+		btst	#4,cddat(a0)
 		bne.b	play00_ResetScr2
 		move.w	$10(a0),d0
 		btst	#2,swdata+0 ; is left being pressed?
 		beq.b	loc_13278	; if not, branch
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		sub.w	d5,d0
 		move.w	d6,d1
 		neg.w	d1
@@ -24105,7 +24021,7 @@ jumpmove:			; XREF: play00jump; ball00jump
 loc_13278:
 		btst	#3,swdata+0 ; is right being pressed?
 		beq.b	play00_JumpMove	; if not, branch
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 		add.w	d5,d0
 		cmp.w	d6,d0
 		blt.b	play00_JumpMove
@@ -24156,7 +24072,7 @@ locret_132D2:
 ; ---------------------------------------------------------------------------
 ; Unused subroutine to squash Sonic
 ; ---------------------------------------------------------------------------
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		addi.b	#$20,d0
 		andi.b	#$C0,d0
 		bne.b	locret_13302
@@ -24212,7 +24128,7 @@ Boundary_Bottom:
 		cmpi.w	#$2000,playerwk+xposi
 		bcs.w	playdieset
 		clr.b	saveno	; clear	lamppost counter
-		move.w	#1,($FFFFFE02).w ; restart the level
+		move.w	#1,gameflag ; restart the level
 		move.w	#$103,stageno ; set level	to SBZ3	(LZ4)
 		rts	
 ; ===========================================================================
@@ -24319,7 +24235,7 @@ jumpchk2:			; XREF: play00jump; ball00jump
 		tst.b	$3C(a0)
 		beq.b	loc_134C4
 		move.w	#-$400,d1
-		btst	#6,$22(a0)
+		btst	#6,cddat(a0)
 		beq.b	loc_134AE
 		move.w	#-$200,d1
 
@@ -24351,12 +24267,12 @@ locret_134D2:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_SlopeResist:			; XREF: play00walk
-		move.b	$26(a0),d0
+keispd:			; XREF: play00walk
+		move.b	direc(a0),d0
 		addi.b	#$60,d0
 		cmpi.b	#$C0,d0
 		bcc.b	locret_13508
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		jsr	(sinset).l
 		muls.w	#$20,d0
 		asr.l	#8,d0
@@ -24376,7 +24292,7 @@ loc_13504:
 
 locret_13508:
 		rts	
-; End of function Sonic_SlopeResist
+; End of function keispd
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	push Sonic down	a slope	while he's rolling
@@ -24385,12 +24301,12 @@ locret_13508:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-ballchkRepel:			; XREF: ball00walk
-		move.b	$26(a0),d0
+keispd2:			; XREF: ball00walk
+		move.b	direc(a0),d0
 		addi.b	#$60,d0
 		cmpi.b	#-$40,d0
 		bcc.b	locret_13544
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		jsr	(sinset).l
 		muls.w	#$50,d0
 		asr.l	#8,d0
@@ -24415,7 +24331,7 @@ loc_13540:
 
 locret_13544:
 		rts	
-; End of function ballchkRepel
+; End of function keispd2
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	push Sonic down	a slope
@@ -24424,13 +24340,13 @@ locret_13544:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_SlopeRepel:			; XREF: play00walk; ball00walk
+fallchk:			; XREF: play00walk; ball00walk
 		nop	
 		tst.b	$38(a0)
 		bne.b	locret_13580
 		tst.w	$3E(a0)
 		bne.b	loc_13582
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		addi.b	#$20,d0
 		andi.b	#$C0,d0
 		beq.b	locret_13580
@@ -24442,7 +24358,7 @@ loc_1356A:
 		cmpi.w	#$280,d0
 		bcc.b	locret_13580
 		clr.w	$14(a0)
-		bset	#1,$22(a0)
+		bset	#1,cddat(a0)
 		move.w	#$1E,$3E(a0)
 
 locret_13580:
@@ -24452,7 +24368,7 @@ locret_13580:
 loc_13582:
 		subq.w	#1,$3E(a0)
 		rts	
-; End of function Sonic_SlopeRepel
+; End of function fallchk
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	return Sonic's angle to 0 as he jumps
@@ -24461,8 +24377,8 @@ loc_13582:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-jumpchkAngle:			; XREF: play00jump; ball00jump
-		move.b	$26(a0),d0	; get Sonic's angle
+direcchg:			; XREF: play00jump; ball00jump
+		move.b	direc(a0),d0	; get Sonic's angle
 		beq.b	locret_135A2	; if already 0,	branch
 		bpl.b	loc_13598	; if higher than 0, branch
 
@@ -24480,11 +24396,11 @@ loc_13598:
 		moveq	#0,d0
 
 loc_1359E:
-		move.b	d0,$26(a0)
+		move.b	d0,direc(a0)
 
 locret_135A2:
 		rts	
-; End of function jumpchkAngle
+; End of function direcchg
 
 ; ---------------------------------------------------------------------------
 ; Subroutine for Sonic to interact with	the floor after	jumping/falling
@@ -24493,15 +24409,15 @@ locret_135A2:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_Floor:				; XREF: play00jump; ball00jump
-		move.w	$10(a0),d1
-		move.w	$12(a0),d2
-		jsr	(atan).l
-		move.b	d0,($FFFFFFEC).w
+jumpcolchk:				; XREF: play00jump; ball00jump
+		move.w	xspeed(a0),d1
+		move.w	yspeed(a0),d2
+		jsr		atan
+		move.b	d0,debugwork
 		subi.b	#$20,d0
-		move.b	d0,($FFFFFFED).w
+		move.b	d0,debugwork+1
 		andi.b	#$C0,d0
-		move.b	d0,($FFFFFFEE).w
+		move.b	d0,debugwork+2
 		cmpi.b	#$40,d0
 		beq.w	loc_13680
 		cmpi.b	#$80,d0
@@ -24511,22 +24427,22 @@ Sonic_Floor:				; XREF: play00jump; ball00jump
 		bsr.w	Sonic_HitWall
 		tst.w	d1
 		bpl.b	loc_135F0
-		sub.w	d1,8(a0)
-		move.w	#0,$10(a0)
+		sub.w	d1,xposi(a0)
+		move.w	#0,xspeed(a0)
 
 loc_135F0:
 		bsr.w	sub_14EB4
 		tst.w	d1
 		bpl.b	loc_13602
-		add.w	d1,8(a0)
-		move.w	#0,$10(a0)
+		add.w	d1,xposi(a0)
+		move.w	#0,xspeed(a0)
 
 loc_13602:
 		bsr.w	Sonic_HitFloor
-		move.b	d1,($FFFFFFEF).w
+		move.b	d1,debugwork+3
 		tst.w	d1
 		bpl.b	locret_1367E
-		move.b	$12(a0),d2
+		move.b	yspeed(a0),d2
 		addq.b	#8,d2
 		neg.b	d2
 		cmp.b	d2,d1
@@ -24535,10 +24451,10 @@ loc_13602:
 		blt.b	locret_1367E
 
 loc_1361E:
-		add.w	d1,$C(a0)
-		move.b	d3,$26(a0)
+		add.w	d1,yposi(a0)
+		move.b	d3,direc(a0)
 		bsr.w	jumpcolsub
-		move.b	#0,$1C(a0)
+		move.b	#0,mstno(a0)
 		move.b	d3,d0
 		addi.b	#$20,d0
 		andi.b	#$40,d0
@@ -24547,27 +24463,26 @@ loc_1361E:
 		addi.b	#$10,d0
 		andi.b	#$20,d0
 		beq.b	loc_1364E
-		asr	$12(a0)
+		asr		yspeed(a0)
 		bra.b	loc_13670
-; ===========================================================================
 
 loc_1364E:
-		move.w	#0,$12(a0)
-		move.w	$10(a0),$14(a0)
+		move.w	#0,yspeed(a0)
+		move.w	xspeed(a0),mspeed(a0)
 		rts	
 ; ===========================================================================
 
 loc_1365C:
-		move.w	#0,$10(a0)
-		cmpi.w	#$FC0,$12(a0)
+		move.w	#0,xspeed(a0)
+		cmpi.w	#$FC0,yspeed(a0)
 		ble.b	loc_13670
-		move.w	#$FC0,$12(a0)
+		move.w	#$FC0,yspeed(a0)
 
 loc_13670:
-		move.w	$12(a0),$14(a0)
+		move.w	yspeed(a0),mspeed(a0)
 		tst.b	d3
 		bpl.b	locret_1367E
-		neg.w	$14(a0)
+		neg.w	mspeed(a0)
 
 locret_1367E:
 		rts	
@@ -24577,9 +24492,9 @@ loc_13680:
 		bsr.w	Sonic_HitWall
 		tst.w	d1
 		bpl.b	loc_1369A
-		sub.w	d1,8(a0)
-		move.w	#0,$10(a0)
-		move.w	$12(a0),$14(a0)
+		sub.w	d1,xposi(a0)
+		move.w	#0,xspeed(a0)
+		move.w	yspeed(a0),mspeed(a0)
 		rts	
 ; ===========================================================================
 
@@ -24603,7 +24518,7 @@ loc_136B4:
 		tst.w	d1
 		bpl.b	locret_136E0
 		add.w	d1,$C(a0)
-		move.b	d3,$26(a0)
+		move.b	d3,direc(a0)
 		bsr.w	jumpcolsub
 		move.b	#0,$1C(a0)
 		move.w	#0,$12(a0)
@@ -24641,7 +24556,7 @@ loc_13706:
 ; ===========================================================================
 
 loc_13726:
-		move.b	d3,$26(a0)
+		move.b	d3,direc(a0)
 		bsr.w	jumpcolsub
 		move.w	$12(a0),$14(a0)
 		tst.b	d3
@@ -24670,10 +24585,8 @@ loc_13758:
 		tst.w	$12(a0)
 		bpl.b	locret_13770
 		move.w	#0,$12(a0)
-
 locret_13770:
 		rts	
-; ===========================================================================
 
 loc_13772:
 		tst.w	$12(a0)
@@ -24682,94 +24595,71 @@ loc_13772:
 		tst.w	d1
 		bpl.b	locret_1379E
 		add.w	d1,$C(a0)
-		move.b	d3,$26(a0)
+		move.b	d3,direc(a0)
 		bsr.w	jumpcolsub
 		move.b	#0,$1C(a0)
 		move.w	#0,$12(a0)
 		move.w	$10(a0),$14(a0)
-
 locret_1379E:
-		rts	
-; End of function Sonic_Floor
+		rts
 
-; ---------------------------------------------------------------------------
-; Subroutine to	reset Sonic's mode when he lands on the floor
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-jumpcolsub:			; XREF: PlatformObject; et al
-		btst	#4,$22(a0)
-		beq.b	loc_137AE
+jumpcolsub:
+		btst.b	#4,cddat(a0)
+		beq.b	?jump0
 		nop	
 		nop	
 		nop	
 
-loc_137AE:
-		bclr	#5,$22(a0)
-		bclr	#1,$22(a0)
-		bclr	#4,$22(a0)
-		btst	#2,$22(a0)
-		beq.b	loc_137E4
-		bclr	#2,$22(a0)
-		move.b	#$13,$16(a0)
-		move.b	#9,$17(a0)
-		move.b	#0,$1C(a0)	; use running/walking animation
-		subq.w	#5,$C(a0)
-
-loc_137E4:
+?jump0:
+		bclr.b	#cd_push,cddat(a0)
+		bclr.b	#cd_jump,cddat(a0)
+		bclr.b	#4,cddat(a0)
+		btst.b	#cd_ball,cddat(a0)
+		beq.b	?jump1
+		bclr.b	#cd_ball,cddat(a0)
+		move.b	#19,sprvsize(a0)
+		move.b	#9,sprhsize(a0)
+		move.b	#0,mstno(a0)
+		subq.w	#5,yposi(a0)
+?jump1:
 		move.b	#0,$3C(a0)
 		move.w	#0,emyscorecnt
-		rts	
-; End of function jumpcolsub
+		rts
 
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Sonic	when he	gets hurt
-; ---------------------------------------------------------------------------
-
-play00damage:				; XREF: play00_move_tbl
+play00damage:
 		jsr	speedset2
-		addi.w	#$30,$12(a0)
-		btst	#6,$22(a0)
-		beq.b	loc_1380C
-		subi.w	#$20,$12(a0)
+		addi.w	#48,yspeed(a0)
+		btst	#cd_water,cddat(a0)
+		beq.b	?jump
+		subi.w	#32,yspeed(a0)
 
-loc_1380C:
-		bsr.w	Sonic_HurtStop
+?jump:
+		bsr.w	play00damage_sub
 		bsr.w	limitchk
 		bsr.w	playposiwkset
 		bsr.w	spatset
 		bsr.w	Loadplaywrtpat
-		jmp	actionsub
+		jmp		actionsub
 
-; ---------------------------------------------------------------------------
-; Subroutine to	stop Sonic falling after he's been hurt
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-Sonic_HurtStop:				; XREF: play00damage
+play00damage_sub:
 		move.w	scralim_down,d0
-		addi.w	#$E0,d0
-		cmp.w	$C(a0),d0
+		addi.w	#224,d0
+		cmp.w	yposi(a0),d0
 		bcs.w	playdieset
-		bsr.w	Sonic_Floor
-		btst	#1,$22(a0)
-		bne.b	locret_13860
+		bsr.w	jumpcolchk
+		btst.b	#cd_jump,cddat(a0)
+		bne.b	?end
 		moveq	#0,d0
-		move.w	d0,$12(a0)
-		move.w	d0,$10(a0)
-		move.w	d0,$14(a0)
-		move.b	#0,$1C(a0)
-		subq.b	#2,$24(a0)
+		move.w	d0,yspeed(a0)
+		move.w	d0,xspeed(a0)
+		move.w	d0,mspeed(a0)
+		move.b	#0,mstno(a0)
+		subq.b	#word,r_no0(a0)
 		move.w	#$78,$30(a0)
 
-locret_13860:
+?end:
 		rts	
-; End of function Sonic_HurtStop
+; End of function play00damage_sub
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -24793,7 +24683,7 @@ GameOver:				; XREF: play00die
 		cmp.w	$C(a0),d0
 		bcc.w	locret_13900
 		move.w	#-$38,$12(a0)
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		clr.b	pltime_f	; stop time counter
 		addq.b	#1,pl_suu_f ; update lives	counter
 		subq.b	#1,pl_suu ; subtract 1 from number of lives
@@ -24828,42 +24718,32 @@ locret_13900:
 ; End of function GameOver
 
 ; ===========================================================================
-; ---------------------------------------------------------------------------
-; Sonic	when the level is restarted
-; ---------------------------------------------------------------------------
 
-play00erase:			; XREF: play00_move_tbl
-		tst.w	$3A(a0)
-		beq.b	locret_13914
-		subq.w	#1,$3A(a0)	; subtract 1 from time delay
-		bne.b	locret_13914
-		move.w	#1,($FFFFFE02).w ; restart the level
+play00erase:
+		tst.w	actfree+14(a0)
+		beq.b	?jump
+		subq.w	#1,actfree+14(a0)
+		bne.b	?jump
+		move.w	#1,gameflag
 
-locret_13914:
+?jump:
 		rts	
 
-; ---------------------------------------------------------------------------
-; Subroutine to	make Sonic run around loops (GHZ/SLZ)
-; ---------------------------------------------------------------------------
+loopchk:
+		cmpi.b	#3,stageno
+		beq.b	?jump0
+		tst.b	stageno
+		bne.w	locret_139C2
 
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-loopchk:				; XREF: play00move
-		cmpi.b	#3,stageno ; is level SLZ	?
-		beq.b	loc_13926	; if yes, branch
-		tst.b	stageno	; is level GHZ ?
-		bne.w	locret_139C2	; if not, branch
-
-loc_13926:
+?jump0:
 		move.w	$C(a0),d0
 		lsr.w	#1,d0
 		andi.w	#$380,d0
 		move.b	8(a0),d1
 		andi.w	#$7F,d1
 		add.w	d1,d0
-		lea	($FFFFA400).w,a1
-		move.b	(a1,d0.w),d1	; d1 is	the 256x256 tile Sonic is currently on
+		lea	mapwka,a1
+		move.b	(a1,d0.w),d1
 		cmp.b	($FFFFF7AE).w,d1
 		beq.w	ballset
 		cmp.b	($FFFFF7AF).w,d1
@@ -24874,50 +24754,39 @@ loc_13926:
 		beq.b	loc_13966
 		bclr	#6,1(a0)
 		rts	
-; ===========================================================================
 
 loc_13966:
-		btst	#1,$22(a0)
+		btst	#1,cddat(a0)
 		beq.b	loc_13976
-		bclr	#6,1(a0)	; send Sonic to	high plane
-		rts	
-; ===========================================================================
-
+		bclr	#6,1(a0)
+		rts
 loc_13976:
 		move.w	8(a0),d2
 		cmpi.b	#$2C,d2
 		bcc.b	loc_13988
-		bclr	#6,1(a0)	; send Sonic to	high plane
+		bclr	#6,1(a0)
 		rts	
-; ===========================================================================
-
 loc_13988:
 		cmpi.b	#-$20,d2
 		bcs.b	loc_13996
-		bset	#6,1(a0)	; send Sonic to	low plane
+		bset	#6,1(a0)
 		rts	
-; ===========================================================================
-
 loc_13996:
 		btst	#6,1(a0)
 		bne.b	loc_139B2
-		move.b	$26(a0),d1
+		move.b	direc(a0),d1
 		beq.b	locret_139C2
 		cmpi.b	#-$80,d1
 		bhi.b	locret_139C2
-		bset	#6,1(a0)	; send Sonic to	low plane
+		bset	#6,1(a0)
 		rts	
-; ===========================================================================
-
 loc_139B2:
-		move.b	$26(a0),d1
+		move.b	direc(a0),d1
 		cmpi.b	#-$80,d1
 		bls.b	locret_139C2
-		bclr	#6,1(a0)	; send Sonic to	high plane
-
+		bclr	#6,1(a0)
 locret_139C2:
-		rts	
-; End of function loopchk
+		rts
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	animate	Sonic's sprites
@@ -24941,7 +24810,7 @@ SAnim_Do:
 		adda.w	(a1,d0.w),a1	; jump to appropriate animation	script
 		move.b	(a1),d0
 		bmi.b	SAnim_WalkRun	; if animation is walk/run/roll/jump, branch
-		move.b	$22(a0),d1
+		move.b	cddat(a0),d1
 		andi.b	#1,d1
 		andi.b	#$FC,1(a0)
 		or.b	d1,1(a0)
@@ -24996,8 +24865,8 @@ SAnim_WalkRun:				; XREF: SAnim_Do
 		addq.b	#1,d0		; is animation walking/running?
 		bne.w	SAnim_RollJump	; if not, branch
 		moveq	#0,d1
-		move.b	$26(a0),d0	; get Sonic's angle
-		move.b	$22(a0),d2
+		move.b	direc(a0),d0	; get Sonic's angle
+		move.b	cddat(a0),d2
 		andi.b	#1,d2		; is Sonic mirrored horizontally?
 		bne.b	loc_13A70	; if yes, branch
 		not.b	d0		; reverse angle
@@ -25011,7 +24880,7 @@ loc_13A78:
 		andi.b	#$FC,1(a0)
 		eor.b	d1,d2
 		or.b	d2,1(a0)
-		btst	#5,$22(a0)
+		btst	#5,cddat(a0)
 		bne.w	SAnim_Push
 		lsr.b	#4,d0		; divide angle by $10
 		andi.b	#6,d0		; angle	must be	0, 2, 4	or 6
@@ -25066,7 +24935,7 @@ loc_13AF0:
 loc_13AFA:
 		lsr.w	#8,d2
 		move.b	d2,$1E(a0)	; modify frame duration
-		move.b	$22(a0),d1
+		move.b	cddat(a0),d1
 		andi.b	#1,d1
 		andi.b	#$FC,1(a0)
 		or.b	d1,1(a0)
@@ -25087,7 +24956,7 @@ loc_13B26:
 		lsr.w	#6,d2
 		move.b	d2,$1E(a0)	; modify frame duration
 		lea	(SonAni_Push).l,a1
-		move.b	$22(a0),d1
+		move.b	cddat(a0),d1
 		andi.b	#1,d1
 		andi.b	#$FC,1(a0)
 		or.b	d1,1(a0)
@@ -25151,7 +25020,7 @@ locret_13C96:
 
 plawa:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	plawa_Index(pc,d0.w),d1
 		jmp	plawa_Index(pc,d1.w)
 ; ===========================================================================
@@ -25163,15 +25032,15 @@ plawa_Index:	dc.w plawa_Main-plawa_Index, plawa_Animate-plawa_Index
 ; ===========================================================================
 
 plawa_Main:				; XREF: plawa_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_awa,4(a0)
 		move.w	#$8348,2(a0)
 		move.b	#$84,1(a0)
 		move.b	#$10,$19(a0)
 		move.b	#1,$18(a0)
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		bpl.b	loc_13D00
-		addq.b	#8,$24(a0)
+		addq.b	#8,r_no0(a0)
 		move.l	#Map_plawa,4(a0)
 		move.w	#$440,2(a0)
 		andi.w	#$7F,d0
@@ -25192,7 +25061,7 @@ plawa_ChkWater:				; XREF: plawa_Index
 		move.w	waterposi,d0
 		cmp.w	$C(a0),d0	; has bubble reached the water surface?
 		bcs.b	plawa_Wobble	; if not, branch
-		move.b	#6,$24(a0)
+		move.b	#6,r_no0(a0)
 		addq.b	#7,$1C(a0)
 		cmpi.b	#$D,$1C(a0)
 		beq.b	plawa_Display
@@ -25205,8 +25074,8 @@ plawa_Wobble:
 		addq.w	#4,$30(a0)
 
 loc_13D44:
-		move.b	$26(a0),d0
-		addq.b	#1,$26(a0)
+		move.b	direc(a0),d0
+		addq.b	#1,direc(a0)
 		andi.w	#$7F,d0
 		lea	(plawa_WobbleData).l,a1
 		move.b	(a1,d0.w),d0
@@ -25240,7 +25109,7 @@ plawa_AirLeft:				; XREF: plawa_Index
 		bhi.b	plawa_Delete3	; if higher than $C, branch
 		subq.w	#1,$38(a0)
 		bne.b	plawa_Display2
-		move.b	#$E,$24(a0)
+		move.b	#$E,r_no0(a0)
 		addq.b	#7,$1C(a0)
 		bra.b	plawa_Display
 ; ===========================================================================
@@ -25275,7 +25144,7 @@ plawa_ShowNumber:			; XREF: plawa_Wobble; plawa_Display
 		sub.w	scra_v_posit,d0
 		addi.w	#$80,d0
 		move.w	d0,$A(a0)
-		move.b	#$C,$24(a0)
+		move.b	#$C,r_no0(a0)
 
 locret_13E1A:
 		rts	
@@ -25293,7 +25162,7 @@ plawa_WobbleData:
 ; ===========================================================================
 
 plawa_Countdown:			; XREF: plawa_Index
-		tst.w	$2C(a0)
+		tst.w	actfree(a0)
 		bne.w	loc_13F86
 		cmpi.b	#6,($FFFFD024).w
 		bcc.w	locret_1408C
@@ -25334,18 +25203,18 @@ plawa_WarnSound:			; XREF: plawa_Countdown
 plawa_ReduceAir:
 		subq.w	#1,pl_air ; subtract 1 from air remaining
 		bcc.w	plawa_GoMakeItem ; if air is above 0, branch
-		bsr.w	ResumeMusic
+		bsr.w	plairset
 		move.b	#$81,($FFFFF7C8).w ; lock controls
 		move.w	#$B2,d0
 		jsr	(soundset).l ;	play drowning sound
 		move.b	#$A,$34(a0)
 		move.w	#1,$36(a0)
-		move.w	#$78,$2C(a0)
+		move.w	#$78,actfree(a0)
 		move.l	a0,-(sp)
 		lea	playerwk,a0
 		bsr.w	jumpcolsub
 		move.b	#$17,$1C(a0)	; use Sonic's drowning animation
-		bset	#1,$22(a0)
+		bset	#1,cddat(a0)
 		bset	#7,2(a0)
 		move.w	#0,$12(a0)
 		move.w	#0,$10(a0)
@@ -25356,7 +25225,7 @@ plawa_ReduceAir:
 ; ===========================================================================
 
 loc_13F86:
-		subq.w	#1,$2C(a0)
+		subq.w	#1,actfree(a0)
 		bne.b	loc_13F94
 		move.b	#6,($FFFFD024).w
 		rts	
@@ -25393,13 +25262,13 @@ plawa_MakeItem:
 		btst	#0,playerwk+cddat
 		beq.b	loc_13FF2
 		neg.w	d0
-		move.b	#$40,$26(a1)
+		move.b	#$40,direc(a1)
 
 loc_13FF2:
 		add.w	d0,8(a1)
 		move.w	playerwk+yposi,$C(a1)
-		move.b	#6,$28(a1)
-		tst.w	$2C(a0)
+		move.b	#6,userflag(a1)
+		tst.w	actfree(a0)
 		beq.w	loc_1403E
 		andi.w	#7,$3A(a0)
 		addi.w	#0,$3A(a0)
@@ -25407,13 +25276,12 @@ loc_13FF2:
 		subi.w	#$C,d0
 		move.w	d0,$C(a1)
 		jsr	(random).l
-		move.b	d0,$26(a1)
+		move.b	d0,direc(a1)
 		move.w	gametimer,d0
 		andi.b	#3,d0
 		bne.b	loc_14082
-		move.b	#$E,$28(a1)
+		move.b	#$E,userflag(a1)
 		bra.b	loc_14082
-; ===========================================================================
 
 loc_1403E:
 		btst	#7,$36(a0)
@@ -25425,7 +25293,7 @@ loc_1403E:
 		bne.b	loc_1406A
 		bset	#6,$36(a0)
 		bne.b	loc_14082
-		move.b	d2,$28(a1)
+		move.b	d2,userflag(a1)
 		move.w	#$1C,$38(a1)
 
 loc_1406A:
@@ -25433,7 +25301,7 @@ loc_1406A:
 		bne.b	loc_14082
 		bset	#6,$36(a0)
 		bne.b	loc_14082
-		move.b	d2,$28(a1)
+		move.b	d2,userflag(a1)
 		move.w	#$1C,$38(a1)
 
 loc_14082:
@@ -25444,48 +25312,32 @@ loc_14082:
 locret_1408C:
 		rts	
 
-; ---------------------------------------------------------------------------
-; Subroutine to	play music for LZ/SBZ3 after a countdown
-; ---------------------------------------------------------------------------
+plairset:
+		cmpi.w	#12,pl_air
+		bhi.b	?jump1
+		move.w	#$82,d0
+		cmpi.w	#$0103,stageno
+		bne.b	?jump0
+		move.w	#$86,d0
 
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
+?jump0:
+		jsr		bgmset
 
-
-ResumeMusic:				; XREF: awa_Wobble; plwaterchk; plawa_ReduceAir
-		cmpi.w	#$C,pl_air
-		bhi.b	loc_140AC
-		move.w	#$82,d0		; play LZ music
-		cmpi.w	#$103,stageno ; check if level is	0103 (SBZ3)
-		bne.b	loc_140A6
-		move.w	#$86,d0		; play SBZ music
-
-loc_140A6:
-		jsr	(bgmset).l
-
-loc_140AC:
-		move.w	#$1E,pl_air
+?jump1:
+		move.w	#30,pl_air
 		clr.b	($FFFFD372).w
-		rts	
-; End of function ResumeMusic
+		rts
 
 ; ===========================================================================
 Ani_plawa:
 	include "_anim\plawa.asm"
 
-; ---------------------------------------------------------------------------
-; Sprite mappings - drowning countdown numbers (LZ)
-; ---------------------------------------------------------------------------
 Map_plawa:
 	include "_maps\plawa.asm"
 
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Object 38 - shield and invincibility stars
-; ---------------------------------------------------------------------------
-
 effect:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	effect_Index(pc,d0.w),d1
 		jmp	effect_Index(pc,d1.w)
 ; ===========================================================================
@@ -25495,7 +25347,7 @@ effect_Index:	dc.w effect_Main-effect_Index
 ; ===========================================================================
 
 effect_Main:				; XREF: effect_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_effect,4(a0)
 		move.b	#4,1(a0)
 		move.b	#1,$18(a0)
@@ -25507,7 +25359,7 @@ effect_Main:				; XREF: effect_Index
 ; ===========================================================================
 
 effect_DoStars:
-		addq.b	#2,$24(a0)	; stars	specific code
+		addq.b	#2,r_no0(a0)	; stars	specific code
 		move.w	#$55C,2(a0)
 		rts	
 ; ===========================================================================
@@ -25519,7 +25371,7 @@ effect_Shield:				; XREF: effect_Index
 		beq.b	effect_Delete	; if not, branch
 		move.w	playerwk+xposi,8(a0)
 		move.w	playerwk+yposi,$C(a0)
-		move.b	playerwk+cddat,$22(a0)
+		move.b	playerwk+cddat,cddat(a0)
 		lea	(Ani_effect).l,a1
 		jsr	patchg
 		jmp	actionsub
@@ -25574,7 +25426,7 @@ effect_StarTrail2a:
 		lea	(a1,d0.w),a1
 		move.w	(a1)+,8(a0)
 		move.w	(a1)+,$C(a0)
-		move.b	playerwk+cddat,$22(a0)
+		move.b	playerwk+cddat,cddat(a0)
 		lea	(Ani_effect).l,a1
 		jsr	patchg
 		jmp	actionsub
@@ -25589,7 +25441,7 @@ effect_Delete2:				; XREF: effect_Stars
 
 Obj4A:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj4A_Index(pc,d0.w),d1
 		jmp	Obj4A_Index(pc,d1.w)
 ; ===========================================================================
@@ -25605,7 +25457,7 @@ Obj4A_Main:				; XREF: Obj4A_Index
 ; ===========================================================================
 
 Obj4A_Main2:
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_obj4A,4(a0)
 		move.b	#4,1(a0)
 		move.b	#1,$18(a0)
@@ -25616,7 +25468,7 @@ Obj4A_Main2:
 Obj4A_RmvSonic:				; XREF: Obj4A_Index
 		move.w	playerwk+xposi,8(a0)
 		move.w	playerwk+yposi,$C(a0)
-		move.b	playerwk+cddat,$22(a0)
+		move.b	playerwk+cddat,cddat(a0)
 		lea	(Ani_obj4A).l,a1
 		jsr	patchg
 		cmpi.b	#2,$1A(a0)
@@ -25647,7 +25499,7 @@ Obj4A_Wait:
 
 Obj08:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj08_Index(pc,d0.w),d1
 		jmp	Obj08_Index(pc,d1.w)
 ; ===========================================================================
@@ -25657,7 +25509,7 @@ Obj08_Index:	dc.w Obj08_Main-Obj08_Index
 ; ===========================================================================
 
 Obj08_Main:				; XREF: Obj08_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_obj08,4(a0)
 		ori.b	#4,1(a0)
 		move.b	#1,$18(a0)
@@ -25709,8 +25561,8 @@ Map_obj08:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_AnglePos:				; XREF: play00walk; ball00walk
-		btst	#3,$22(a0)
+fcol:				; XREF: play00walk; ball00walk
+		btst	#3,cddat(a0)
 		beq.b	loc_14602
 		moveq	#0,d0
 		move.b	d0,dirstk
@@ -25722,10 +25574,10 @@ loc_14602:
 		moveq	#3,d0
 		move.b	d0,dirstk
 		move.b	d0,dirstk+2
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		addi.b	#$20,d0
 		bpl.b	loc_14624
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		bpl.b	loc_1461E
 		subq.b	#1,d0
 
@@ -25735,7 +25587,7 @@ loc_1461E:
 ; ===========================================================================
 
 loc_14624:
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		bpl.b	loc_1462C
 		addq.b	#1,d0
 
@@ -25805,15 +25657,15 @@ loc_146C6:
 loc_146CC:
 		tst.b	$38(a0)
 		bne.b	loc_146C6
-		bset	#1,$22(a0)
-		bclr	#5,$22(a0)
+		bset	#1,cddat(a0)
+		bclr	#5,cddat(a0)
 		move.b	#1,$1D(a0)
 		rts	
 ; ===========================================================================
 
 locret_146E6:
 		rts	
-; End of function Sonic_AnglePos
+; End of function fcol
 
 ; ===========================================================================
 		move.l	8(a0),d2
@@ -25865,7 +25717,7 @@ locret_1470A:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_Angle:				; XREF: Sonic_AnglePos; et al
+Sonic_Angle:				; XREF: fcol; et al
 		move.b	dirstk+2,d2
 		cmp.w	d0,d1
 		ble.b	loc_1475E
@@ -25875,15 +25727,15 @@ Sonic_Angle:				; XREF: Sonic_AnglePos; et al
 loc_1475E:
 		btst	#0,d2
 		bne.b	loc_1476A
-		move.b	d2,$26(a0)
+		move.b	d2,direc(a0)
 		rts	
 ; ===========================================================================
 
 loc_1476A:
-		move.b	$26(a0),d2
+		move.b	direc(a0),d2
 		addi.b	#$20,d2
 		andi.b	#$C0,d2
-		move.b	d2,$26(a0)
+		move.b	d2,direc(a0)
 		rts	
 ; End of function Sonic_Angle
 
@@ -25894,7 +25746,7 @@ loc_1476A:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_WalkVertR:			; XREF: Sonic_AnglePos
+Sonic_WalkVertR:			; XREF: fcol
 		move.w	$C(a0),d2
 		move.w	8(a0),d3
 		moveq	#0,d0
@@ -25950,8 +25802,8 @@ loc_147F8:
 loc_147FE:
 		tst.b	$38(a0)
 		bne.b	loc_147F8
-		bset	#1,$22(a0)
-		bclr	#5,$22(a0)
+		bset	#1,cddat(a0)
+		bclr	#5,cddat(a0)
 		move.b	#1,$1D(a0)
 		rts	
 ; End of function Sonic_WalkVertR
@@ -25963,7 +25815,7 @@ loc_147FE:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_WalkCeiling:			; XREF: Sonic_AnglePos
+Sonic_WalkCeiling:			; XREF: fcol
 		move.w	$C(a0),d2
 		move.w	8(a0),d3
 		moveq	#0,d0
@@ -26020,8 +25872,8 @@ loc_1489A:
 loc_148A0:
 		tst.b	$38(a0)
 		bne.b	loc_1489A
-		bset	#1,$22(a0)
-		bclr	#5,$22(a0)
+		bset	#1,cddat(a0)
+		bclr	#5,cddat(a0)
 		move.b	#1,$1D(a0)
 		rts	
 ; End of function Sonic_WalkCeiling
@@ -26033,7 +25885,7 @@ loc_148A0:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_WalkVertL:			; XREF: Sonic_AnglePos
+Sonic_WalkVertL:			; XREF: fcol
 		move.w	$C(a0),d2
 		move.w	8(a0),d3
 		moveq	#0,d0
@@ -26090,8 +25942,8 @@ loc_1493C:
 loc_14942:
 		tst.b	$38(a0)
 		bne.b	loc_1493C
-		bset	#1,$22(a0)
-		bclr	#5,$22(a0)
+		bset	#1,cddat(a0)
+		bclr	#5,cddat(a0)
 		move.b	#1,$1D(a0)
 		rts	
 ; End of function Sonic_WalkVertL
@@ -26112,7 +25964,7 @@ Floor_ChkTile:				; XREF: FindFloor; et al
 		andi.w	#$7F,d1
 		add.w	d1,d0
 		moveq	#-1,d1
-		lea	($FFFFA400).w,a1
+		lea	mapwka,a1
 		move.b	(a1,d0.w),d1
 		beq.b	loc_14996
 		bmi.b	loc_1499A
@@ -26161,7 +26013,7 @@ loc_149B2:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-FindFloor:				; XREF: Sonic_AnglePos; et al
+FindFloor:				; XREF: fcol; et al
 		bsr.b	Floor_ChkTile
 		move.w	(a1),d0
 		move.w	d0,d4
@@ -26183,7 +26035,7 @@ loc_149EC:
 		move.b	(a2,d0.w),d0
 		andi.w	#$FF,d0
 		beq.b	loc_149DE
-		lea	(AngleMap).l,a2
+		lea	(scddirtbl).l,a2
 		move.b	(a2,d0.w),(a4)
 		lsl.w	#4,d0
 		move.w	d3,d1
@@ -26202,7 +26054,7 @@ loc_14A12:
 loc_14A22:
 		andi.w	#$F,d1
 		add.w	d0,d1
-		lea	(CollArray1).l,a2
+		lea	(scdtbl1).l,a2
 		move.b	(a2,d1.w),d0
 		ext.w	d0
 		eor.w	d6,d4
@@ -26264,7 +26116,7 @@ loc_14A94:
 		move.b	(a2,d0.w),d0
 		andi.w	#$FF,d0
 		beq.b	loc_14A86
-		lea	(AngleMap).l,a2
+		lea	(scddirtbl).l,a2
 		move.b	(a2,d0.w),(a4)
 		lsl.w	#4,d0
 		move.w	d3,d1
@@ -26283,7 +26135,7 @@ loc_14ABA:
 loc_14ACA:
 		andi.w	#$F,d1
 		add.w	d0,d1
-		lea	(CollArray1).l,a2
+		lea	(scdtbl1).l,a2
 		move.b	(a2,d1.w),d0
 		ext.w	d0
 		eor.w	d6,d4
@@ -26338,7 +26190,7 @@ loc_14B2C:
 		move.b	(a2,d0.w),d0
 		andi.w	#$FF,d0
 		beq.b	loc_14B1E
-		lea	(AngleMap).l,a2
+		lea	(scddirtbl).l,a2
 		move.b	(a2,d0.w),(a4)
 		lsl.w	#4,d0
 		move.w	d2,d1
@@ -26357,7 +26209,7 @@ loc_14B5A:
 loc_14B62:
 		andi.w	#$F,d1
 		add.w	d0,d1
-		lea	(CollArray2).l,a2
+		lea	(scdtbl2).l,a2
 		move.b	(a2,d1.w),d0
 		ext.w	d0
 		eor.w	d6,d4
@@ -26419,7 +26271,7 @@ loc_14BD4:
 		move.b	(a2,d0.w),d0
 		andi.w	#$FF,d0
 		beq.b	loc_14BC6
-		lea	(AngleMap).l,a2
+		lea	(scddirtbl).l,a2
 		move.b	(a2,d0.w),(a4)
 		lsl.w	#4,d0
 		move.w	d2,d1
@@ -26438,7 +26290,7 @@ loc_14C02:
 loc_14C0A:
 		andi.w	#$F,d1
 		add.w	d0,d1
-		lea	(CollArray2).l,a2
+		lea	(scdtbl2).l,a2
 		move.b	(a2,d1.w),d0
 		ext.w	d0
 		eor.w	d6,d4
@@ -26470,8 +26322,8 @@ loc_14C3C:
 scdcnv:
 		rts	
 
-		lea	(CollArray1).l,a1
-		lea	(CollArray1).l,a2
+		lea	(scdtbl1).l,a1
+		lea	(scdtbl1).l,a2
 		move.w	#$FF,d3
 
 loc_14C5E:
@@ -26496,11 +26348,11 @@ loc_14C6A:
 		adda.w	#$20,a1
 		dbra	d3,loc_14C5E
 
-		lea	(CollArray1).l,a1
-		lea	(CollArray2).l,a2
+		lea	(scdtbl1).l,a1
+		lea	(scdtbl2).l,a2
 		bsr.b	scdcnv2
-		lea	(CollArray1).l,a1
-		lea	(CollArray1).l,a2
+		lea	(scdtbl1).l,a1
+		lea	(scdtbl1).l,a2
 
 ; End of function scdcnv
 
@@ -26561,7 +26413,7 @@ loc_14CD6:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_WalkSpeed:			; XREF: Sonic_Move
+Sonic_WalkSpeed:			; XREF: levermove
 		move.l	8(a0),d3
 		move.l	$C(a0),d2
 		move.w	$10(a0),d1
@@ -26637,7 +26489,7 @@ sub_14D48:				; XREF: jumpchk
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_HitFloor:				; XREF: Sonic_Floor
+Sonic_HitFloor:				; XREF: jumpcolchk
 		move.w	$C(a0),d2
 		move.w	8(a0),d3
 		moveq	#0,d0
@@ -26790,7 +26642,7 @@ sub_14E50:				; XREF: sub_14D48
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-sub_14EB4:				; XREF: Sonic_Floor
+sub_14EB4:				; XREF: jumpcolchk
 		move.w	$C(a0),d2
 		move.w	8(a0),d3
 
@@ -26840,7 +26692,7 @@ locret_14F06:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_DontRunOnWalls:			; XREF: Sonic_Floor; et al
+Sonic_DontRunOnWalls:			; XREF: jumpcolchk; et al
 		move.w	$C(a0),d2
 		move.w	8(a0),d3
 		moveq	#0,d0
@@ -26962,7 +26814,7 @@ loc_14FD6:				; XREF: sub_14D48
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Sonic_HitWall:				; XREF: Sonic_Floor
+Sonic_HitWall:				; XREF: jumpcolchk
 		move.w	$C(a0),d2
 		move.w	8(a0),d3
 
@@ -27010,7 +26862,7 @@ locret_15098:
 
 mawaru:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	mawaru_Index(pc,d0.w),d1
 		jmp	mawaru_Index(pc,d1.w)
 ; ===========================================================================
@@ -27021,7 +26873,7 @@ mawaru_Index:	dc.w mawaru_Main-mawaru_Index
 ; ===========================================================================
 
 mawaru_Main:				; XREF: mawaru_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#1,d1
 		movea.l	a0,a1
 		bra.b	mawaru_MakeItem
@@ -27031,7 +26883,7 @@ mawaru_Loop:
 		bsr.w	actwkchk
 		bne.b	loc_150FE
 		move.b	#$66,0(a1)
-		addq.b	#4,$24(a1)
+		addq.b	#4,r_no0(a1)
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
 		move.b	#3,$18(a1)
@@ -27050,7 +26902,7 @@ loc_150FE:
 		move.b	#4,$18(a0)
 		move.w	#$3C,$30(a0)
 		move.b	#1,$34(a0)
-		move.b	$28(a0),$38(a0)
+		move.b	userflag(a0),$38(a0)
 
 mawaru_Action:				; XREF: mawaru_Index
 		bsr.w	mawaru_ChkSwitch
@@ -27062,7 +26914,7 @@ mawaru_Action:				; XREF: mawaru_Index
 		addq.w	#1,d3
 		move.w	8(a0),d4
 		bsr.w	hitchk
-		btst	#5,$22(a0)
+		btst	#5,cddat(a0)
 		beq.w	mawaru_Display
 		lea	playerwk,a1
 		moveq	#$E,d1
@@ -27075,15 +26927,15 @@ mawaru_GrabSonic:
 		cmp.b	$1A(a0),d1
 		bne.b	mawaru_Display
 		move.b	d1,$32(a0)
-		addq.b	#4,$24(a0)
+		addq.b	#4,r_no0(a0)
 		move.b	#1,($FFFFF7C8).w ; lock	controls
 		move.b	#2,$1C(a1)	; make Sonic use "rolling" animation
 		move.w	#$800,$14(a1)
 		move.w	#0,$10(a1)
 		move.w	#0,$12(a1)
-		bclr	#5,$22(a0)
-		bclr	#5,$22(a1)
-		bset	#1,$22(a1)
+		bclr	#5,cddat(a0)
+		bclr	#5,cddat(a1)
+		bset	#1,cddat(a1)
 		move.w	8(a1),d2
 		move.w	$C(a1),d3
 		bsr.w	mawaru_ChgPos
@@ -27116,7 +26968,7 @@ loc_151C8:
 
 loc_151F0:
 		clr.b	($FFFFF7C8).w	; unlock controls
-		subq.b	#4,$24(a0)
+		subq.b	#4,r_no0(a0)
 
 loc_151F8:
 		bsr.b	mawaru_ChkSwitch
@@ -27199,7 +27051,7 @@ Map_mawaru:
 
 haguruma:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	haguruma_Index(pc,d0.w),d1
 		jmp	haguruma_Index(pc,d1.w)
 ; ===========================================================================
@@ -27208,7 +27060,7 @@ haguruma_Index:	dc.w haguruma_Main-haguruma_Index
 ; ===========================================================================
 
 haguruma_Main:				; XREF: haguruma_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_haguruma,4(a0)
 		move.w	#$C344,2(a0)
 		move.b	#4,1(a0)
@@ -27218,22 +27070,22 @@ haguruma_Main:				; XREF: haguruma_Index
 		move.w	$C(a0),$30(a0)
 		move.b	#$18,$34(a0)
 		move.b	#$48,$38(a0)
-		move.b	$28(a0),d1	; get object type
+		move.b	userflag(a0),d1	; get object type
 		andi.b	#$F,d1		; read only the	2nd digit
 		beq.b	loc_15546
 		move.b	#$10,$34(a0)
 		move.b	#$38,$38(a0)
 
 loc_15546:
-		move.b	$28(a0),d1	; get object type
+		move.b	userflag(a0),d1	; get object type
 		andi.b	#$F0,d1		; read only the	1st digit
 		ext.w	d1
 		asl.w	#3,d1
 		move.w	d1,$36(a0)
-		move.b	$22(a0),d0
+		move.b	cddat(a0),d0
 		ror.b	#2,d0
 		andi.b	#-$40,d0
-		move.b	d0,$26(a0)
+		move.b	d0,direc(a0)
 
 haguruma_Action:				; XREF: haguruma_Index
 		bsr.w	haguruma_MoveSonic
@@ -27257,7 +27109,7 @@ haguruma_MoveSonic:			; XREF: haguruma_Action
 		add.w	d2,d1
 		cmp.w	d3,d1
 		bcc.b	loc_155A8
-		btst	#1,$22(a1)
+		btst	#1,cddat(a1)
 		beq.b	loc_155B8
 		clr.b	$3A(a0)
 		rts	
@@ -27277,12 +27129,12 @@ loc_155B8:
 		tst.b	$3A(a0)
 		bne.b	loc_155E2
 		move.b	#1,$3A(a0)
-		btst	#2,$22(a1)
+		btst	#2,cddat(a1)
 		bne.b	loc_155D0
 		clr.b	$1C(a1)
 
 loc_155D0:
-		bclr	#5,$22(a1)
+		bclr	#5,cddat(a1)
 		move.b	#1,$1D(a1)
 		move.b	#1,$38(a1)
 
@@ -27323,8 +27175,8 @@ locret_15622:
 
 haguruma_MoveSpot:				; XREF: haguruma_Action
 		move.w	$36(a0),d0
-		add.w	d0,$26(a0)
-		move.b	$26(a0),d0
+		add.w	d0,direc(a0)
+		move.b	direc(a0),d0
 		jsr	(sinset).l
 		move.w	$30(a0),d2
 		move.w	$32(a0),d3
@@ -27373,7 +27225,7 @@ Map_haguruma:
 
 beltcon:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	beltcon_Index(pc,d0.w),d1
 		jmp	beltcon_Index(pc,d1.w)
 ; ===========================================================================
@@ -27382,15 +27234,15 @@ beltcon_Index:	dc.w beltcon_Main-beltcon_Index
 ; ===========================================================================
 
 beltcon_Main:				; XREF: beltcon_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#128,$38(a0)	; set width to 128 pixels
-		move.b	$28(a0),d1	; get object type
+		move.b	userflag(a0),d1	; get object type
 		andi.b	#$F,d1		; read only the	2nd digit
 		beq.b	loc_156BA	; if zero, branch
 		move.b	#56,$38(a0)	; set width to 56 pixels
 
 loc_156BA:
-		move.b	$28(a0),d1	; get object type
+		move.b	userflag(a0),d1	; get object type
 		andi.b	#$F0,d1		; read only the	1st digit
 		ext.w	d1
 		asr.w	#4,d1
@@ -27429,7 +27281,7 @@ beltcon_MoveSonic:			; XREF: beltcon_Action
 		addi.w	#$30,d1
 		cmpi.w	#$30,d1
 		bcc.b	locret_1572E
-		btst	#1,$22(a1)
+		btst	#1,cddat(a1)
 		bne.b	locret_1572E
 		move.w	$36(a0),d0
 		add.w	d0,8(a1)
@@ -27444,7 +27296,7 @@ locret_1572E:
 
 pata:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	pata_Index(pc,d0.w),d1
 		jmp	pata_Index(pc,d1.w)
 ; ===========================================================================
@@ -27454,25 +27306,25 @@ pata_Index:	dc.w pata_Main-pata_Index
 ; ===========================================================================
 
 pata_Main:				; XREF: pata_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_pata,4(a0)
 		move.w	#$4492,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#$80,$19(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#$F,d0
 		mulu.w	#$3C,d0
 		move.w	d0,$32(a0)
-		tst.b	$28(a0)
+		tst.b	userflag(a0)
 		bpl.b	pata_Trapdoor
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_pataa,4(a0)
 		move.w	#$4DF,2(a0)
 		move.b	#$10,$19(a0)
 		move.b	#2,$1C(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0	; get object type
+		move.b	userflag(a0),d0	; get object type
 		move.w	d0,d1
 		andi.w	#$F,d0		; read only the	2nd digit
 		mulu.w	#6,d0		; multiply by 6
@@ -27511,12 +27363,12 @@ pata_Animate:
 ; ===========================================================================
 
 pata_NotSolid:
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		beq.b	pata_Display
 		lea	playerwk,a1
-		bclr	#3,$22(a1)
-		bclr	#3,$22(a0)
-		clr.b	$25(a0)
+		bclr	#3,cddat(a1)
+		bclr	#3,cddat(a0)
+		clr.b	r_no1(a0)
 
 pata_Display:
 		bra.w	frameoutchk
@@ -27552,12 +27404,12 @@ pata_Animate2:
 ; ===========================================================================
 
 pata_NotSolid2:
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		beq.b	pata_Display2
 		lea	playerwk,a1
-		bclr	#3,$22(a1)
-		bclr	#3,$22(a0)
-		clr.b	$25(a0)
+		bclr	#3,cddat(a1)
+		bclr	#3,cddat(a0)
+		clr.b	r_no1(a0)
 
 pata_Display2:
 		bra.w	frameoutchk
@@ -27584,7 +27436,7 @@ Map_pataa:
 
 noko:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	noko_Index(pc,d0.w),d1
 		jmp	noko_Index(pc,d1.w)
 ; ===========================================================================
@@ -27593,7 +27445,7 @@ noko_Index:	dc.w noko_Main-noko_Index
 ; ===========================================================================
 
 noko_Main:				; XREF: noko_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_noko,4(a0)
 		move.w	#$43B5,2(a0)
 		move.b	#4,1(a0)
@@ -27601,13 +27453,13 @@ noko_Main:				; XREF: noko_Index
 		move.b	#$20,$19(a0)
 		move.w	8(a0),$3A(a0)
 		move.w	$C(a0),$38(a0)
-		cmpi.b	#3,$28(a0)
+		cmpi.b	#3,userflag(a0)
 		bcc.b	noko_Action
-		move.b	#$A2,$20(a0)
+		move.b	#$A2,colino(a0)
 
 noko_Action:				; XREF: noko_Index
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#7,d0
 		add.w	d0,d0
 		move.w	noko_TypeIndex(pc,d0.w),d1
@@ -27639,7 +27491,7 @@ noko_Type01:				; XREF: noko_TypeIndex
 		move.w	#$60,d1
 		moveq	#0,d0
 		move.b	($FFFFFE6C).w,d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	noko_Animate01
 		neg.w	d0
 		add.w	d1,d0
@@ -27670,7 +27522,7 @@ noko_Type02:				; XREF: noko_TypeIndex
 		move.w	#$30,d1
 		moveq	#0,d0
 		move.b	($FFFFFE64).w,d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	noko_Animate02
 		neg.w	d0
 		addi.w	#$80,d0
@@ -27714,7 +27566,7 @@ noko_Type03:				; XREF: noko_TypeIndex
 		bcs.b	locret_15B04
 		move.b	#1,$3D(a0)
 		move.w	#$600,$10(a0)	; move object to the right
-		move.b	#$A2,$20(a0)
+		move.b	#$A2,colino(a0)
 		move.b	#2,$1A(a0)
 		move.w	#$B0,d0
 		jsr	(soundset).l ;	play saw sound
@@ -27754,7 +27606,7 @@ noko_Type04:				; XREF: noko_TypeIndex
 		bcs.b	locret_15B76
 		move.b	#1,$3D(a0)
 		move.w	#-$600,$10(a0)	; move object to the left
-		move.b	#$A2,$20(a0)
+		move.b	#$A2,colino(a0)
 		move.b	#2,$1A(a0)
 		move.w	#$B0,d0
 		jsr	(soundset).l ;	play saw sound
@@ -27790,7 +27642,7 @@ Map_noko:
 
 dai4:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	dai4_Index(pc,d0.w),d1
 		jmp	dai4_Index(pc,d1.w)
 ; ===========================================================================
@@ -27805,9 +27657,9 @@ dai4_Var:	dc.b  $40,  $C,	$80,   1 ; width, height, ????,	type number
 ; ===========================================================================
 
 dai4_Main:				; XREF: dai4_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		lsr.w	#2,d0
 		andi.w	#$1C,d0
 		lea	dai4_Var(pc,d0.w),a3
@@ -27823,9 +27675,9 @@ dai4_Main:				; XREF: dai4_Index
 		beq.b	dai4_SBZ3
 
 dai4_ChkGone:				; XREF: dai4_SBZ3
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	dai4_Delete
 		bclr	#7,2(a2,d0.w)
 
@@ -27837,9 +27689,9 @@ dai4_SBZ3:				; XREF: dai4_Main
 		move.w	#$41F0,2(a0)
 		cmpi.w	#$A80,8(a0)
 		bne.b	dai4_SBZ12
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	dai4_SBZ12
 		btst	#0,2(a2,d0.w)
 		beq.b	dai4_SBZ12
@@ -27856,26 +27708,26 @@ dai4_SBZ12:				; XREF: dai4_Main
 		move.b	(a3)+,d0
 		move.w	d0,$3C(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		bpl.b	dai4_Action
 		andi.b	#$F,d0
 		move.b	d0,$3E(a0)
-		move.b	(a3),$28(a0)
+		move.b	(a3),userflag(a0)
 		cmpi.b	#5,(a3)
 		bne.b	dai4_ChkGone2
 		bset	#4,1(a0)
 
 dai4_ChkGone2:
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	dai4_Action
 		bclr	#7,2(a2,d0.w)
 
 dai4_Action:				; XREF: dai4_Index
 		move.w	8(a0),-(sp)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		andi.w	#$F,d0
 		add.w	d0,d0
 		move.w	dai4_TypeIndex(pc,d0.w),d1
@@ -27908,9 +27760,9 @@ loc_15D64:
 		cmpi.b	#1,stageno
 		bne.b	dai4_Delete2
 		clr.b	($FFFFF7CB).w
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	dai4_Delete2
 		bclr	#7,2(a2,d0.w)
 
@@ -27944,7 +27796,7 @@ loc_15DB4:
 
 loc_15DC2:
 		move.w	$3A(a0),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_15DD4
 		neg.w	d0
 		addi.w	#$80,d0
@@ -27957,12 +27809,12 @@ loc_15DD4:
 ; ===========================================================================
 
 loc_15DE0:
-		addq.b	#1,$28(a0)
+		addq.b	#1,userflag(a0)
 		move.w	#$B4,$36(a0)
 		clr.b	$38(a0)
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	loc_15DC2
 		bset	#0,2(a2,d0.w)
 		bra.b	loc_15DC2
@@ -27982,7 +27834,7 @@ loc_15E14:
 
 loc_15E1E:
 		move.w	$3A(a0),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_15E30
 		neg.w	d0
 		addi.w	#$80,d0
@@ -27995,11 +27847,11 @@ loc_15E30:
 ; ===========================================================================
 
 loc_15E3C:
-		subq.b	#1,$28(a0)
+		subq.b	#1,userflag(a0)
 		clr.b	$38(a0)
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	loc_15E1E
 		bclr	#0,2(a2,d0.w)
 		bra.b	loc_15E1E
@@ -28029,7 +27881,7 @@ loc_15E7C:
 
 loc_15E8E:
 		move.w	$3A(a0),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_15EA0
 		neg.w	d0
 		addi.w	#$38,d0
@@ -28072,7 +27924,7 @@ loc_15EE0:
 
 loc_15EF0:
 		move.w	$3A(a0),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_15F02
 		neg.w	d0
 		addi.w	#$38,d0
@@ -28093,9 +27945,9 @@ dai4_Type05:				; XREF: dai4_TypeIndex
 		btst	#0,(a2,d0.w)
 		beq.b	locret_15F5C
 		move.b	#1,$38(a0)
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	loc_15F3E
 		bset	#0,2(a2,d0.w)
 
@@ -28111,7 +27963,7 @@ locret_15F5C:
 ; ===========================================================================
 
 loc_15F5E:
-		clr.b	$28(a0)
+		clr.b	userflag(a0)
 		clr.b	$38(a0)
 		rts	
 ; ===========================================================================
@@ -28128,7 +27980,7 @@ Map_dai4:
 
 yukae:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	yukae_Index(pc,d0.w),d1
 		jmp	yukae_Index(pc,d1.w)
 ; ===========================================================================
@@ -28139,14 +27991,14 @@ yukae_Index:	dc.w yukae_Main-yukae_Index
 ; ===========================================================================
 
 yukae_Main:				; XREF: yukae_Index
-		addq.b	#6,$24(a0)
+		addq.b	#6,r_no0(a0)
 		move.l	#Map_yukae,4(a0)
 		move.w	#$44C3,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#$10,$19(a0)
 		move.b	#4,$18(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0	; get object type
+		move.b	userflag(a0),d0	; get object type
 		andi.w	#$F,d0		; read only the	2nd digit
 		addq.w	#1,d0		; add 1
 		lsl.w	#7,d0		; multiply by $80
@@ -28155,7 +28007,7 @@ yukae_Main:				; XREF: yukae_Index
 		move.w	d0,$30(a0)
 		move.w	d0,$32(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0	; get object type
+		move.b	userflag(a0),d0	; get object type
 		andi.w	#$F0,d0		; read only the	1st digit
 		addi.w	#$80,d1
 		mulu.w	d1,d0
@@ -28169,7 +28021,7 @@ loc_16068:				; XREF: yukae_Index
 		sub.w	$36(a0),d0
 		and.w	$38(a0),d0
 		bne.b	yukae_Animate
-		subq.b	#4,$24(a0)
+		subq.b	#4,r_no0(a0)
 		bra.b	yukae_Vanish
 ; ===========================================================================
 
@@ -28195,7 +28047,7 @@ loc_160AA:
 		jsr	patchg
 		btst	#1,$1A(a0)	; has platform vanished?
 		bne.b	yukae_NotSolid	; if yes, branch
-		cmpi.b	#2,$24(a0)
+		cmpi.b	#2,r_no0(a0)
 		bne.b	loc_160D6
 		moveq	#0,d1
 		move.b	$19(a0),d1
@@ -28213,13 +28065,13 @@ loc_160D6:
 ; ===========================================================================
 
 yukae_NotSolid:				; XREF: yukae_Vanish
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		beq.b	yukae_Display
 		lea	playerwk,a1
-		bclr	#3,$22(a1)
-		bclr	#3,$22(a0)
-		move.b	#2,$24(a0)
-		clr.b	$25(a0)
+		bclr	#3,cddat(a1)
+		bclr	#3,cddat(a0)
+		move.b	#2,r_no0(a0)
+		clr.b	r_no1(a0)
 
 yukae_Display:
 		bra.w	frameoutchk
@@ -28240,7 +28092,7 @@ Map_yukae:
 
 ele:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	ele_Index(pc,d0.w),d1
 		jmp	ele_Index(pc,d1.w)
 ; ===========================================================================
@@ -28249,13 +28101,13 @@ ele_Index:	dc.w ele_Main-ele_Index
 ; ===========================================================================
 
 ele_Main:				; XREF: ele_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_ele,4(a0)
 		move.w	#$47E,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#$28,$19(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0	; read object type
+		move.b	userflag(a0),d0	; read object type
 		lsl.w	#4,d0		; multiply by $10
 		subq.w	#1,d0
 		move.w	d0,$34(a0)
@@ -28273,10 +28125,10 @@ ele_Shock:				; XREF: ele_Index
 ele_Animate:
 		lea	(Ani_ele).l,a1
 		jsr	patchg
-		move.b	#0,$20(a0)
+		move.b	#0,colino(a0)
 		cmpi.b	#4,$1A(a0)	; is frame number 4 displayed?
 		bne.b	ele_Display	; if not, branch
-		move.b	#$A4,$20(a0)	; if yes, make object hurt Sonic
+		move.b	#$A4,colino(a0)	; if yes, make object hurt Sonic
 
 ele_Display:
 		bra.w	frameoutchk
@@ -28297,7 +28149,7 @@ Map_ele:
 
 beltc:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	beltc_Index(pc,d0.w),d1
 		jsr	beltc_Index(pc,d1.w)
 		move.w	$30(a0),d0
@@ -28334,16 +28186,16 @@ beltc_Index:	dc.w beltc_Main-beltc_Index
 ; ===========================================================================
 
 beltc_Main:				; XREF: beltc_Index
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		bmi.w	loc_16380
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_pataa,4(a0)
 		move.w	#$4DF,2(a0)
 		move.b	#$10,$19(a0)
 		ori.b	#4,1(a0)
 		move.b	#4,$18(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		move.w	d0,d1
 		lsr.w	#3,d0
 		andi.w	#$1E,d0
@@ -28421,7 +28273,7 @@ beltc_LoadPform:			; XREF: loc_1639A
 		move.w	(a2)+,8(a1)
 		move.w	(a2)+,$C(a1)
 		move.w	(a2)+,d0
-		move.b	d0,$28(a1)
+		move.b	d0,userflag(a1)
 
 loc_163D0:
 		dbra	d1,beltc_Loop
@@ -28446,12 +28298,12 @@ loc_163D8:				; XREF: beltc_Index
 ; ===========================================================================
 
 loc_16404:
-		btst	#3,$22(a0)
+		btst	#3,cddat(a0)
 		beq.b	loc_16420
 		lea	playerwk,a1
-		bclr	#3,$22(a1)
-		bclr	#3,$22(a0)
-		clr.b	$25(a0)
+		bclr	#3,cddat(a1)
+		bclr	#3,cddat(a0)
+		clr.b	r_no1(a0)
 
 loc_16420:
 		bra.w	*+4
@@ -28513,7 +28365,7 @@ word_16516:	dc.w $10, $1C80, $1C14,	$5E0, $1CEF, $572, $1CEF, $5B0,	$1C14, $61E
 
 yukai:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	yukai_Index(pc,d0.w),d1
 		jmp	yukai_Index(pc,d1.w)
 ; ===========================================================================
@@ -28522,7 +28374,7 @@ yukai_Index:	dc.w yukai_Main-yukai_Index
 ; ===========================================================================
 
 yukai_Main:				; XREF: yukai_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_yukai,4(a0)
 		move.w	#$42F0,2(a0)
 		ori.b	#4,1(a0)
@@ -28604,7 +28456,7 @@ Map_yukai:
 
 Obj72:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj72_Index(pc,d0.w),d1
 		jsr	Obj72_Index(pc,d1.w)
 		move.w	8(a0),d0
@@ -28628,8 +28480,8 @@ Obj72_Index:	dc.w Obj72_Main-Obj72_Index
 ; ===========================================================================
 
 Obj72_Main:				; XREF: Obj72_Index
-		addq.b	#2,$24(a0)
-		move.b	$28(a0),d0
+		addq.b	#2,r_no0(a0)
+		move.b	userflag(a0),d0
 		add.w	d0,d0
 		andi.w	#$1E,d0
 		lea	Obj72_Data(pc),a2
@@ -28643,7 +28495,7 @@ loc_166C8:				; XREF: Obj72_Index
 		lea	playerwk,a1
 		move.w	8(a1),d0
 		sub.w	8(a0),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_166E0
 		addi.w	#$F,d0
 
@@ -28657,21 +28509,21 @@ loc_166E0:
 		bcc.b	locret_1675C
 		tst.b	($FFFFF7C8).w
 		bne.b	locret_1675C
-		cmpi.b	#7,$28(a0)
+		cmpi.b	#7,userflag(a0)
 		bne.b	loc_1670E
 		cmpi.w	#50,plring
 		bcs.b	locret_1675C
 
 loc_1670E:
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#$81,($FFFFF7C8).w ; lock controls
 		move.b	#2,$1C(a1)	; use Sonic's rolling animation
 		move.w	#$800,$14(a1)
 		move.w	#0,$10(a1)
 		move.w	#0,$12(a1)
-		bclr	#5,$22(a0)
-		bclr	#5,$22(a1)
-		bset	#1,$22(a1)
+		bclr	#5,cddat(a0)
+		bclr	#5,cddat(a1)
+		bset	#1,cddat(a1)
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
 		clr.b	$32(a0)
@@ -28694,7 +28546,7 @@ loc_1675E:				; XREF: Obj72_Index
 		cmpi.b	#$80,$32(a0)
 		bne.b	locret_16796
 		bsr.w	sub_1681C
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#$BC,d0
 		jsr	(soundset).l ;	play teleport sound
 
@@ -28744,7 +28596,7 @@ loc_167DA:
 
 loc_16800:
 		andi.w	#$7FF,$C(a1)
-		clr.b	$24(a0)
+		clr.b	r_no0(a0)
 		clr.b	($FFFFF7C8).w
 		move.w	#0,$10(a1)
 		move.w	#$200,$12(a1)
@@ -28854,7 +28706,7 @@ word_1692E:	dc.w 4,	$894, $90
 
 imo:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	imo_Index(pc,d0.w),d1
 		jmp	imo_Index(pc,d1.w)
 ; ===========================================================================
@@ -28880,7 +28732,7 @@ imo_Main:				; XREF: imo_Index
 		bpl.b	locret_16950
 		add.w	d1,$C(a0)
 		clr.w	$12(a0)
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.l	#Map_imo,4(a0)
 		move.w	#$22B0,2(a0)
 		cmpi.b	#5,stageno ; if level is SBZ, branch
@@ -28890,13 +28742,13 @@ imo_Main:				; XREF: imo_Index
 loc_16996:
 		andi.b	#3,1(a0)
 		ori.b	#4,1(a0)
-		move.b	1(a0),$22(a0)
+		move.b	1(a0),cddat(a0)
 		move.b	#4,$18(a0)
 		move.b	#8,$19(a0)
-		move.b	#$B,$20(a0)
+		move.b	#$B,colino(a0)
 		move.w	8(a0),d2
 		moveq	#$C,d5
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_169CA
 		neg.w	d5
 
@@ -28911,18 +28763,18 @@ imo_LoadBody:
 		jsr	actwkchk2
 		bne.b	imo_QuitLoad
 		move.b	#$78,0(a1)	; load body segment object
-		move.b	d6,$24(a1)
+		move.b	d6,r_no0(a1)
 		addq.b	#2,d6
 		move.l	4(a0),4(a1)
 		move.w	2(a0),2(a1)
 		move.b	#5,$18(a1)
 		move.b	#8,$19(a1)
-		move.b	#$CB,$20(a1)
+		move.b	#$CB,colino(a1)
 		add.w	d5,d2
 		move.w	d2,8(a1)
 		move.w	$C(a0),$C(a1)
-		move.b	$22(a0),$22(a1)
-		move.b	$22(a0),1(a1)
+		move.b	cddat(a0),cddat(a1)
+		move.b	cddat(a0),1(a1)
 		move.b	#8,$1A(a1)
 		move.l	a2,$3C(a1)
 		move.b	d4,$3C(a1)
@@ -28936,18 +28788,18 @@ imo_QuitLoad:
 		clr.b	$3C(a0)
 
 imo_Action:				; XREF: imo_Index
-		tst.b	$22(a0)
+		tst.b	cddat(a0)
 		bmi.w	loc_16C96
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	imo_Index2(pc,d0.w),d1
 		jsr	imo_Index2(pc,d1.w)
 		move.b	$2B(a0),d1
 		bpl.b	imo_Display
 		lea	(Ani_imo).l,a1
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		andi.w	#$7F,d0
-		addq.b	#4,$26(a0)
+		addq.b	#4,direc(a0)
 		move.b	(a1,d0.w),d0
 		bpl.b	imo_AniHead
 		bclr	#7,$2B(a0)
@@ -28972,14 +28824,14 @@ imo_Display:
 ; ===========================================================================
 
 imo_ChkGone:
-		lea	($FFFFFC00).w,a2
+		lea	flagwork,a2
 		moveq	#0,d0
-		move.b	$23(a0),d0
+		move.b	cdsts(a0),d0
 		beq.b	loc_16ABC
 		bclr	#7,2(a2,d0.w)
 
 loc_16ABC:
-		move.b	#$A,$24(a0)	; run "imo_Delete" routine
+		move.b	#$A,r_no0(a0)	; run "imo_Delete" routine
 		rts	
 ; ===========================================================================
 
@@ -28997,7 +28849,7 @@ imo_Move:				; XREF: imo_Index2
 ; ===========================================================================
 
 imo_Move2:
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.b	#$10,$2A(a0)
 		move.w	#-$C0,$10(a0)
 		move.w	#$40,$14(a0)
@@ -29015,7 +28867,7 @@ loc_16B02:				; XREF: imo_Index2
 		move.l	8(a0),-(sp)
 		move.l	8(a0),d2
 		move.w	$10(a0),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_16B1E
 		neg.w	d0
 
@@ -29038,14 +28890,14 @@ loc_16B1E:
 		move.b	$3C(a0),d0
 		addq.b	#1,$3C(a0)
 		andi.b	#$F,$3C(a0)
-		move.b	d1,$2C(a0,d0.w)
+		move.b	d1,actfree(a0,d0.w)
 
 locret_16B5C:
 		rts	
 ; ===========================================================================
 
 loc_16B5E:
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		move.b	#7,$2A(a0)
 		move.w	#0,$10(a0)
 		rts	
@@ -29053,11 +28905,11 @@ loc_16B5E:
 
 loc_16B70:
 		move.l	d2,8(a0)
-		bchg	#0,$22(a0)
-		move.b	$22(a0),1(a0)
+		bchg	#0,cddat(a0)
+		move.b	cddat(a0),1(a0)
 		moveq	#0,d0
 		move.b	$3C(a0),d0
-		move.b	#$80,$2C(a0,d0.w)
+		move.b	#$80,actfree(a0,d0.w)
 		addq.b	#1,$3C(a0)
 		andi.b	#$F,$3C(a0)
 		rts	
@@ -29068,12 +28920,12 @@ imo_BodySeg2:				; XREF: imo_Index
 		move.b	$2B(a1),$2B(a0)
 		bpl.b	imo_BodySeg1
 		lea	(Ani_imo).l,a1
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		andi.w	#$7F,d0
-		addq.b	#4,$26(a0)
+		addq.b	#4,direc(a0)
 		tst.b	4(a1,d0.w)
 		bpl.b	imo_AniBody
-		addq.b	#4,$26(a0)
+		addq.b	#4,direc(a0)
 
 imo_AniBody:
 		move.b	(a1,d0.w),d0
@@ -29082,10 +28934,10 @@ imo_AniBody:
 
 imo_BodySeg1:				; XREF: imo_Index
 		movea.l	$3C(a0),a1
-		tst.b	$22(a0)
+		tst.b	cddat(a0)
 		bmi.w	loc_16C90
 		move.b	$2B(a1),$2B(a0)
-		move.b	$25(a1),$25(a0)
+		move.b	r_no1(a1),r_no1(a0)
 		beq.w	loc_16C64
 		move.w	$14(a1),$14(a0)
 		move.w	$10(a1),d0
@@ -29094,7 +28946,7 @@ imo_BodySeg1:				; XREF: imo_Index
 		move.l	8(a0),d2
 		move.l	d2,d3
 		move.w	$10(a0),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_16C0C
 		neg.w	d0
 
@@ -29108,14 +28960,14 @@ loc_16C0C:
 		beq.b	loc_16C64
 		moveq	#0,d0
 		move.b	$3C(a0),d0
-		move.b	$2C(a1,d0.w),d1
+		move.b	actfree(a1,d0.w),d1
 		cmpi.b	#-$80,d1
 		bne.b	loc_16C50
 		swap	d3
 		move.l	d3,8(a0)
-		move.b	d1,$2C(a0,d0.w)
-		bchg	#0,$22(a0)
-		move.b	$22(a0),1(a0)
+		move.b	d1,actfree(a0,d0.w)
+		bchg	#0,cddat(a0)
+		move.b	cddat(a0),1(a0)
 		addq.b	#1,$3C(a0)
 		andi.b	#$F,$3C(a0)
 		bra.b	loc_16C64
@@ -29126,18 +28978,18 @@ loc_16C50:
 		add.w	d1,$C(a0)
 		addq.b	#1,$3C(a0)
 		andi.b	#$F,$3C(a0)
-		move.b	d1,$2C(a0,d0.w)
+		move.b	d1,actfree(a0,d0.w)
 
 loc_16C64:
-		cmpi.b	#$C,$24(a1)
+		cmpi.b	#$C,r_no0(a1)
 		beq.b	loc_16C90
 		cmpi.b	#$27,0(a1)
 		beq.b	loc_16C7C
-		cmpi.b	#$A,$24(a1)
+		cmpi.b	#$A,r_no0(a1)
 		bne.b	loc_16C82
 
 loc_16C7C:
-		move.b	#$A,$24(a0)
+		move.b	#$A,r_no0(a0)
 
 loc_16C82:
 		jmp	actionsub
@@ -29147,20 +28999,20 @@ imo_FragSpeed:dc.w $FE00, $FE80, $180, $200
 ; ===========================================================================
 
 loc_16C90:
-		bset	#7,$22(a1)
+		bset	#7,cddat(a1)
 
 loc_16C96:
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	imo_FragSpeed-2(pc,d0.w),d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_16CAA
 		neg.w	d0
 
 loc_16CAA:
 		move.w	d0,$10(a0)
 		move.w	#-$400,$12(a0)
-		move.b	#$C,$24(a0)
+		move.b	#$C,r_no0(a0)
 		andi.b	#-8,$1A(a0)
 
 loc_16CC0:				; XREF: imo_Index
@@ -29191,52 +29043,50 @@ Map_imo:
 
 		include	"SAVE.ASM"
 
-bten:					; XREF: act_tbl
+bten:
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	bten_move_tbl(pc,d0.w),d1
-		jmp	bten_move_tbl(pc,d1.w)
-; ===========================================================================
-bten_move_tbl:	dc.w bten_init-bten_move_tbl
-		dc.w bten_DelayDel-bten_move_tbl
-; ===========================================================================
-
-bten_init:				; XREF: bten_move_tbl
+		jmp		bten_move_tbl(pc,d1.w)
+bten_move_tbl:
+		dc.w	bten_init-bten_move_tbl
+		dc.w	bten_erase-bten_move_tbl
+bten_init:
 		moveq	#$10,d2
 		move.w	d2,d3
 		add.w	d3,d3
 		lea	playerwk,a1
-		move.w	8(a1),d0
-		sub.w	8(a0),d0
+		move.w	xposi(a1),d0
+		sub.w	xposi(a0),d0
 		add.w	d2,d0
 		cmp.w	d3,d0
-		bcc.b	bten_ChkDel
-		move.w	$C(a1),d1
-		sub.w	$C(a0),d1
+		bcc.b	?jump
+		move.w	yposi(a1),d1
+		sub.w	yposi(a0),d1
 		add.w	d2,d1
 		cmp.w	d3,d1
-		bcc.b	bten_ChkDel
+		bcc.b	?jump
 		tst.w	editmode
-		bne.b	bten_ChkDel
-		tst.b	($FFFFF7CD).w
-		bne.b	bten_ChkDel
-		addq.b	#2,$24(a0)
-		move.l	#btenpat,4(a0)
-		move.w	#$84B6,2(a0)
-		ori.b	#4,1(a0)
-		move.b	#0,$18(a0)
-		move.b	#$10,$19(a0)
-		move.b	$28(a0),$1A(a0)
-		move.w	#119,$30(a0)	; set display time to 2	seconds
-		move.w	#$C9,d0
-		jsr	(soundset).l ;	play bonus sound
+		bne.b	?jump
+		tst.b	special_flag
+		bne.b	?jump
+		addq.b	#word,r_no0(a0)
+		move.l	#btenpat,patbase(a0)
+		move.w	#$84b6,sproffset(a0)
+		ori.b	#4,actflg(a0)
+		move.b	#0,sprpri(a0)
+		move.b	#$10,sprhs(a0)
+		move.b	userflag(a0),patno(a0)
+		move.w	#119,$30(a0)
+		move.w	#$c9,d0
+		jsr		soundset
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		add.w	d0,d0
-		move.w	bten_Points(pc,d0.w),d0 ; load	bonus points array
+		move.w	btentbl(pc,d0.w),d0
 		jsr	scoreup
 
-bten_ChkDel:
+?jump:
 		move.w	8(a0),d0
 		andi.w	#$FF80,d0
 		move.w	scra_h_posit,d1
@@ -29245,35 +29095,32 @@ bten_ChkDel:
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
 		bhi.b	bten_Delete
-		rts	
-; ===========================================================================
+		rts
 
 bten_Delete:
 		jmp	frameout
-; ===========================================================================
-bten_Points:	dc.w 0			; Bonus	points array
-		dc.w 1000
-		dc.w 100
-		dc.w 1
-; ===========================================================================
 
-bten_DelayDel:				; XREF: bten_move_tbl
-		subq.w	#1,$30(a0)	; subtract 1 from display time
-		bmi.b	bten_Delete2	; if time is zero, branch
-		move.w	8(a0),d0
+btentbl:
+		dc.w	0
+		dc.w	1000
+		dc.w	100
+		dc.w	1
+
+bten_erase:
+		subq.w	#1,$30(a0)
+		bmi.b	?jump
+		move.w	xposi(a0),d0
 		andi.w	#-$80,d0
 		move.w	scra_h_posit,d1
 		subi.w	#$80,d1
 		andi.w	#-$80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.b	bten_Delete2
+		bhi.b	?jump
 		jmp	actionsub
-; ===========================================================================
-
-bten_Delete2:
+?jump:
 		jmp	frameout
-; ===========================================================================
+
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - hidden points at the end of	a level
 ; ---------------------------------------------------------------------------
@@ -29287,7 +29134,7 @@ btenpat:
 
 staff:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	staff_Index(pc,d0.w),d1
 		jmp	staff_Index(pc,d1.w)
 ; ===========================================================================
@@ -29296,7 +29143,7 @@ staff_Index:	dc.w staff_Main-staff_Index
 ; ===========================================================================
 
 staff_Main:				; XREF: staff_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#$120,8(a0)
 		move.w	#$F0,$A(a0)
 		move.l	#Map_staff,4(a0)
@@ -29334,7 +29181,7 @@ Map_staff:
 
 boss1:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	boss1_Index(pc,d0.w),d1
 		jmp	boss1_Index(pc,d1.w)
 ; ===========================================================================
@@ -29360,7 +29207,7 @@ boss1_Loop:
 		bne.b	loc_17772
 
 boss1_LoadBoss:				; XREF: boss1_Main
-		move.b	(a2)+,$24(a1)
+		move.b	(a2)+,r_no0(a1)
 		move.b	#$3D,0(a1)
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
@@ -29376,17 +29223,17 @@ boss1_LoadBoss:				; XREF: boss1_Main
 loc_17772:
 		move.w	8(a0),$30(a0)
 		move.w	$C(a0),$38(a0)
-		move.b	#$F,$20(a0)
-		move.b	#8,$21(a0)	; set number of	hits to	8
+		move.b	#$F,colino(a0)
+		move.b	#8,colicnt(a0)	; set number of	hits to	8
 
 boss1_ShipMain:				; XREF: boss1_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	boss1_ShipIndex(pc,d0.w),d1
 		jsr	boss1_ShipIndex(pc,d1.w)
 		lea	(Ani_Eggman).l,a1
 		jsr	patchg
-		move.b	$22(a0),d0
+		move.b	cddat(a0),d0
 		andi.b	#3,d0
 		andi.b	#$FC,1(a0)
 		or.b	d0,1(a0)
@@ -29407,7 +29254,7 @@ boss1_ShipStart:			; XREF: boss1_ShipIndex
 		cmpi.w	#$338,$38(a0)
 		bne.b	loc_177E6
 		move.w	#0,$12(a0)	; stop ship
-		addq.b	#2,$25(a0)	; goto next routine
+		addq.b	#2,r_no1(a0)	; goto next routine
 
 loc_177E6:
 		move.b	$3F(a0),d0
@@ -29417,11 +29264,11 @@ loc_177E6:
 		move.w	d0,$C(a0)
 		move.w	$30(a0),8(a0)
 		addq.b	#2,$3F(a0)
-		cmpi.b	#8,$25(a0)
+		cmpi.b	#8,r_no1(a0)
 		bcc.b	locret_1784A
-		tst.b	$22(a0)
+		tst.b	cddat(a0)
 		bmi.b	loc_1784C
-		tst.b	$20(a0)
+		tst.b	colino(a0)
 		bne.b	locret_1784A
 		tst.b	$3E(a0)
 		bne.b	boss1_ShipFlash
@@ -29440,7 +29287,7 @@ loc_1783C:
 		move.w	d0,(a1)		; load colour stored in	d0
 		subq.b	#1,$3E(a0)
 		bne.b	locret_1784A
-		move.b	#$F,$20(a0)
+		move.b	#$F,colino(a0)
 
 locret_1784A:
 		rts	
@@ -29449,7 +29296,7 @@ locret_1784A:
 loc_1784C:				; XREF: loc_177E6
 		moveq	#100,d0
 		bsr.w	scoreup
-		move.b	#8,$25(a0)
+		move.b	#8,r_no1(a0)
 		move.w	#$B3,$3C(a0)
 		rts	
 
@@ -29461,7 +29308,7 @@ loc_1784C:				; XREF: loc_177E6
 
 
 BossDefeated:
-		move.b	($FFFFFE0F).w,d0
+		move.b	systemtimer+3,d0
 		andi.b	#7,d0
 		bne.b	locret_178A2
 		jsr	actwkchk
@@ -29517,7 +29364,7 @@ boss1_MakeBall:				; XREF: boss1_ShipIndex
 		bne.b	loc_17916
 		move.w	#0,$10(a0)
 		move.w	#0,$12(a0)
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		jsr	actwkchk2
 		bne.b	loc_17910
 		move.b	#$48,0(a1)	; load swinging	ball object
@@ -29535,7 +29382,7 @@ loc_17916:
 boss1_ShipMove:				; XREF: boss1_ShipIndex
 		subq.w	#1,$3C(a0)
 		bpl.b	boss1_Reverse
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#$3F,$3C(a0)
 		move.w	#$100,$10(a0)	; move the ship	sideways
 		cmpi.w	#$2A00,$30(a0)
@@ -29544,7 +29391,7 @@ boss1_ShipMove:				; XREF: boss1_ShipIndex
 		move.w	#$40,$10(a0)
 
 boss1_Reverse:
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	loc_17950
 		neg.w	$10(a0)		; reverse direction of the ship
 
@@ -29560,9 +29407,9 @@ loc_17954:				; XREF: boss1_ShipIndex
 ; ===========================================================================
 
 loc_17960:
-		bchg	#0,$22(a0)
+		bchg	#0,cddat(a0)
 		move.w	#$3F,$3C(a0)
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		move.w	#0,$10(a0)
 
 loc_17976:
@@ -29576,10 +29423,10 @@ loc_1797A:				; XREF: boss1_ShipIndex
 ; ===========================================================================
 
 loc_17984:
-		bset	#0,$22(a0)
-		bclr	#7,$22(a0)
+		bset	#0,cddat(a0)
+		bclr	#7,cddat(a0)
 		clr.w	$10(a0)
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#-$26,$3C(a0)
 		tst.b	($FFFFF7A7).w
 		bne.b	locret_179AA
@@ -29608,7 +29455,7 @@ loc_179C2:
 		beq.b	loc_179E0
 		cmpi.w	#$38,$3C(a0)
 		bcs.b	loc_179EE
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		bra.b	loc_179EE
 ; ===========================================================================
 
@@ -29653,7 +29500,7 @@ boss1_FaceMain:				; XREF: boss1_Index
 		moveq	#0,d0
 		moveq	#1,d1
 		movea.l	$34(a0),a1
-		move.b	$25(a1),d0
+		move.b	r_no1(a1),d0
 		subq.b	#4,d0
 		bne.b	loc_17A3E
 		cmpi.w	#$2A00,$30(a1)
@@ -29668,7 +29515,7 @@ loc_17A3E:
 ; ===========================================================================
 
 loc_17A46:
-		tst.b	$20(a1)
+		tst.b	colino(a1)
 		bne.b	loc_17A50
 		moveq	#5,d1
 		bra.b	loc_17A5A
@@ -29698,7 +29545,7 @@ boss1_FaceDel:
 boss1_FlameMain:			; XREF: boss1_Index
 		move.b	#7,$1C(a0)
 		movea.l	$34(a0),a1
-		cmpi.b	#$C,$25(a1)
+		cmpi.b	#$C,r_no1(a1)
 		bne.b	loc_17A96
 		move.b	#$B,$1C(a0)
 		tst.b	1(a0)
@@ -29723,10 +29570,10 @@ boss1_Display:				; XREF: boss1_FaceDisp; boss1_FlameDisp
 		movea.l	$34(a0),a1
 		move.w	8(a1),8(a0)
 		move.w	$C(a1),$C(a0)
-		move.b	$22(a1),$22(a0)
+		move.b	cddat(a1),cddat(a0)
 		lea	(Ani_Eggman).l,a1
 		jsr	patchg
-		move.b	$22(a0),d0
+		move.b	cddat(a0),d0
 		andi.b	#3,d0
 		andi.b	#$FC,1(a0)
 		or.b	d0,1(a0)
@@ -29738,7 +29585,7 @@ boss1_Display:				; XREF: boss1_FaceDisp; boss1_FlameDisp
 
 btama:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	btama_Index(pc,d0.w),d1
 		jmp	btama_Index(pc,d1.w)
 ; ===========================================================================
@@ -29750,12 +29597,12 @@ btama_Index:	dc.w btama_Main-btama_Index
 ; ===========================================================================
 
 btama_Main:				; XREF: btama_Index
-		addq.b	#2,$24(a0)
-		move.w	#$4080,$26(a0)
+		addq.b	#2,r_no0(a0)
+		move.w	#$4080,direc(a0)
 		move.w	#-$200,$3E(a0)
 		move.l	#Map_BossItems,4(a0)
 		move.w	#$46C,2(a0)
-		lea	$28(a0),a2
+		lea	userflag(a0),a2
 		move.b	#0,(a2)+
 		moveq	#5,d1
 		movea.l	a0,a1
@@ -29768,11 +29615,11 @@ btama_MakeLinks:
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
 		move.b	#$48,0(a1)	; load chain link object
-		move.b	#6,$24(a1)
+		move.b	#6,r_no0(a1)
 		move.l	#Map_buranko,4(a1)
 		move.w	#$380,2(a1)
 		move.b	#1,$1A(a1)
-		addq.b	#1,$28(a0)
+		addq.b	#1,userflag(a0)
 
 loc_17B60:				; XREF: btama_Main
 		move.w	a1,d5
@@ -29787,12 +29634,12 @@ loc_17B60:				; XREF: btama_Main
 		dbra	d1,btama_MakeLinks ; repeat sequence 5 more times
 
 btama_MakeBall:
-		move.b	#8,$24(a1)
+		move.b	#8,r_no0(a1)
 		move.l	#Map_btama,4(a1) ; load	different mappings for final link
 		move.w	#$43AA,2(a1)	; use different	graphics
 		move.b	#1,$1A(a1)
 		move.b	#5,$18(a1)
-		move.b	#$81,$20(a1)	; make object hurt Sonic
+		move.b	#$81,colino(a1)	; make object hurt Sonic
 		rts	
 ; ===========================================================================
 
@@ -29802,7 +29649,7 @@ btama_PosData:	dc.b 0,	$10, $20, $30, $40, $60	; y-position data for links and	g
 
 btama_Base:				; XREF: btama_Index
 		lea	(btama_PosData).l,a3
-		lea	$28(a0),a2
+		lea	userflag(a0),a2
 		moveq	#0,d6
 		move.b	(a2)+,d6
 
@@ -29823,9 +29670,9 @@ loc_17BE0:
 		cmp.b	$3C(a1),d0
 		bne.b	loc_17BFA
 		movea.l	$34(a0),a1
-		cmpi.b	#6,$25(a1)
+		cmpi.b	#6,r_no1(a1)
 		bne.b	loc_17BFA
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 loc_17BFA:
 		cmpi.w	#$20,$32(a0)
@@ -29834,7 +29681,7 @@ loc_17BFA:
 
 btama_Display:
 		bsr.w	sub_17C2A
-		move.b	$26(a0),d0
+		move.b	direc(a0),d0
 		jsr	(buranko_Move2).l
 		jmp	actionsub
 ; ===========================================================================
@@ -29858,11 +29705,11 @@ loc_17C3C:
 		move.w	$C(a1),d0
 		add.w	$32(a0),d0
 		move.w	d0,$38(a0)
-		move.b	$22(a1),$22(a0)
-		tst.b	$22(a1)
+		move.b	cddat(a1),cddat(a0)
+		tst.b	cddat(a1)
 		bpl.b	locret_17C66
-		move.b	#$3F,0(a0)
-		move.b	#0,$24(a0)
+		move.b	#$3F,actno(a0)
+		move.b	#0,r_no0(a0)
 
 locret_17C66:
 		rts	
@@ -29872,10 +29719,10 @@ locret_17C66:
 
 loc_17C68:				; XREF: btama_Index
 		movea.l	$34(a0),a1
-		tst.b	$22(a1)
+		tst.b	cddat(a1)
 		bpl.b	btama_Display3
-		move.b	#$3F,0(a0)
-		move.b	#0,$24(a0)
+		move.b	#$3F,actno(a0)
+		move.b	#0,r_no0(a0)
 
 btama_Display3:
 		jmp	actionsub
@@ -29890,14 +29737,14 @@ btama_ChkVanish:			; XREF: btama_Index
 btama_Vanish:
 		move.b	d0,$1A(a0)
 		movea.l	$34(a0),a1
-		tst.b	$22(a1)
+		tst.b	cddat(a1)
 		bpl.b	btama_Display4
-		move.b	#0,$20(a0)
+		move.b	#0,colino(a0)
 		bsr.w	BossDefeated
 		subq.b	#1,$3C(a0)
 		bpl.b	btama_Display4
 		move.b	#$3F,(a0)
-		move.b	#0,$24(a0)
+		move.b	#0,r_no0(a0)
 
 btama_Display4:
 		jmp	actionsub
@@ -29924,7 +29771,7 @@ Map_BossItems:
 
 Obj77:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj77_Index(pc,d0.w),d1
 		jmp	Obj77_Index(pc,d1.w)
 ; ===========================================================================
@@ -29943,8 +29790,8 @@ Obj77_Main:				; XREF: Obj77_Index
 		move.w	#$5C0,$C(a0)
 		move.w	8(a0),$30(a0)
 		move.w	$C(a0),$38(a0)
-		move.b	#$F,$20(a0)
-		move.b	#8,$21(a0)	; set number of	hits to	8
+		move.b	#$F,colino(a0)
+		move.b	#8,colicnt(a0)	; set number of	hits to	8
 		move.b	#4,$18(a0)
 		lea	Obj77_ObjData(pc),a2
 		movea.l	a0,a1
@@ -29960,9 +29807,9 @@ Obj77_Loop:
 		move.w	$C(a0),$C(a1)
 
 Obj77_LoadBoss:				; XREF: Obj77_Main
-		bclr	#0,$22(a0)
-		clr.b	$25(a1)
-		move.b	(a2)+,$24(a1)
+		bclr	#0,cddat(a0)
+		clr.b	r_no1(a1)
+		move.b	(a2)+,r_no0(a1)
 		move.b	(a2)+,$1C(a1)
 		move.b	$18(a0),$18(a1)
 		move.l	#Map_Eggman,4(a1)
@@ -29975,13 +29822,13 @@ Obj77_LoadBoss:				; XREF: Obj77_Main
 Obj77_ShipMain:
 		lea	playerwk,a1
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	Obj77_ShipIndex(pc,d0.w),d1
 		jsr	Obj77_ShipIndex(pc,d1.w)
 		lea	(Ani_Eggman).l,a1
 		jsr	patchg
 		moveq	#3,d0
-		and.b	$22(a0),d0
+		and.b	cddat(a0),d0
 		andi.b	#$FC,1(a0)
 		or.b	d0,1(a0)
 		jmp	actionsub
@@ -29998,7 +29845,7 @@ loc_17F1E:				; XREF: Obj77_ShipIndex
 		bcs.b	loc_17F38
 		move.w	#-$180,$12(a0)
 		move.w	#$60,$10(a0)
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 
 loc_17F38:
 		bsr.w	BossMove
@@ -30008,9 +29855,9 @@ loc_17F38:
 loc_17F48:
 		tst.b	$3D(a0)
 		bne.b	loc_17F8E
-		tst.b	$22(a0)
+		tst.b	cddat(a0)
 		bmi.b	loc_17F92
-		tst.b	$20(a0)
+		tst.b	colino(a0)
 		bne.b	locret_17F8C
 		tst.b	$3E(a0)
 		bne.b	loc_17F70
@@ -30029,7 +29876,7 @@ loc_17F7E:
 		move.w	d0,(a1)
 		subq.b	#1,$3E(a0)
 		bne.b	locret_17F8C
-		move.b	#$F,$20(a0)
+		move.b	#$F,colino(a0)
 
 locret_17F8C:
 		rts	
@@ -30065,7 +29912,7 @@ loc_17FCA:
 		bne.b	loc_17FDC
 		move.w	#$140,$10(a0)
 		move.w	#-$200,$12(a0)
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 
 loc_17FDC:
 		bra.w	loc_17F38
@@ -30089,7 +29936,7 @@ loc_17FF6:
 loc_1800A:
 		bne.b	loc_1801A
 		move.w	#-$180,$12(a0)
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		clr.b	$3F(a0)
 
 loc_1801A:
@@ -30108,18 +29955,18 @@ loc_1801E:				; XREF: Obj77_ShipIndex
 		asl	$12(a0)
 
 loc_18046:
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		bra.w	loc_17F38
 ; ===========================================================================
 
 loc_1804E:
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		addq.b	#2,$3F(a0)
 		move.b	$3F(a0),d0
 		jsr	(sinset).l
 		tst.w	d1
 		bpl.b	loc_1806C
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 
 loc_1806C:
 		asr.w	#4,d0
@@ -30172,8 +30019,8 @@ loc_180D2:
 
 loc_180E6:
 		bne.b	loc_180F2
-		addq.b	#2,$25(a0)
-		bclr	#0,$22(a0)
+		addq.b	#2,r_no1(a0)
+		bclr	#0,cddat(a0)
 
 loc_180F2:
 		bra.w	loc_17F38
@@ -30191,8 +30038,8 @@ loc_180F6:				; XREF: Obj77_ShipIndex
 loc_18112:
 		move.w	#$82,d0
 		jsr	(bgmset).l	; play LZ music
-		bset	#0,$22(a0)
-		addq.b	#2,$25(a0)
+		bset	#0,cddat(a0)
+		addq.b	#2,r_no1(a0)
 
 loc_18126:
 		bra.w	loc_17F38
@@ -30209,7 +30056,7 @@ loc_18136:
 		move.w	#$400,$10(a0)
 		move.w	#-$40,$12(a0)
 		clr.b	$3D(a0)
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 
 loc_1814E:
 		bra.w	loc_17F38
@@ -30240,7 +30087,7 @@ Obj77_FaceMain:				; XREF: Obj77_Index
 		cmp.b	(a0),d0
 		bne.b	Obj77_FaceDel
 		moveq	#0,d0
-		move.b	$25(a1),d0
+		move.b	r_no1(a1),d0
 		moveq	#1,d1
 		tst.b	$3D(a0)
 		beq.b	loc_1818C
@@ -30249,7 +30096,7 @@ Obj77_FaceMain:				; XREF: Obj77_Index
 ; ===========================================================================
 
 loc_1818C:
-		tst.b	$20(a1)
+		tst.b	colino(a1)
 		bne.b	loc_18196
 		moveq	#5,d1
 		bra.b	loc_181A0
@@ -30282,7 +30129,7 @@ Obj77_FlameMain:			; XREF: Obj77_Index
 		move.b	(a1),d0
 		cmp.b	(a0),d0
 		bne.b	Obj77_FlameDel
-		cmpi.b	#$E,$25(a1)
+		cmpi.b	#$E,r_no1(a1)
 		bne.b	loc_181F0
 		move.b	#$B,$1C(a0)
 		tst.b	1(a0)
@@ -30307,9 +30154,9 @@ Obj77_Display:
 		movea.l	$34(a0),a1
 		move.w	8(a1),8(a0)
 		move.w	$C(a1),$C(a0)
-		move.b	$22(a1),$22(a0)
+		move.b	cddat(a1),cddat(a0)
 		moveq	#3,d0
-		and.b	$22(a0),d0
+		and.b	cddat(a0),d0
 		andi.b	#-4,1(a0)
 		or.b	d0,1(a0)
 		jmp	actionsub
@@ -30320,7 +30167,7 @@ Obj77_Display:
 
 Obj73:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj73_Index(pc,d0.w),d1
 		jmp	Obj73_Index(pc,d1.w)
 ; ===========================================================================
@@ -30339,8 +30186,8 @@ Obj73_ObjData:	dc.b 2,	0, 4		; routine number, animation, priority
 Obj73_Main:				; XREF: Obj73_Index
 		move.w	8(a0),$30(a0)
 		move.w	$C(a0),$38(a0)
-		move.b	#$F,$20(a0)
-		move.b	#8,$21(a0)	; set number of	hits to	8
+		move.b	#$F,colino(a0)
+		move.b	#8,colicnt(a0)	; set number of	hits to	8
 		lea	Obj73_ObjData(pc),a2
 		movea.l	a0,a1
 		moveq	#3,d1
@@ -30355,9 +30202,9 @@ Obj73_Loop:
 		move.w	$C(a0),$C(a1)
 
 Obj73_LoadBoss:				; XREF: Obj73_Main
-		bclr	#0,$22(a0)
-		clr.b	$25(a1)
-		move.b	(a2)+,$24(a1)
+		bclr	#0,cddat(a0)
+		clr.b	r_no1(a1)
+		move.b	(a2)+,r_no0(a1)
 		move.b	(a2)+,$1C(a1)
 		move.b	(a2)+,$18(a1)
 		move.l	#Map_Eggman,4(a1)
@@ -30369,13 +30216,13 @@ Obj73_LoadBoss:				; XREF: Obj73_Main
 
 Obj73_ShipMain:
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	Obj73_ShipIndex(pc,d0.w),d1
 		jsr	Obj73_ShipIndex(pc,d1.w)
 		lea	(Ani_Eggman).l,a1
 		jsr	patchg
 		moveq	#3,d0
-		and.b	$22(a0),d0
+		and.b	cddat(a0),d0
 		andi.b	#$FC,1(a0)
 		or.b	d0,1(a0)
 		jmp	actionsub
@@ -30397,8 +30244,8 @@ loc_18302:				; XREF: Obj73_ShipIndex
 		bsr.w	BossMove
 		cmpi.w	#$1910,$30(a0)
 		bne.b	loc_18334
-		addq.b	#2,$25(a0)
-		clr.b	$28(a0)
+		addq.b	#2,r_no1(a0)
+		clr.b	userflag(a0)
 		clr.l	$10(a0)
 
 loc_18334:
@@ -30408,11 +30255,11 @@ loc_18334:
 loc_1833E:
 		move.w	$38(a0),$C(a0)
 		move.w	$30(a0),8(a0)
-		cmpi.b	#4,$25(a0)
+		cmpi.b	#4,r_no1(a0)
 		bcc.b	locret_18390
-		tst.b	$22(a0)
+		tst.b	cddat(a0)
 		bmi.b	loc_18392
-		tst.b	$20(a0)
+		tst.b	colino(a0)
 		bne.b	locret_18390
 		tst.b	$3E(a0)
 		bne.b	loc_18374
@@ -30431,7 +30278,7 @@ loc_18382:
 		move.w	d0,(a1)
 		subq.b	#1,$3E(a0)
 		bne.b	locret_18390
-		move.b	#$F,$20(a0)
+		move.b	#$F,colino(a0)
 
 locret_18390:
 		rts	
@@ -30440,7 +30287,7 @@ locret_18390:
 loc_18392:				; XREF: loc_1833E
 		moveq	#100,d0
 		bsr.w	scoreup
-		move.b	#4,$25(a0)
+		move.b	#4,r_no1(a0)
 		move.w	#$B4,$3C(a0)
 		clr.w	$10(a0)
 		rts	
@@ -30448,10 +30295,10 @@ loc_18392:				; XREF: loc_1833E
 
 loc_183AA:				; XREF: Obj73_ShipIndex
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		move.w	off_183C2(pc,d0.w),d0
 		jsr	off_183C2(pc,d0.w)
-		andi.b	#6,$28(a0)
+		andi.b	#6,userflag(a0)
 		bra.w	loc_1833E
 ; ===========================================================================
 off_183C2:	dc.w loc_183CA-off_183C2
@@ -30477,7 +30324,7 @@ loc_183DE:
 loc_183E6:
 		move.w	#$200,$10(a0)
 		move.w	#$100,$12(a0)
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	loc_183FE
 		neg.w	$10(a0)
 
@@ -30501,7 +30348,7 @@ Obj73_MakeLava:
 		addi.w	#$1878,d0
 		move.w	d0,8(a1)
 		lsr.b	#7,d1
-		move.w	#$FF,$28(a1)
+		move.w	#$FF,userflag(a1)
 
 loc_1844A:
 		jsr	(random).l
@@ -30510,7 +30357,7 @@ loc_1844A:
 		move.b	d0,$34(a0)
 
 loc_1845C:
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_18474
 		cmpi.w	#$1910,$30(a0)
 		blt.b	locret_1849C
@@ -30531,7 +30378,7 @@ loc_18482:
 		neg.w	$12(a0)
 
 loc_18498:
-		addq.b	#2,$28(a0)
+		addq.b	#2,userflag(a0)
 
 locret_1849C:
 		rts	
@@ -30547,19 +30394,19 @@ Obj73_MakeLava2:			; XREF: off_183C2
 		beq.b	loc_184EA
 		clr.w	$12(a0)
 		move.w	#$50,$3C(a0)
-		bchg	#0,$22(a0)
+		bchg	#0,cddat(a0)
 		jsr	actwkchk
 		bne.b	loc_184EA
 		move.w	$30(a0),8(a1)
 		move.w	$38(a0),$C(a1)
 		addi.w	#$18,$C(a1)
 		move.b	#$74,(a1)	; load lava ball object
-		move.b	#1,$28(a1)
+		move.b	#1,userflag(a1)
 
 loc_184EA:
 		subq.w	#1,$3C(a0)
 		bne.b	locret_184F4
-		addq.b	#2,$28(a0)
+		addq.b	#2,userflag(a0)
 
 locret_184F4:
 		rts	
@@ -30572,10 +30419,10 @@ loc_184F6:				; XREF: Obj73_ShipIndex
 ; ===========================================================================
 
 loc_18500:
-		bset	#0,$22(a0)
-		bclr	#7,$22(a0)
+		bset	#0,cddat(a0)
+		bclr	#7,cddat(a0)
 		clr.w	$10(a0)
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#-$26,$3C(a0)
 		tst.b	($FFFFF7A7).w
 		bne.b	locret_1852A
@@ -30608,7 +30455,7 @@ loc_1854E:
 		beq.b	loc_1856C
 		cmpi.w	#$38,$3C(a0)
 		bcs.b	loc_1857A
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		bra.b	loc_1857A
 ; ===========================================================================
 
@@ -30653,10 +30500,10 @@ Obj73_FaceMain:				; XREF: Obj73_Index
 		moveq	#0,d0
 		moveq	#1,d1
 		movea.l	$34(a0),a1
-		move.b	$25(a1),d0
+		move.b	r_no1(a1),d0
 		subq.w	#2,d0
 		bne.b	loc_185D2
-		btst	#1,$28(a1)
+		btst	#1,userflag(a1)
 		beq.b	loc_185DA
 		tst.w	$12(a1)
 		bne.b	loc_185DA
@@ -30672,7 +30519,7 @@ loc_185D2:
 ; ===========================================================================
 
 loc_185DA:
-		tst.b	$20(a1)
+		tst.b	colino(a1)
 		bne.b	loc_185E4
 		moveq	#5,d1
 		bra.b	loc_185EE
@@ -30702,7 +30549,7 @@ Obj73_FaceDel:
 Obj73_FlameMain:			; XREF: Obj73_Index
 		move.b	#7,$1C(a0)
 		movea.l	$34(a0),a1
-		cmpi.b	#8,$25(a1)
+		cmpi.b	#8,r_no1(a1)
 		blt.b	loc_1862A
 		move.b	#$B,$1C(a0)
 		tst.b	1(a0)
@@ -30731,9 +30578,9 @@ loc_1864A:
 		movea.l	$34(a0),a1
 		move.w	8(a1),8(a0)
 		move.w	$C(a1),$C(a0)
-		move.b	$22(a1),$22(a0)
+		move.b	cddat(a1),cddat(a0)
 		moveq	#3,d0
-		and.b	$22(a0),d0
+		and.b	cddat(a0),d0
 		andi.b	#-4,1(a0)
 		or.b	d0,1(a0)
 		jmp	actionsub
@@ -30741,7 +30588,7 @@ loc_1864A:
 
 Obj73_TubeMain:				; XREF: Obj73_Index
 		movea.l	$34(a0),a1
-		cmpi.b	#8,$25(a1)
+		cmpi.b	#8,r_no1(a1)
 		bne.b	loc_18688
 		tst.b	1(a0)
 		bpl.b	Obj73_TubeDel
@@ -30762,7 +30609,7 @@ Obj73_TubeDel:
 
 Obj74:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj74_Index(pc,d0.w),d0
 		jsr	Obj74_Index(pc,d0.w)
 		jmp	actionsub
@@ -30782,11 +30629,11 @@ Obj74_Main:				; XREF: Obj74_Index
 		move.b	#5,$18(a0)
 		move.w	$C(a0),$38(a0)
 		move.b	#8,$19(a0)
-		addq.b	#2,$24(a0)
-		tst.b	$28(a0)
+		addq.b	#2,r_no0(a0)
+		tst.b	userflag(a0)
 		bne.b	loc_1870A
-		move.b	#$8B,$20(a0)
-		addq.b	#2,$24(a0)
+		move.b	#$8B,colino(a0)
+		addq.b	#2,r_no0(a0)
 		bra.w	loc_18886
 ; ===========================================================================
 
@@ -30797,7 +30644,7 @@ loc_1870A:
 
 Obj74_Action:				; XREF: Obj74_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	Obj74_Index2(pc,d0.w),d0
 		jsr	Obj74_Index2(pc,d0.w)
 		jsr	speedset2
@@ -30818,17 +30665,17 @@ Obj74_Index2:	dc.w Obj74_Drop-Obj74_Index2
 ; ===========================================================================
 
 Obj74_Drop:				; XREF: Obj74_Index2
-		bset	#1,$22(a0)
+		bset	#1,cddat(a0)
 		subq.b	#1,$29(a0)
 		bpl.b	locret_18780
-		move.b	#$8B,$20(a0)
-		clr.b	$28(a0)
+		move.b	#$8B,colino(a0)
+		clr.b	userflag(a0)
 		addi.w	#$18,$12(a0)
-		bclr	#1,$22(a0)
+		bclr	#1,cddat(a0)
 		bsr.w	emycol_d
 		tst.w	d1
 		bpl.b	locret_18780
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 
 locret_18780:
 		rts	
@@ -30856,10 +30703,10 @@ Obj74_Loop:
 		dbra	d0,Obj74_Loop
 
 		neg.w	$10(a1)
-		addq.b	#2,$25(a1)
+		addq.b	#2,r_no1(a1)
 
 loc_187CA:
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		rts	
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -30871,7 +30718,7 @@ Obj74_Duplicate2:			; XREF: Obj74_Duplicate
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
 		move.b	#$74,(a1)
-		move.w	#$67,$28(a1)
+		move.w	#$67,userflag(a1)
 
 locret_187EE:
 		rts	
@@ -30902,17 +30749,17 @@ loc_1881E:
 ; ===========================================================================
 
 loc_18826:
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		rts	
 ; ===========================================================================
 
 loc_1882C:
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		rts	
 ; ===========================================================================
 
 Obj74_FallEdge:				; XREF: Obj74_Index2
-		bclr	#1,$22(a0)
+		bclr	#1,cddat(a0)
 		addi.w	#$24,$12(a0)	; make flame fall
 		move.w	8(a0),d0
 		sub.w	$32(a0),d0
@@ -30934,7 +30781,7 @@ loc_18856:
 		move.w	$32(a0),8(a0)
 		move.w	$38(a0),$C(a0)
 		bset	#7,2(a0)
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 
 locret_1887E:
 		rts	
@@ -30950,7 +30797,7 @@ loc_18886:				; XREF: Obj74_Index
 		bne.b	Obj74_Animate
 		move.b	#1,$1C(a0)
 		subq.w	#4,$C(a0)
-		clr.b	$20(a0)
+		clr.b	colino(a0)
 
 Obj74_Animate:
 		lea	(Ani_fire).l,a1
@@ -30970,7 +30817,7 @@ Obj7A_Delete:
 
 Obj7A:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj7A_Index(pc,d0.w),d1
 		jmp	Obj7A_Index(pc,d1.w)
 ; ===========================================================================
@@ -30991,8 +30838,8 @@ Obj7A_Main:				; XREF: Obj7A_Index
 		move.w	#$228,$C(a0)
 		move.w	8(a0),$30(a0)
 		move.w	$C(a0),$38(a0)
-		move.b	#$F,$20(a0)
-		move.b	#8,$21(a0)	; set number of	hits to	8
+		move.b	#$F,colino(a0)
+		move.b	#8,colicnt(a0)	; set number of	hits to	8
 		lea	Obj7A_ObjData(pc),a2
 		movea.l	a0,a1
 		moveq	#3,d1
@@ -31007,9 +30854,9 @@ Obj7A_Loop:
 		move.w	$C(a0),$C(a1)
 
 Obj7A_LoadBoss:				; XREF: Obj7A_Main
-		bclr	#0,$22(a0)
-		clr.b	$25(a1)
-		move.b	(a2)+,$24(a1)
+		bclr	#0,cddat(a0)
+		clr.b	r_no1(a1)
+		move.b	(a2)+,r_no0(a1)
 		move.b	(a2)+,$1C(a1)
 		move.b	(a2)+,$18(a1)
 		move.l	#Map_Eggman,4(a1)
@@ -31028,7 +30875,7 @@ loc_1895C:
 loc_18968:
 		cmp.b	(a1),d0
 		bne.b	loc_18974
-		tst.b	$28(a1)
+		tst.b	userflag(a1)
 		beq.b	loc_18974
 		move.w	a1,(a2)+
 
@@ -31038,13 +30885,13 @@ loc_18974:
 
 Obj7A_ShipMain:				; XREF: Obj7A_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	Obj7A_ShipIndex(pc,d0.w),d0
 		jsr	Obj7A_ShipIndex(pc,d0.w)
 		lea	(Ani_Eggman).l,a1
 		jsr	patchg
 		moveq	#3,d0
-		and.b	$22(a0),d0
+		and.b	cddat(a0),d0
 		andi.b	#$FC,1(a0)
 		or.b	d0,1(a0)
 		jmp	actionsub
@@ -31061,7 +30908,7 @@ loc_189B8:				; XREF: Obj7A_ShipIndex
 		move.w	#-$100,$10(a0)
 		cmpi.w	#$2120,$30(a0)
 		bcc.b	loc_189CA
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 
 loc_189CA:
 		bsr.w	BossMove
@@ -31081,11 +30928,11 @@ loc_189EE:
 		move.w	$30(a0),8(a0)
 
 loc_189FE:
-		cmpi.b	#6,$25(a0)
+		cmpi.b	#6,r_no1(a0)
 		bcc.b	locret_18A44
-		tst.b	$22(a0)
+		tst.b	cddat(a0)
 		bmi.b	loc_18A46
-		tst.b	$20(a0)
+		tst.b	colino(a0)
 		bne.b	locret_18A44
 		tst.b	$3E(a0)
 		bne.b	loc_18A28
@@ -31104,7 +30951,7 @@ loc_18A36:
 		move.w	d0,(a1)
 		subq.b	#1,$3E(a0)
 		bne.b	locret_18A44
-		move.b	#$F,$20(a0)
+		move.b	#$F,colino(a0)
 
 locret_18A44:
 		rts	
@@ -31113,7 +30960,7 @@ locret_18A44:
 loc_18A46:
 		moveq	#100,d0
 		bsr.w	scoreup
-		move.b	#6,$25(a0)
+		move.b	#6,r_no1(a0)
 		move.b	#$78,$3C(a0)
 		clr.w	$10(a0)
 		rts	
@@ -31122,7 +30969,7 @@ loc_18A46:
 loc_18A5E:				; XREF: Obj7A_ShipIndex
 		move.w	$30(a0),d0
 		move.w	#$200,$10(a0)
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	loc_18A7C
 		neg.w	$10(a0)
 		cmpi.w	#$2008,d0
@@ -31135,7 +30982,7 @@ loc_18A7C:
 		blt.b	loc_18A88
 
 loc_18A82:
-		bchg	#0,$22(a0)
+		bchg	#0,cddat(a0)
 
 loc_18A88:
 		move.w	8(a0),d0
@@ -31160,13 +31007,13 @@ loc_18A9E:
 loc_18AB4:
 		dbra	d2,loc_18A9E
 
-		move.b	d2,$28(a0)
+		move.b	d2,userflag(a0)
 		bra.w	loc_189CA
 ; ===========================================================================
 
 loc_18AC0:
-		move.b	d2,$28(a0)
-		addq.b	#2,$25(a0)
+		move.b	d2,userflag(a0)
+		addq.b	#2,r_no1(a0)
 		move.b	#$28,$3C(a0)
 		bra.w	loc_189CA
 ; ===========================================================================
@@ -31175,7 +31022,7 @@ Obj7A_MakeBall:				; XREF: Obj7A_ShipIndex
 		cmpi.b	#$28,$3C(a0)
 		bne.b	loc_18B36
 		moveq	#-1,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		ext.w	d0
 		bmi.b	loc_18B40
 		subq.w	#2,d0
@@ -31202,7 +31049,7 @@ loc_18AFA:
 		move.w	8(a0),8(a1)
 		move.w	$C(a0),$C(a1)
 		addi.w	#$20,$C(a1)
-		move.b	$22(a2),$22(a1)
+		move.b	cddat(a2),cddat(a1)
 		move.l	a2,$3C(a1)
 
 loc_18B36:
@@ -31212,7 +31059,7 @@ loc_18B36:
 ; ===========================================================================
 
 loc_18B40:
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		bra.w	loc_189CA
 ; ===========================================================================
 
@@ -31223,10 +31070,10 @@ loc_18B48:				; XREF: Obj7A_ShipIndex
 ; ===========================================================================
 
 loc_18B52:
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		clr.w	$12(a0)
-		bset	#0,$22(a0)
-		bclr	#7,$22(a0)
+		bset	#0,cddat(a0)
+		bclr	#7,cddat(a0)
 		clr.w	$10(a0)
 		move.b	#-$18,$3C(a0)
 		tst.b	($FFFFF7A7).w
@@ -31256,7 +31103,7 @@ loc_18B96:
 		beq.b	loc_18BB4
 		cmpi.b	#$2A,$3C(a0)
 		bcs.b	loc_18BC2
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		bra.b	loc_18BC2
 ; ===========================================================================
 
@@ -31296,7 +31143,7 @@ Obj7A_FaceMain:				; XREF: Obj7A_Index
 		moveq	#0,d0
 		moveq	#1,d1
 		movea.l	$34(a0),a1
-		move.b	$25(a1),d0
+		move.b	r_no1(a1),d0
 		cmpi.b	#6,d0
 		bmi.b	loc_18C06
 		moveq	#$A,d1
@@ -31304,7 +31151,7 @@ Obj7A_FaceMain:				; XREF: Obj7A_Index
 ; ===========================================================================
 
 loc_18C06:
-		tst.b	$20(a1)
+		tst.b	colino(a1)
 		bne.b	loc_18C10
 		moveq	#5,d1
 		bra.b	loc_18C1A
@@ -31330,7 +31177,7 @@ loc_18C32:
 Obj7A_FlameMain:			; XREF: Obj7A_Index
 		move.b	#8,$1C(a0)
 		movea.l	$34(a0),a1
-		cmpi.b	#$A,$25(a1)
+		cmpi.b	#$A,r_no1(a1)
 		bne.b	loc_18C56
 		tst.b	1(a0)
 		bpl.w	Obj7A_Delete
@@ -31339,9 +31186,9 @@ Obj7A_FlameMain:			; XREF: Obj7A_Index
 ; ===========================================================================
 
 loc_18C56:
-		cmpi.b	#8,$25(a1)
+		cmpi.b	#8,r_no1(a1)
 		bgt.b	loc_18C6C
-		cmpi.b	#4,$25(a1)
+		cmpi.b	#4,r_no1(a1)
 		blt.b	loc_18C6C
 		move.b	#7,$1C(a0)
 
@@ -31353,9 +31200,9 @@ loc_18C78:
 		movea.l	$34(a0),a1
 		move.w	8(a1),8(a0)
 		move.w	$C(a1),$C(a0)
-		move.b	$22(a1),$22(a0)
+		move.b	cddat(a1),cddat(a0)
 		moveq	#3,d0
-		and.b	$22(a0),d0
+		and.b	cddat(a0),d0
 		andi.b	#-4,1(a0)
 		or.b	d0,1(a0)
 		jmp	actionsub
@@ -31363,7 +31210,7 @@ loc_18C78:
 
 Obj7A_TubeMain:				; XREF: Obj7A_Index
 		movea.l	$34(a0),a1
-		cmpi.b	#$A,$25(a1)
+		cmpi.b	#$A,r_no1(a1)
 		bne.b	loc_18CB8
 		tst.b	1(a0)
 		bpl.w	Obj7A_Delete
@@ -31380,7 +31227,7 @@ loc_18CB8:
 
 Obj7B:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj7B_Index(pc,d0.w),d0
 		jsr	Obj7B_Index(pc,d0.w)
 		move.w	$30(a0),d0
@@ -31408,20 +31255,20 @@ Obj7B_Main:				; XREF: Obj7B_Index
 		move.b	#1,$1A(a0)
 		ori.b	#4,1(a0)
 		move.b	#4,$18(a0)
-		move.b	#$8B,$20(a0)
+		move.b	#$8B,colino(a0)
 		move.b	#$C,$19(a0)
 		movea.l	$3C(a0),a1
 		move.w	8(a1),$30(a0)
 		move.w	$C(a1),$34(a0)
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		move.w	8(a0),d0
 		cmp.w	8(a1),d0
 		bgt.b	loc_18D68
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 		move.b	#2,$3A(a0)
 
 loc_18D68:
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 Obj7B_Fall:				; XREF: Obj7B_Index
 		jsr	speedset
@@ -31442,12 +31289,12 @@ loc_18D8E:
 		bgt.b	locret_18DC4
 		movea.l	$3C(a0),a1
 		moveq	#2,d1
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		beq.b	loc_18DAE
 		moveq	#0,d1
 
 loc_18DAE:
-		move.w	#$F0,$28(a0)
+		move.w	#$F0,userflag(a0)
 		move.b	#10,$1F(a0)	; set frame duration to	10 frames
 		move.b	$1F(a0),$1E(a0)
 		bra.w	loc_18FA2
@@ -31488,8 +31335,8 @@ loc_18E00:
 
 loc_18E16:
 		move.b	#1,$1A(a0)
-		move.w	#$20,$28(a0)
-		addq.b	#2,$24(a0)
+		move.w	#$20,userflag(a0)
+		addq.b	#2,r_no0(a0)
 		bra.w	loc_18EAA
 ; ===========================================================================
 
@@ -31513,20 +31360,20 @@ loc_18E48:
 		move.w	d2,8(a0)
 		clr.w	$E(a0)
 		clr.w	$A(a0)
-		subq.w	#1,$28(a0)
+		subq.w	#1,userflag(a0)
 		bne.b	loc_18E7A
-		move.w	#$20,$28(a0)
-		move.b	#8,$24(a0)
+		move.w	#$20,userflag(a0)
+		move.b	#8,r_no0(a0)
 		rts	
 ; ===========================================================================
 
 loc_18E7A:
-		cmpi.w	#$78,$28(a0)
+		cmpi.w	#$78,userflag(a0)
 		bne.b	loc_18E88
 		move.b	#5,$1F(a0)
 
 loc_18E88:
-		cmpi.w	#$3C,$28(a0)
+		cmpi.w	#$3C,userflag(a0)
 		bne.b	loc_18E96
 		move.b	#2,$1F(a0)
 
@@ -31594,12 +31441,12 @@ loc_18EC0:
 		add.w	d4,d3
 		cmp.w	d3,d1
 		bcs.b	loc_18F38
-		addq.b	#2,$24(a0)
-		clr.w	$28(a0)
-		clr.b	$20(a1)
-		subq.b	#1,$21(a1)
+		addq.b	#2,r_no0(a0)
+		clr.w	userflag(a0)
+		clr.b	colino(a1)
+		subq.b	#1,colicnt(a1)
 		bne.b	loc_18F38
-		bset	#7,$22(a1)
+		bset	#7,cddat(a1)
 		clr.w	$10(a0)
 		clr.w	$12(a0)
 
@@ -31641,17 +31488,17 @@ loc_18F7E:
 		moveq	#0,d1
 
 loc_18F9C:
-		move.w	#0,$28(a0)
+		move.w	#0,userflag(a0)
 
 loc_18FA2:
 		move.b	d1,$3A(a1)
 		move.b	d1,$3A(a0)
 		cmp.b	$1A(a1),d1
 		beq.b	loc_19008
-		bclr	#3,$22(a1)
+		bclr	#3,cddat(a1)
 		beq.b	loc_19008
-		clr.b	$25(a1)
-		move.b	#2,$24(a1)
+		clr.b	r_no1(a1)
+		move.b	#2,r_no0(a1)
 		lea	playerwk,a2
 		move.w	$12(a0),$12(a2)
 		neg.w	$12(a2)
@@ -31660,21 +31507,21 @@ loc_18FA2:
 		asr	$12(a2)
 
 loc_18FDC:
-		bset	#1,$22(a2)
-		bclr	#3,$22(a2)
+		bset	#1,cddat(a2)
+		bclr	#3,cddat(a2)
 		clr.b	$3C(a2)
 		move.l	a0,-(sp)
 		lea	(a2),a0
 		jsr	ballset
 		movea.l	(sp)+,a0
-		move.b	#2,$24(a2)
+		move.b	#2,r_no0(a2)
 		move.w	#$CC,d0
 		jsr	(soundset).l ;	play "spring" sound
 
 loc_19008:
 		clr.w	$10(a0)
 		clr.w	$12(a0)
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		bra.w	loc_18E7A
 ; ===========================================================================
 word_19018:	dc.w $FFF8, $FFE4, $FFD1, $FFE4, $FFF8
@@ -31687,8 +31534,8 @@ byte_19026:	dc.b 8,	$F0, 8,	$F0
 
 Obj7B_Explode:				; XREF: Obj7B_Index
 		move.b	#$3F,(a0)
-		clr.b	$24(a0)
-		cmpi.w	#$20,$28(a0)
+		clr.b	r_no0(a0)
+		cmpi.w	#$20,userflag(a0)
 		beq.b	Obj7B_MakeFrag
 		rts	
 ; ===========================================================================
@@ -31702,7 +31549,7 @@ Obj7B_Loop:
 		jsr	actwkchk
 		bne.b	loc_1909A
 		move.b	#$7B,(a1)	; load shrapnel	object
-		move.b	#$A,$24(a1)
+		move.b	#$A,r_no0(a1)
 		move.l	#Map_obj7B,4(a1)
 		move.b	#3,$18(a1)
 		move.w	#$518,2(a1)
@@ -31710,7 +31557,7 @@ Obj7B_Loop:
 		move.w	$C(a0),$C(a1)
 		move.w	(a2)+,$10(a1)
 		move.w	(a2)+,$12(a1)
-		move.b	#$98,$20(a1)
+		move.b	#$98,colino(a1)
 		ori.b	#4,1(a1)
 		bset	#7,1(a1)
 		move.b	#$C,$19(a1)
@@ -31732,7 +31579,7 @@ Obj7B_MoveFrag:				; XREF: Obj7B_Index
 		move.w	$C(a0),$34(a0)
 		addi.w	#$18,$12(a0)
 		moveq	#4,d0
-		and.w	($FFFFFE0E).w,d0
+		and.w	systemtimer+2,d0
 		lsr.w	#2,d0
 		move.b	d0,$1A(a0)
 		tst.b	1(a0)
@@ -31752,7 +31599,7 @@ Map_obj7B:
 
 Obj75:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj75_Index(pc,d0.w),d1
 		jmp	Obj75_Index(pc,d1.w)
 ; ===========================================================================
@@ -31773,8 +31620,8 @@ Obj75_Main:				; XREF: Obj75_Index
 		move.w	#$4DA,$C(a0)
 		move.w	8(a0),$30(a0)
 		move.w	$C(a0),$38(a0)
-		move.b	#$F,$20(a0)
-		move.b	#8,$21(a0)	; set number of	hits to	8
+		move.b	#$F,colino(a0)
+		move.b	#8,colicnt(a0)	; set number of	hits to	8
 		lea	Obj75_ObjData(pc),a2
 		movea.l	a0,a1
 		moveq	#3,d1
@@ -31789,9 +31636,9 @@ Obj75_Loop:
 		move.w	$C(a0),$C(a1)
 
 Obj75_LoadBoss:				; XREF: Obj75_Main
-		bclr	#0,$22(a0)
-		clr.b	$25(a1)
-		move.b	(a2)+,$24(a1)
+		bclr	#0,cddat(a0)
+		clr.b	r_no1(a1)
+		move.b	(a2)+,r_no0(a1)
 		move.b	(a2)+,$1C(a1)
 		move.b	(a2)+,$18(a1)
 		move.l	#Map_Eggman,4(a1)
@@ -31803,13 +31650,13 @@ Obj75_LoadBoss:				; XREF: Obj75_Main
 
 Obj75_ShipMain:				; XREF: Obj75_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	Obj75_ShipIndex(pc,d0.w),d1
 		jsr	Obj75_ShipIndex(pc,d1.w)
 		lea	(Ani_Eggman).l,a1
 		jsr	patchg
 		moveq	#3,d0
-		and.b	$22(a0),d0
+		and.b	cddat(a0),d0
 		andi.b	#$FC,1(a0)
 		or.b	d0,1(a0)
 		jmp	actionsub
@@ -31823,7 +31670,7 @@ loc_191CC:				; XREF: Obj75_ShipIndex
 		move.w	#-$100,$10(a0)
 		cmpi.w	#$2D38,$30(a0)
 		bcc.b	loc_191DE
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 
 loc_191DE:
 		move.b	$3F(a0),d0
@@ -31842,11 +31689,11 @@ loc_19202:
 		subi.w	#$2C00,d0
 		lsr.w	#5,d0
 		move.b	d0,$34(a0)
-		cmpi.b	#6,$25(a0)
+		cmpi.b	#6,r_no1(a0)
 		bcc.b	locret_19256
-		tst.b	$22(a0)
+		tst.b	cddat(a0)
 		bmi.b	loc_19258
-		tst.b	$20(a0)
+		tst.b	colino(a0)
 		bne.b	locret_19256
 		tst.b	$3E(a0)
 		bne.b	loc_1923A
@@ -31865,7 +31712,7 @@ loc_19248:
 		move.w	d0,(a1)
 		subq.b	#1,$3E(a0)
 		bne.b	locret_19256
-		move.b	#$F,$20(a0)
+		move.b	#$F,colino(a0)
 
 locret_19256:
 		rts	
@@ -31874,7 +31721,7 @@ locret_19256:
 loc_19258:				; XREF: loc_19202
 		moveq	#100,d0
 		bsr.w	scoreup
-		move.b	#6,$25(a0)
+		move.b	#6,r_no1(a0)
 		move.w	#$B4,$3C(a0)
 		clr.w	$10(a0)
 		rts	
@@ -31883,7 +31730,7 @@ loc_19258:				; XREF: loc_19202
 loc_19270:				; XREF: Obj75_ShipIndex
 		move.w	$30(a0),d0
 		move.w	#$140,$10(a0)
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	loc_1928E
 		neg.w	$10(a0)
 		cmpi.w	#$2C08,d0
@@ -31896,7 +31743,7 @@ loc_1928E:
 		blt.b	loc_1929E
 
 loc_19294:
-		bchg	#0,$22(a0)
+		bchg	#0,cddat(a0)
 		clr.b	$3D(a0)
 
 loc_1929E:
@@ -31922,8 +31769,8 @@ loc_192AE:
 		addi.w	#$2C10,d0
 		move.w	d0,$30(a0)
 		bsr.w	Obj75_FindBlocks
-		addq.b	#2,$25(a0)
-		clr.w	$28(a0)
+		addq.b	#2,r_no1(a0)
+		clr.w	userflag(a0)
 		clr.w	$10(a0)
 
 loc_192E8:
@@ -31932,7 +31779,7 @@ loc_192E8:
 
 loc_192EC:				; XREF: Obj75_ShipIndex
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		move.w	off_192FA(pc,d0.w),d0
 		jmp	off_192FA(pc,d0.w)
 ; ===========================================================================
@@ -31960,7 +31807,7 @@ loc_19302:				; XREF: off_192FA
 
 loc_1933C:
 		clr.w	$12(a0)
-		addq.b	#2,$28(a0)
+		addq.b	#2,userflag(a0)
 
 loc_19344:
 		bra.w	loc_191F2
@@ -31969,7 +31816,7 @@ loc_19344:
 loc_19348:				; XREF: off_192FA
 		subq.w	#1,$3C(a0)
 		bpl.b	loc_19366
-		addq.b	#2,$28(a0)
+		addq.b	#2,userflag(a0)
 		move.w	#-$800,$12(a0)
 		tst.w	$36(a0)
 		bne.b	loc_19362
@@ -32011,7 +31858,7 @@ loc_1939C:
 		move.w	#$2D,$3C(a0)
 
 loc_193B4:
-		addq.b	#2,$28(a0)
+		addq.b	#2,userflag(a0)
 		clr.w	$12(a0)
 		bra.b	loc_193CC
 ; ===========================================================================
@@ -32044,7 +31891,7 @@ loc_193EE:
 		cmpi.w	#-$1E,$3C(a0)
 		bne.b	loc_19406
 		clr.b	$29(a0)
-		subq.b	#2,$25(a0)
+		subq.b	#2,r_no1(a0)
 		move.b	#-1,$3D(a0)
 		bra.b	loc_19446
 ; ===========================================================================
@@ -32095,7 +31942,7 @@ Obj75_FindBlocks:			; XREF: loc_192AE
 Obj75_FindLoop:
 		cmp.b	(a1),d1		; is object a SYZ boss block?
 		bne.b	loc_1946A	; if not, branch
-		cmp.b	$28(a1),d2
+		cmp.b	userflag(a1),d2
 		bne.b	loc_1946A
 		move.w	a1,$36(a0)
 		bra.b	locret_19472
@@ -32118,10 +31965,10 @@ loc_19474:				; XREF: Obj75_ShipIndex
 ; ===========================================================================
 
 loc_1947E:
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		clr.w	$12(a0)
-		bset	#0,$22(a0)
-		bclr	#7,$22(a0)
+		bset	#0,cddat(a0)
+		bclr	#7,cddat(a0)
 		clr.w	$10(a0)
 		move.w	#-1,$3C(a0)
 		tst.b	($FFFFF7A7).w
@@ -32151,7 +31998,7 @@ loc_194C2:
 		beq.b	loc_194E0
 		cmpi.w	#$2A,$3C(a0)
 		bcs.b	loc_194EE
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		bra.b	loc_194EE
 ; ===========================================================================
 
@@ -32195,7 +32042,7 @@ Obj75_FaceMain:				; XREF: Obj75_Index
 		moveq	#1,d1
 		movea.l	$34(a0),a1
 		moveq	#0,d0
-		move.b	$25(a1),d0
+		move.b	r_no1(a1),d0
 		move.w	off_19546(pc,d0.w),d0
 		jsr	off_19546(pc,d0.w)
 		move.b	d1,$1C(a0)
@@ -32225,7 +32072,7 @@ loc_19556:				; XREF: off_19546
 
 loc_1955A:				; XREF: off_19546
 		moveq	#0,d0
-		move.b	$28(a1),d0
+		move.b	userflag(a1),d0
 		move.w	off_19568(pc,d0.w),d0
 		jmp	off_19568(pc,d0.w)
 ; ===========================================================================
@@ -32241,7 +32088,7 @@ loc_19572:				; XREF: off_19568
 		moveq	#6,d1
 
 loc_19574:				; XREF: off_19546
-		tst.b	$20(a1)
+		tst.b	colino(a1)
 		bne.b	loc_1957E
 		moveq	#5,d1
 		rts	
@@ -32259,7 +32106,7 @@ locret_19588:
 Obj75_FlameMain:			; XREF: Obj75_Index
 		move.b	#7,$1C(a0)
 		movea.l	$34(a0),a1
-		cmpi.b	#$A,$25(a1)
+		cmpi.b	#$A,r_no1(a1)
 		bne.b	loc_195AA
 		move.b	#$B,$1C(a0)
 		tst.b	1(a0)
@@ -32288,9 +32135,9 @@ loc_195BE:
 		move.w	$C(a1),$C(a0)
 
 loc_195DA:
-		move.b	$22(a1),$22(a0)
+		move.b	cddat(a1),cddat(a0)
 		moveq	#3,d0
-		and.b	$22(a0),d0
+		and.b	cddat(a0),d0
 		andi.b	#$FC,1(a0)
 		or.b	d0,1(a0)
 		jmp	actionsub
@@ -32301,7 +32148,7 @@ Obj75_SpikeMain:			; XREF: Obj75_Index
 		move.w	#$246C,2(a0)
 		move.b	#5,$1A(a0)
 		movea.l	$34(a0),a1
-		cmpi.b	#$A,$25(a1)
+		cmpi.b	#$A,r_no1(a1)
 		bne.b	loc_1961C
 		tst.b	1(a0)
 		bpl.b	Obj75_SpikeDelete
@@ -32310,11 +32157,11 @@ loc_1961C:
 		move.w	8(a1),8(a0)
 		move.w	$C(a1),$C(a0)
 		move.w	$3C(a0),d0
-		cmpi.b	#4,$25(a1)
+		cmpi.b	#4,r_no1(a1)
 		bne.b	loc_19652
-		cmpi.b	#6,$28(a1)
+		cmpi.b	#6,userflag(a1)
 		beq.b	loc_1964C
-		tst.b	$28(a1)
+		tst.b	userflag(a1)
 		bne.b	loc_19658
 		cmpi.w	#$94,d0
 		bge.b	loc_19658
@@ -32337,13 +32184,13 @@ loc_19658:
 		add.w	d0,$C(a0)
 		move.b	#8,$19(a0)
 		move.b	#$C,$16(a0)
-		clr.b	$20(a0)
+		clr.b	colino(a0)
 		movea.l	$34(a0),a1
-		tst.b	$20(a1)
+		tst.b	colino(a1)
 		beq.b	loc_19688
 		tst.b	$29(a1)
 		bne.b	loc_19688
-		move.b	#$84,$20(a0)
+		move.b	#$84,colino(a0)
 
 loc_19688:
 		bra.w	loc_195DA
@@ -32358,7 +32205,7 @@ Obj75_SpikeDelete:
 
 Obj76:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj76_Index(pc,d0.w),d1
 		jmp	Obj76_Index(pc,d1.w)
 ; ===========================================================================
@@ -32389,10 +32236,10 @@ Obj76_MakeBlock:			; XREF: Obj76_Main
 		move.b	#3,$18(a1)
 		move.w	d5,8(a1)	; set x-position
 		move.w	#$582,$C(a1)
-		move.w	d4,$28(a1)
+		move.w	d4,userflag(a1)
 		addi.w	#$101,d4
 		addi.w	#$20,d5		; add $20 to next x-position
-		addq.b	#2,$24(a1)
+		addq.b	#2,r_no0(a1)
 		dbra	d6,Obj76_Loop	; repeat sequence 9 more times
 
 Obj76_ExitLoop:
@@ -32401,7 +32248,7 @@ Obj76_ExitLoop:
 
 Obj76_Action:				; XREF: Obj76_Index
 		move.b	$29(a0),d0
-		cmp.b	$28(a0),d0
+		cmp.b	userflag(a0),d0
 		beq.b	Obj76_Solid
 		tst.b	d0
 		bmi.b	loc_19718
@@ -32413,7 +32260,7 @@ loc_19712:
 
 loc_19718:
 		movea.l	$34(a0),a1
-		tst.b	$21(a1)
+		tst.b	colicnt(a1)
 		beq.b	loc_19712
 		move.w	8(a1),8(a0)
 		move.w	$C(a1),$C(a0)
@@ -32457,7 +32304,7 @@ Obj76_Break:				; XREF: Obj76_Action
 		moveq	#1,d4
 		moveq	#3,d1
 		moveq	#$38,d2
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#8,$19(a0)
 		move.b	#8,$16(a0)
 		lea	(a0),a1
@@ -32521,7 +32368,7 @@ loc_1982C:				; XREF: loc_19C62; loc_19C80
 
 Obj82:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj82_Index(pc,d0.w),d1
 		jmp	Obj82_Index(pc,d1.w)
 ; ===========================================================================
@@ -32537,11 +32384,11 @@ Obj82_Main:				; XREF: Obj82_Index
 		lea	Obj82_ObjData(pc),a2
 		move.w	#$2160,8(a0)
 		move.w	#$5A4,$C(a0)
-		move.b	#$F,$20(a0)
-		move.b	#$10,$21(a0)
-		bclr	#0,$22(a0)
-		clr.b	$25(a0)
-		move.b	(a2)+,$24(a0)
+		move.b	#$F,colino(a0)
+		move.b	#$10,colicnt(a0)
+		bclr	#0,cddat(a0)
+		clr.b	r_no1(a0)
+		move.b	(a2)+,r_no0(a0)
 		move.b	(a2)+,$1C(a0)
 		move.b	(a2)+,$18(a0)
 		move.l	#Map_obj82,4(a0)
@@ -32555,8 +32402,8 @@ Obj82_Main:				; XREF: Obj82_Index
 		move.b	#$82,(a1)	; load switch object
 		move.w	#$2130,8(a1)
 		move.w	#$5BC,$C(a1)
-		clr.b	$25(a0)
-		move.b	(a2)+,$24(a1)
+		clr.b	r_no1(a0)
+		move.b	(a2)+,r_no0(a1)
 		move.b	(a2)+,$1C(a1)
 		move.b	(a2)+,$18(a1)
 		move.l	#Map_switch2,4(a1)
@@ -32568,7 +32415,7 @@ Obj82_Main:				; XREF: Obj82_Index
 
 Obj82_Eggman:				; XREF: Obj82_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	Obj82_EggIndex(pc,d0.w),d1
 		jsr	Obj82_EggIndex(pc,d1.w)
 		lea	Ani_obj82(pc),a1
@@ -32586,7 +32433,7 @@ Obj82_ChkSonic:				; XREF: Obj82_EggIndex
 		sub.w	playerwk+xposi,d0
 		cmpi.w	#128,d0		; is Sonic within 128 pixels of	Eggman?
 		bcc.b	loc_19934	; if not, branch
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.w	#180,$3C(a0)	; set delay to 3 seconds
 		move.b	#1,$1C(a0)
 
@@ -32597,7 +32444,7 @@ loc_19934:				; XREF: Obj82_EggIndex
 Obj82_PreLeap:				; XREF: Obj82_EggIndex
 		subq.w	#1,$3C(a0)	; subtract 1 from time delay
 		bne.b	loc_19954	; if time remains, branch
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.b	#2,$1C(a0)
 		addq.w	#4,$C(a0)
 		move.w	#15,$3C(a0)
@@ -32624,7 +32471,7 @@ loc_19976:
 		bmi.b	Obj82_FindBlocks
 		cmpi.w	#$595,$C(a0)
 		bcs.b	Obj82_FindBlocks
-		move.w	#$5357,$28(a0)
+		move.w	#$5357,userflag(a0)
 		cmpi.w	#$59B,$C(a0)
 		bcs.b	Obj82_FindBlocks
 		move.w	#$59B,$C(a0)
@@ -32644,8 +32491,8 @@ Obj82_FindLoop:
 		dbeq	d0,Obj82_FindLoop ; if not, repeat (max	$3E times)
 
 		bne.b	loc_199D0
-		move.w	#$474F,$28(a1)	; set block to disintegrate
-		addq.b	#2,$25(a0)
+		move.w	#$474F,userflag(a1)	; set block to disintegrate
+		addq.b	#2,r_no1(a0)
 		move.b	#1,$1C(a0)
 
 loc_199D0:
@@ -32654,7 +32501,7 @@ loc_199D0:
 
 Obj82_Switch:				; XREF: Obj82_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	Obj82_SwIndex(pc,d0.w),d0
 		jmp	Obj82_SwIndex(pc,d0.w)
 ; ===========================================================================
@@ -32664,10 +32511,10 @@ Obj82_SwIndex:	dc.w loc_199E6-Obj82_SwIndex
 
 loc_199E6:				; XREF: Obj82_SwIndex
 		movea.l	$34(a0),a1
-		cmpi.w	#$5357,$28(a1)
+		cmpi.w	#$5357,userflag(a1)
 		bne.b	Obj82_SwDisplay
 		move.b	#1,$1A(a0)
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 
 Obj82_SwDisplay:			; XREF: Obj82_SwIndex
 		jmp	actionsub
@@ -32688,7 +32535,7 @@ Map_obj82:
 
 Obj83:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj83_Index(pc,d0.w),d1
 		jmp	Obj83_Index(pc,d1.w)
 ; ===========================================================================
@@ -32726,19 +32573,19 @@ Obj83_MakeBlock:
 		move.w	d5,8(a1)	; set X	position
 		move.w	#$5D0,$C(a1)
 		addi.w	#$20,d5		; add $20 for next X position
-		move.b	#8,$24(a1)
+		move.b	#8,r_no0(a1)
 		dbra	d6,Obj83_MakeBlock ; repeat sequence 7 more times
 
 Obj83_ExitMake:
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		rts	
 ; ===========================================================================
 
 Obj83_ChkBreak:				; XREF: Obj83_Index
-		cmpi.w	#$474F,$28(a0)	; is object set	to disintegrate?
+		cmpi.w	#$474F,userflag(a0)	; is object set	to disintegrate?
 		bne.b	Obj83_Solid	; if not, branch
 		clr.b	$1A(a0)
-		addq.b	#2,$24(a0)	; next subroutine
+		addq.b	#2,r_no0(a0)	; next subroutine
 
 Obj83_Solid:
 		moveq	#0,d0
@@ -32767,7 +32614,7 @@ loc_19C36:				; XREF: Obj83_Index
 		add.w	d0,d0
 		move.w	$30(a0,d0.w),d0
 		movea.l	d0,a1
-		move.w	#$474F,$28(a1)
+		move.w	#$474F,userflag(a1)
 		addq.b	#1,$1A(a0)
 		cmpi.b	#8,$1A(a0)
 		beq.b	loc_19C62
@@ -32777,13 +32624,13 @@ Obj83_Solid2:
 ; ===========================================================================
 
 loc_19C62:				; XREF: Obj83_Index
-		bclr	#3,$22(a0)
+		bclr	#3,cddat(a0)
 		bclr	#3,playerwk+cddat
 		bra.w	loc_1982C
 ; ===========================================================================
 
 loc_19C72:				; XREF: Obj83_Index
-		cmpi.w	#$474F,$28(a0)	; is object set	to disintegrate?
+		cmpi.w	#$474F,userflag(a0)	; is object set	to disintegrate?
 		beq.b	Obj83_Break	; if yes, branch
 		jmp	actionsub
 ; ===========================================================================
@@ -32801,7 +32648,7 @@ Obj83_Break:				; XREF: loc_19C72
 		moveq	#1,d4
 		moveq	#3,d1
 		moveq	#$38,d2
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#8,$19(a0)
 		move.b	#8,$16(a0)
 		lea	(a0),a1
@@ -32861,7 +32708,7 @@ Obj85_Delete:
 
 Obj85:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj85_Index(pc,d0.w),d0
 		jmp	Obj85_Index(pc,d0.w)
 ; ===========================================================================
@@ -32912,7 +32759,7 @@ Obj85_LoadBoss:				; XREF: Obj85_Main
 		move.w	(a2)+,$C(a1)
 		move.w	(a2)+,2(a1)
 		move.l	(a2)+,4(a1)
-		move.b	(a3)+,$24(a1)
+		move.b	(a3)+,r_no0(a1)
 		move.b	(a3)+,$1C(a1)
 		move.b	(a3)+,$18(a1)
 		move.b	(a3)+,$17(a1)
@@ -32939,13 +32786,13 @@ loc_19E3E:
 		move.w	a1,(a2)+
 		move.b	#$84,(a1)	; load crushing	cylinder object
 		move.l	a0,$34(a1)
-		move.b	d2,$28(a1)
+		move.b	d2,userflag(a1)
 		addq.w	#2,d2
 		dbra	d1,loc_19E3E
 
 loc_19E5A:
 		move.w	#0,$34(a0)
-		move.b	#8,$21(a0)	; set number of	hits to	8
+		move.b	#8,colicnt(a0)	; set number of	hits to	8
 		move.w	#-1,$30(a0)
 
 Obj85_Eggman:				; XREF: Obj85_Index
@@ -33007,11 +32854,11 @@ loc_19EC6:
 loc_19F10:
 		tst.w	$32(a0)
 		bmi.w	loc_19FA6
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 		move.w	playerwk+xposi,d0
 		sub.w	8(a0),d0
 		bcs.b	loc_19F2E
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 
 loc_19F2E:
 		move.w	#$2B,d1
@@ -33033,7 +32880,7 @@ loc_19F50:
 		cmpi.b	#2,playerwk+mstno
 		bne.b	loc_19F48
 		move.w	#$300,d0
-		btst	#0,$22(a0)
+		btst	#0,cddat(a0)
 		bne.b	loc_19F6A
 		neg.w	d0
 
@@ -33041,7 +32888,7 @@ loc_19F6A:
 		move.w	d0,($FFFFD010).w
 		tst.b	$35(a0)
 		bne.b	loc_19F88
-		subq.b	#1,$21(a0)
+		subq.b	#1,colicnt(a0)
 		move.b	#$64,$35(a0)
 		move.w	#$AC,d0
 		jsr	(soundset).l ;	play boss damage sound
@@ -33062,7 +32909,7 @@ loc_19F9C:
 ; ===========================================================================
 
 loc_19FA6:
-		tst.b	$21(a0)
+		tst.b	colicnt(a0)
 		beq.b	loc_19FBC
 		addq.b	#2,$34(a0)
 		move.w	#-1,$30(a0)
@@ -33092,7 +32939,7 @@ loc_19FE6:				; XREF: off_19E80
 
 loc_1A000:
 		moveq	#$F,d0
-		and.w	($FFFFFE0E).w,d0
+		and.w	systemtimer+2,d0
 		bne.b	loc_1A00A
 		bsr.b	loc_1A020
 
@@ -33114,7 +32961,7 @@ loc_1A020:
 
 loc_1A02A:				; XREF: off_19E80
 		move.b	#$30,$17(a0)
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		jsr	speedset2
 		move.b	#6,$1A(a0)
 		addi.w	#$10,$12(a0)
@@ -33132,7 +32979,7 @@ loc_1A070:
 ; ===========================================================================
 
 loc_1A074:				; XREF: off_19E80
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		move.b	#4,$1C(a0)
 		jsr	speedset2
 		addi.w	#$10,$12(a0)
@@ -33202,7 +33049,7 @@ loc_1A142:
 		bne.b	loc_1A15C
 		addq.b	#2,$34(a0)
 		move.w	#-$180,$12(a0)
-		move.b	#1,$21(a0)
+		move.b	#1,colicnt(a0)
 
 loc_1A15C:
 		lea	Ani_obj82(pc),a1
@@ -33231,13 +33078,13 @@ loc_1A192:				; XREF: off_19E80
 		move.l	#Map_Eggman,4(a0)
 		move.w	#$400,2(a0)
 		move.b	#0,$1C(a0)
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		jsr	speedset2
 		cmpi.w	#$544,$C(a0)
 		bcc.b	loc_1A1D0
 		move.w	#$180,$10(a0)
 		move.w	#-$18,$12(a0)
-		move.b	#$F,$20(a0)
+		move.b	#$F,colino(a0)
 		addq.b	#2,$34(a0)
 
 loc_1A1D0:
@@ -33245,11 +33092,11 @@ loc_1A1D0:
 ; ===========================================================================
 
 loc_1A1D4:				; XREF: off_19E80
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		jsr	speedset2
 		tst.w	$30(a0)
 		bne.b	loc_1A1FC
-		tst.b	$20(a0)
+		tst.b	colino(a0)
 		bne.b	loc_1A216
 		move.w	#$1E,$30(a0)
 		move.w	#$AC,d0
@@ -33258,14 +33105,14 @@ loc_1A1D4:				; XREF: off_19E80
 loc_1A1FC:
 		subq.w	#1,$30(a0)
 		bne.b	loc_1A216
-		tst.b	$22(a0)
+		tst.b	cddat(a0)
 		bpl.b	loc_1A210
 		move.w	#$60,$12(a0)
 		bra.b	loc_1A216
 ; ===========================================================================
 
 loc_1A210:
-		move.b	#$F,$20(a0)
+		move.b	#$F,colino(a0)
 
 loc_1A216:
 		cmpi.w	#$2790,playerwk+xposi
@@ -33322,9 +33169,9 @@ loc_1A296:
 
 loc_1A2A6:
 		movea.l	$34(a0),a1
-		move.b	$22(a1),$22(a0)
+		move.b	cddat(a1),cddat(a0)
 		moveq	#3,d0
-		and.b	$22(a0),d0
+		and.b	cddat(a0),d0
 		andi.b	#-4,1(a0)
 		or.b	d0,1(a0)
 		jmp	actionsub
@@ -33343,7 +33190,7 @@ loc_1A2C6:				; XREF: Obj85_Index
 
 loc_1A2E4:
 		move.b	#1,$1C(a0)
-		tst.b	$21(a1)
+		tst.b	colicnt(a1)
 		ble.b	loc_1A312
 		move.b	#6,$1C(a0)
 		move.l	#Map_Eggman,4(a0)
@@ -33367,7 +33214,7 @@ loc_1A312:
 ; ===========================================================================
 
 loc_1A346:				; XREF: Obj85_Index
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		movea.l	$34(a0),a1
 		cmpi.l	#Map_Eggman,4(a1)
 		beq.b	loc_1A35E
@@ -33406,7 +33253,7 @@ loc_1A3A6:
 
 loc_1A3AC:				; XREF: Obj85_Index
 		move.b	#0,$1A(a0)
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		movea.l	$34(a0),a1
 		cmpi.b	#$C,$34(a1)
 		bne.b	loc_1A3D0
@@ -33436,7 +33283,7 @@ Obj84_Delete:
 
 Obj84:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj84_Index(pc,d0.w),d0
 		jmp	Obj84_Index(pc,d0.w)
 ; ===========================================================================
@@ -33453,7 +33300,7 @@ Obj84_PosData:	dc.w $24D0, $620
 Obj84_Main:				; XREF: Obj84_Index
 		lea	Obj84_PosData(pc),a1
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		add.w	d0,d0
 		adda.w	d0,a1
 		move.b	#4,1(a0)
@@ -33469,10 +33316,10 @@ Obj84_Main:				; XREF: Obj84_Index
 		move.b	#$20,$19(a0)
 		move.b	#$60,$16(a0)
 		move.b	#3,$18(a0)
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 loc_1A4CE:				; XREF: Obj84_Index
-		cmpi.b	#2,$28(a0)
+		cmpi.b	#2,userflag(a0)
 		ble.b	loc_1A4DC
 		bset	#1,1(a0)
 
@@ -33480,7 +33327,7 @@ loc_1A4DC:
 		clr.l	$3C(a0)
 		tst.b	$29(a0)
 		beq.b	loc_1A4EA
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 loc_1A4EA:
 		move.l	$3C(a0),d0
@@ -33488,12 +33335,12 @@ loc_1A4EA:
 		add.l	d0,d1
 		swap	d1
 		move.w	d1,$C(a0)
-		cmpi.b	#4,$24(a0)
+		cmpi.b	#4,r_no0(a0)
 		bne.b	loc_1A524
 		tst.w	$30(a0)
 		bpl.b	loc_1A524
 		moveq	#-$A,d0
-		cmpi.b	#2,$28(a0)
+		cmpi.b	#2,userflag(a0)
 		ble.b	loc_1A514
 		moveq	#$E,d0
 
@@ -33544,7 +33391,7 @@ loc_1A578:
 
 loc_1A57E:				; XREF: Obj84_Index
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		move.w	off_1A590(pc,d0.w),d0
 		jsr	off_1A590(pc,d0.w)
 		bra.w	loc_1A4EA
@@ -33559,7 +33406,7 @@ loc_1A598:				; XREF: off_1A590
 		tst.b	$29(a0)
 		bne.b	loc_1A5D4
 		movea.l	$34(a0),a1
-		tst.b	$21(a1)
+		tst.b	colicnt(a1)
 		bne.b	loc_1A5B4
 		bsr.w	BossDefeated
 		subi.l	#$10000,$3C(a0)
@@ -33571,7 +33418,7 @@ loc_1A5B4:
 		movea.l	$34(a0),a1
 		subq.w	#1,$32(a1)
 		clr.w	$30(a1)
-		subq.b	#2,$24(a0)
+		subq.b	#2,r_no0(a0)
 		rts	
 ; ===========================================================================
 
@@ -33597,7 +33444,7 @@ loc_1A604:				; XREF: off_1A590
 		tst.b	$29(a0)
 		bne.b	loc_1A646
 		movea.l	$34(a0),a1
-		tst.b	$21(a1)
+		tst.b	colicnt(a1)
 		bne.b	loc_1A626
 		bsr.w	BossDefeated
 		addi.l	#$10000,$3C(a0)
@@ -33609,7 +33456,7 @@ loc_1A626:
 		movea.l	$34(a0),a1
 		subq.w	#1,$32(a1)
 		clr.w	$30(a1)
-		subq.b	#2,$24(a0)
+		subq.b	#2,r_no0(a0)
 		rts	
 ; ===========================================================================
 
@@ -33642,7 +33489,7 @@ Map_obj84:
 
 Obj86:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	Obj86_Index(pc,d0.w),d0
 		jmp	Obj86_Index(pc,d0.w)
 ; ===========================================================================
@@ -33664,14 +33511,14 @@ Obj86_Main:				; XREF: Obj86_Index
 		move.b	#8,$16(a0)
 		move.b	#4,1(a0)
 		bset	#7,1(a0)
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 Obj86_Generator:			; XREF: Obj86_Index
 		movea.l	$34(a0),a1
 		cmpi.b	#6,$34(a1)
 		bne.b	loc_1A850
 		move.b	#$3F,(a0)
-		move.b	#0,$24(a0)
+		move.b	#0,r_no0(a0)
 		jmp	actionsub
 ; ===========================================================================
 
@@ -33679,9 +33526,9 @@ loc_1A850:
 		move.b	#0,$1C(a0)
 		tst.b	$29(a0)
 		beq.b	loc_1A86C
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#1,$1C(a0)
-		move.b	#$3E,$28(a0)
+		move.b	#$3E,userflag(a0)
 
 loc_1A86C:
 		move.w	#$13,d1
@@ -33720,14 +33567,14 @@ Obj86_Loop:
 		move.b	#$86,(a1)
 		move.w	8(a0),8(a1)
 		move.w	#$53C,$C(a1)
-		move.b	#8,$24(a1)
+		move.b	#8,r_no0(a1)
 		move.w	#$2300,2(a1)
 		move.l	#Map_obj86a,4(a1)
 		move.b	#$C,$16(a1)
 		move.b	#$C,$17(a1)
-		move.b	#0,$20(a1)
+		move.b	#0,colino(a1)
 		move.b	#3,$18(a1)
-		move.w	#$3E,$28(a1)
+		move.w	#$3E,userflag(a1)
 		move.b	#4,1(a1)
 		bset	#7,1(a1)
 		move.l	a0,$34(a1)
@@ -33746,7 +33593,7 @@ Obj86_Loop:
 loc_1A954:
 		tst.w	$32(a0)
 		bne.b	loc_1A95E
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 
 loc_1A95E:
 		bra.w	loc_1A86C
@@ -33756,7 +33603,7 @@ loc_1A962:				; XREF: Obj86_Index
 		move.b	#2,$1C(a0)
 		tst.w	$38(a0)
 		bne.b	loc_1A97E
-		move.b	#2,$24(a0)
+		move.b	#2,r_no0(a0)
 		movea.l	$34(a0),a1
 		move.w	#-1,$32(a1)
 
@@ -33766,7 +33613,7 @@ loc_1A97E:
 
 loc_1A982:				; XREF: Obj86_Index
 		moveq	#0,d0
-		move.b	$25(a0),d0
+		move.b	r_no1(a0),d0
 		move.w	Obj86_Index2(pc,d0.w),d0
 		jsr	Obj86_Index2(pc,d0.w)
 		lea	Ani_obj86a(pc),a1
@@ -33783,8 +33630,8 @@ loc_1A9A6:				; XREF: Obj86_Index2
 		sub.w	8(a0),d0
 		asl.w	#4,d0
 		move.w	d0,$10(a0)
-		move.w	#$B4,$28(a0)
-		addq.b	#2,$25(a0)
+		move.w	#$B4,userflag(a0)
+		addq.b	#2,r_no1(a0)
 		rts	
 ; ===========================================================================
 
@@ -33802,12 +33649,12 @@ loc_1A9C0:				; XREF: Obj86_Index2
 
 loc_1A9E6:
 		move.b	#0,$1C(a0)
-		subq.w	#1,$28(a0)
+		subq.w	#1,userflag(a0)
 		bne.b	locret_1AA1C
-		addq.b	#2,$25(a0)
+		addq.b	#2,r_no1(a0)
 		move.b	#1,$1C(a0)
-		move.b	#$9A,$20(a0)
-		move.w	#$B4,$28(a0)
+		move.b	#$9A,colino(a0)
+		move.w	#$B4,userflag(a0)
 		moveq	#0,d0
 		move.w	playerwk+xposi,d0
 		sub.w	8(a0),d0
@@ -33822,7 +33669,7 @@ loc_1AA1E:				; XREF: Obj86_Index2
 		jsr	speedset2
 		cmpi.w	#$5E0,$C(a0)
 		bcc.b	loc_1AA34
-		subq.w	#1,$28(a0)
+		subq.w	#1,userflag(a0)
 		beq.b	loc_1AA34
 		rts	
 ; ===========================================================================
@@ -33857,7 +33704,7 @@ Map_obj86a:
 
 masin:					; XREF: act_tbl
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	masin_Index(pc,d0.w),d1
 		jsr	masin_Index(pc,d1.w)
 		move.w	8(a0),d0
@@ -33895,17 +33742,17 @@ masin_Main:				; XREF: masin_Index
 		move.b	#4,1(a0)
 		move.w	$C(a0),$30(a0)
 		moveq	#0,d0
-		move.b	$28(a0),d0
+		move.b	userflag(a0),d0
 		lsl.w	#2,d0
 		lea	masin_Var(pc,d0.w),a1
-		move.b	(a1)+,$24(a0)
+		move.b	(a1)+,r_no0(a0)
 		move.b	(a1)+,$19(a0)
 		move.b	(a1)+,$18(a0)
 		move.b	(a1)+,$1A(a0)
 		cmpi.w	#8,d0		; is object type number	02?
 		bne.b	masin_Not02	; if not, branch
-		move.b	#6,$20(a0)
-		move.b	#8,$21(a0)
+		move.b	#6,colino(a0)
+		move.b	#8,colicnt(a0)
 
 masin_Not02:
 		rts	
@@ -33922,9 +33769,9 @@ masin_BodyMain:				; XREF: masin_Index
 ; ===========================================================================
 
 masin_ChkOpened:
-		tst.b	$25(a0)		; has the prison been opened?
+		tst.b	r_no1(a0)		; has the prison been opened?
 		beq.b	masin_DoOpen	; if yes, branch
-		clr.b	$25(a0)
+		clr.b	r_no1(a0)
 		bclr	#3,playerwk+cddat
 		bset	#1,playerwk+cddat
 
@@ -33942,16 +33789,16 @@ masin_Switched:				; XREF: masin_Index
 		lea	(Ani_masin).l,a1
 		jsr	patchg
 		move.w	$30(a0),$C(a0)
-		tst.b	$25(a0)
+		tst.b	r_no1(a0)
 		beq.b	locret_1AC60
 		addq.w	#8,$C(a0)
-		move.b	#$A,$24(a0)
+		move.b	#$A,r_no0(a0)
 		move.w	#$3C,$1E(a0)
 		clr.b	pltime_f	; stop time counter
 		clr.b	($FFFFF7AA).w	; lock screen position
 		move.b	#1,plautoflag ; lock	controls
 		move.w	#$800,swdata+0 ; make Sonic run to	the right
-		clr.b	$25(a0)
+		clr.b	r_no1(a0)
 		bclr	#3,playerwk+cddat
 		bset	#1,playerwk+cddat
 
@@ -33961,7 +33808,7 @@ locret_1AC60:
 
 masin_Explosion:			; XREF: masin_Index
 		moveq	#7,d0
-		and.b	($FFFFFE0F).w,d0
+		and.b	systemtimer+3,d0
 		bne.b	loc_1ACA0
 		jsr	actwkchk
 		bne.b	loc_1ACA0
@@ -33986,7 +33833,7 @@ loc_1ACA0:
 
 masin_MakeAnimal:
 		move.b	#2,($FFFFF7A7).w
-		move.b	#$C,$24(a0)	; replace explosions with animals
+		move.b	#$C,r_no0(a0)	; replace explosions with animals
 		move.b	#6,$1A(a0)
 		move.w	#$96,$1E(a0)
 		addi.w	#$20,$C(a0)
@@ -34012,7 +33859,7 @@ locret_1ACF8:
 
 masin_Animals:				; XREF: masin_Index
 		moveq	#7,d0
-		and.b	($FFFFFE0F).w,d0
+		and.b	systemtimer+3,d0
 		bne.b	loc_1AD38
 		jsr	actwkchk
 		bne.b	loc_1AD38
@@ -34033,7 +33880,7 @@ loc_1AD2E:
 loc_1AD38:
 		subq.w	#1,$1E(a0)
 		bne.b	locret_1AD48
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#180,$1E(a0)
 
 locret_1AD48:
@@ -34069,7 +33916,7 @@ Map_masin:
 	include "_maps\masin.asm"
 
 ; ---------------------------------------------------------------------------
-; Object touch response	subroutine - $20(a0) in	the object RAM
+; Object touch response	subroutine - colino(a0) in	the object RAM
 ; ---------------------------------------------------------------------------
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -34098,7 +33945,7 @@ Touch_NoDuck:
 Touch_Loop:
 		tst.b	1(a1)
 		bpl.b	Touch_NextObj
-		move.b	$20(a1),d0	; load touch response number
+		move.b	colino(a1),d0	; load touch response number
 		bne.b	Touch_Height	; if touch response is not 0, branch
 
 Touch_NextObj:
@@ -34184,7 +34031,7 @@ loc_1AEB6:
 		bhi.w	Touch_NextObj
 
 Touch_ChkValue:
-		move.b	$20(a1),d1	; load touch response number
+		move.b	colino(a1),d1	; load touch response number
 		andi.b	#$C0,d1		; is touch response $40	or higher?
 		beq.w	Touch_Enemy	; if not, branch
 		cmpi.b	#$C0,d1		; is touch response $C0	or higher?
@@ -34194,13 +34041,13 @@ Touch_ChkValue:
 
 ; touch	response is $40-$7F
 
-		move.b	$20(a1),d0
+		move.b	colino(a1),d0
 		andi.b	#$3F,d0
 		cmpi.b	#6,d0		; is touch response $46	?
 		beq.b	Touch_Monitor	; if yes, branch
 		cmpi.w	#$5A,$30(a0)
 		bcc.w	locret_1AEF2
-		addq.b	#2,$24(a1)	; advance the object's routine counter
+		addq.b	#2,r_no0(a1)	; advance the object's routine counter
 
 locret_1AEF2:
 		rts	
@@ -34215,9 +34062,9 @@ Touch_Monitor:
 		bcs.b	locret_1AF2E
 		neg.w	$12(a0)		; reverse Sonic's y-motion
 		move.w	#-$180,$12(a1)
-		tst.b	$25(a1)
+		tst.b	r_no1(a1)
 		bne.b	locret_1AF2E
-		addq.b	#4,$25(a1)	; advance the monitor's routine counter
+		addq.b	#4,r_no1(a1)	; advance the monitor's routine counter
 		rts	
 ; ===========================================================================
 
@@ -34225,7 +34072,7 @@ loc_1AF1E:
 		cmpi.b	#2,$1C(a0)	; is Sonic rolling/jumping?
 		bne.b	locret_1AF2E
 		neg.w	$12(a0)		; reverse Sonic's y-motion
-		addq.b	#2,$24(a1)	; advance the monitor's routine counter
+		addq.b	#2,r_no0(a1)	; advance the monitor's routine counter
 
 locret_1AF2E:
 		rts	
@@ -34238,23 +34085,23 @@ Touch_Enemy:				; XREF: Touch_ChkValue
 		bne.w	Touch_ChkHurt	; if not, branch
 
 loc_1AF40:
-		tst.b	$21(a1)
+		tst.b	colicnt(a1)
 		beq.b	Touch_KillEnemy
 		neg.w	$10(a0)
 		neg.w	$12(a0)
 		asr	$10(a0)
 		asr	$12(a0)
-		move.b	#0,$20(a1)
-		subq.b	#1,$21(a1)
+		move.b	#0,colino(a1)
+		subq.b	#1,colicnt(a1)
 		bne.b	locret_1AF68
-		bset	#7,$22(a1)
+		bset	#7,cddat(a1)
 
 locret_1AF68:
 		rts	
 ; ===========================================================================
 
 Touch_KillEnemy:
-		bset	#7,$22(a1)
+		bset	#7,cddat(a1)
 		moveq	#0,d0
 		move.w	emyscorecnt,d0
 		addq.w	#2,emyscorecnt ; add 2 to item bonus counter
@@ -34273,7 +34120,7 @@ loc_1AF82:
 loc_1AF9C:
 		bsr.w	scoreup
 		move.b	#$27,0(a1)	; change object	to points
-		move.b	#0,$24(a1)
+		move.b	#0,r_no0(a1)
 		tst.w	$12(a0)
 		bmi.b	loc_1AFC2
 		move.w	$C(a0),d0
@@ -34296,7 +34143,7 @@ Enemy_Points:	dc.w 10, 20, 50, 100
 ; ===========================================================================
 
 loc_1AFDA:				; XREF: Touch_CatKiller
-		bset	#7,$22(a1)
+		bset	#7,cddat(a1)
 
 Touch_ChkHurt:				; XREF: Touch_ChkValue
 		tst.b	plpower_m	; is Sonic invincible?
@@ -34336,12 +34183,12 @@ playdamageset:
 
 Hurt_Shield:
 		move.b	#0,plpower_b ; remove shield
-		move.b	#4,$24(a0)
+		move.b	#4,r_no0(a0)
 		bsr.w	jumpcolsub
-		bset	#1,$22(a0)
+		bset	#1,cddat(a0)
 		move.w	#-$400,$12(a0)	; make Sonic bounce away from the object
 		move.w	#-$200,$10(a0)
-		btst	#6,$22(a0)
+		btst	#6,cddat(a0)
 		beq.b	Hurt_Reverse
 		move.w	#-$200,$12(a0)
 		move.w	#-$100,$10(a0)
@@ -34385,9 +34232,9 @@ playdieset:
 		tst.w	editmode	; is debug mode	active?
 		bne.b	Kill_NoDeath	; if yes, branch
 		move.b	#0,plpower_m ; remove invincibility
-		move.b	#6,$24(a0)
+		move.b	#6,r_no0(a0)
 		bsr.w	jumpcolsub
-		bset	#1,$22(a0)
+		bset	#1,cddat(a0)
 		move.w	#-$700,$12(a0)
 		move.w	#0,$10(a0)
 		move.w	#0,$14(a0)
@@ -34412,7 +34259,7 @@ Kill_NoDeath:
 
 
 Touch_Special:				; XREF: Touch_ChkValue
-		move.b	$20(a1),d1
+		move.b	colino(a1),d1
 		andi.b	#$3F,d1
 		cmpi.b	#$B,d1		; is touch response $CB	?
 		beq.b	Touch_CatKiller	; if yes, branch
@@ -34435,7 +34282,7 @@ Touch_Yadrin:				; XREF: Touch_Special
 		bcc.b	loc_1B144
 		move.w	8(a1),d0
 		subq.w	#4,d0
-		btst	#0,$22(a1)
+		btst	#0,cddat(a1)
 		beq.b	loc_1B130
 		subi.w	#$10,d0
 
@@ -34460,7 +34307,7 @@ loc_1B144:
 ; ===========================================================================
 
 Touch_D7orE1:				; XREF: Touch_Special
-		addq.b	#1,$21(a1)
+		addq.b	#1,colicnt(a1)
 		rts	
 ; End of function Touch_Special
 
@@ -34671,8 +34518,8 @@ loc_1B350:
 		move.w	2(a0),8(a1)
 		move.w	4(a0),$10(a1)
 		move.w	6(a0),$18(a1)
-		move.w	8(a0),$20(a1)
-		move.w	$A(a0),$28(a1)
+		move.w	8(a0),colino(a1)
+		move.w	$A(a0),userflag(a1)
 		move.w	$C(a0),$30(a1)
 		move.w	$E(a0),$38(a1)
 		adda.w	#$20,a0
@@ -34681,8 +34528,8 @@ loc_1B350:
 		move.w	2(a0),8(a1)
 		move.w	4(a0),$10(a1)
 		move.w	6(a0),$18(a1)
-		move.w	8(a0),$20(a1)
-		move.w	$A(a0),$28(a1)
+		move.w	8(a0),colino(a1)
+		move.w	$A(a0),userflag(a1)
 		move.w	$C(a0),$30(a1)
 		move.w	$E(a0),$38(a1)
 		adda.w	#$20,a0
@@ -34691,8 +34538,8 @@ loc_1B350:
 		move.w	2(a0),8(a1)
 		move.w	4(a0),$10(a1)
 		move.w	6(a0),$18(a1)
-		move.w	8(a0),$20(a1)
-		move.w	$A(a0),$28(a1)
+		move.w	8(a0),colino(a1)
+		move.w	$A(a0),userflag(a1)
 		move.w	$C(a0),$30(a1)
 		move.w	$E(a0),$38(a1)
 		adda.w	#$20,a0
@@ -34701,8 +34548,8 @@ loc_1B350:
 		move.w	2(a0),8(a1)
 		move.w	4(a0),$10(a1)
 		move.w	6(a0),$18(a1)
-		move.w	8(a0),$20(a1)
-		move.w	$A(a0),$28(a1)
+		move.w	8(a0),colino(a1)
+		move.w	$A(a0),userflag(a1)
 		move.w	$C(a0),$30(a1)
 		move.w	$E(a0),$38(a1)
 		adda.w	#$20,a0
@@ -34913,7 +34760,13 @@ SS_AniGlassData:dc.b $4B, $4C, $4D, $4E, $4B, $4C, $4D,	$4E, 0,	0
 ; Special stage	layout pointers
 ; ---------------------------------------------------------------------------
 SS_LayoutIndex:
-	include "_inc\Special stage layout pointers.asm"
+		dc.l	rotmaptbl0
+		dc.l	rotmaptbl1
+		dc.l	rotmaptbl2
+		dc.l	rotmaptbl3
+		dc.l	rotmaptbl4
+		dc.l	rotmaptbl5
+		align
 
 ; ---------------------------------------------------------------------------
 ; Special stage	start locations
@@ -35069,7 +34922,7 @@ play01:					; XREF: act_tbl
 
 play01_Normal:
 		moveq	#0,d0
-		move.b	$24(a0),d0
+		move.b	r_no0(a0),d0
 		move.w	play01_Index(pc,d0.w),d1
 		jmp	play01_Index(pc,d1.w)
 ; ===========================================================================
@@ -35080,7 +34933,7 @@ play01_Index:	dc.w play01_Main-play01_Index
 ; ===========================================================================
 
 play01_Main:				; XREF: play01_Index
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.b	#$E,$16(a0)
 		move.b	#7,$17(a0)
 		move.l	#playpat,4(a0)
@@ -35088,8 +34941,8 @@ play01_Main:				; XREF: play01_Index
 		move.b	#4,1(a0)
 		move.b	#0,$18(a0)
 		move.b	#2,$1C(a0)
-		bset	#2,$22(a0)
-		bset	#1,$22(a0)
+		bset	#2,cddat(a0)
+		bset	#1,cddat(a0)
 
 play01_ChkDebug:				; XREF: play01_Index
 		tst.w	debugflag	; is debug mode	cheat enabled?
@@ -35101,7 +34954,7 @@ play01_ChkDebug:				; XREF: play01_Index
 play01_NoDebug:
 		move.b	#0,$30(a0)
 		moveq	#0,d0
-		move.b	$22(a0),d0
+		move.b	cddat(a0),d0
 		andi.w	#2,d0
 		move.w	play01_Modes(pc,d0.w),d1
 		jsr	play01_Modes(pc,d1.w)
@@ -35204,7 +35057,7 @@ loc_1BAF2:
 
 
 play01_MoveLeft:				; XREF: play01_Move
-		bset	#0,$22(a0)
+		bset	#0,cddat(a0)
 		move.w	$14(a0),d0
 		beq.b	loc_1BB06
 		bpl.b	loc_1BB1A
@@ -35235,7 +35088,7 @@ loc_1BB22:
 
 
 play01_MoveRight:			; XREF: play01_Move
-		bclr	#0,$22(a0)
+		bclr	#0,cddat(a0)
 		move.w	$14(a0),d0
 		bmi.b	loc_1BB48
 		addi.w	#$C,d0
@@ -35279,7 +35132,7 @@ play01_Jump:				; XREF: play01_OnWall
 		muls.w	#$680,d0
 		asr.l	#8,d0
 		move.w	d0,$12(a0)
-		bset	#1,$22(a0)
+		bset	#1,cddat(a0)
 		move.w	#$A0,d0
 		jsr	(soundset).l ;	play jumping sound
 
@@ -35349,7 +35202,7 @@ loc_1BBF4:
 		blt.b	loc_1BC12
 		move.w	#0,rotspd
 		move.w	#$4000,rotdir
-		addq.b	#2,$24(a0)
+		addq.b	#2,r_no0(a0)
 		move.w	#$3C,$38(a0)
 
 loc_1BC12:
@@ -35398,7 +35251,7 @@ play01_Fall:				; XREF: play01_OnWall; play01_InAir
 		sub.l	d0,d3
 		moveq	#0,d0
 		move.w	d0,$10(a0)
-		bclr	#1,$22(a0)
+		bclr	#1,cddat(a0)
 		add.l	d1,d2
 		bsr.w	sub_1BCE8
 		beq.b	loc_1BCC6
@@ -35415,7 +35268,7 @@ loc_1BCB0:
 		sub.l	d1,d2
 		moveq	#0,d1
 		move.w	d1,$12(a0)
-		bclr	#1,$22(a0)
+		bclr	#1,cddat(a0)
 
 loc_1BCC6:
 		asr.l	#8,d0
@@ -35430,7 +35283,7 @@ loc_1BCD4:
 		asr.l	#8,d1
 		move.w	d0,$10(a0)
 		move.w	d1,$12(a0)
-		bset	#1,$22(a0)
+		bset	#1,cddat(a0)
 		rts	
 ; End of function play01_Fall
 
@@ -35527,7 +35380,7 @@ play01_ChkCont:
 		move.l	a1,4(a2)
 
 play01_GetCont:
-		jsr	CollectRing
+		jsr	ringgetsub
 		cmpi.w	#50,plring ; check if you have 50 rings
 		bcs.b	play01_NoCont
 		bset	#0,plring_f2
@@ -35671,7 +35524,7 @@ play01_ChkBumper:
 		muls.w	#-$700,d0
 		asr.l	#8,d0
 		move.w	d0,$12(a0)
-		bset	#1,$22(a0)
+		bset	#1,cddat(a0)
 		bsr.w	SS_RemoveCollectedItem
 		bne.b	play01_BumpSnd
 		move.b	#2,(a2)
@@ -35687,7 +35540,7 @@ play01_BumpSnd:
 play01_GOAL:
 		cmpi.b	#$27,d0		; is the item a	"GOAL"?
 		bne.b	play01_UPblock
-		addq.b	#2,$24(a0)	; run routine "play01_ExitStage"
+		addq.b	#2,r_no0(a0)	; run routine "play01_ExitStage"
 		move.w	#$A8,d0		; change item
 		jsr	(soundset).l ;	play "GOAL" sound
 		rts	
@@ -36306,7 +36159,7 @@ AniArt_GiantRing:			; XREF: efectwrt
 
 loc_1C518:
 		subi.w	#$1C0,($FFFFF7BE).w
-		lea	(Art_BigRing).l,a1 ; load giant	ring patterns
+		lea	(bigringcg).l,a1 ; load giant	ring patterns
 		moveq	#0,d0
 		move.w	($FFFFF7BE).w,d0
 		lea	(a1,d0.w),a1
@@ -36661,7 +36514,7 @@ ddev18:	dc.w 2
 		dc.w $D000
 		dc.l btencg		; hidden bonus points
 		dc.w $96C0
-		dc.l ebigringcg	; giant	ring flash effect
+		dc.l bigring2cg	; giant	ring flash effect
 		dc.w $8C40
 
 ddev19:	dc.w 0
@@ -36834,7 +36687,428 @@ Nem_JapNames:	incbin	artnem\japcreds.bin	; Japanese credits
 ; Sprite mappings - Sonic
 ; ---------------------------------------------------------------------------
 playpat:
-	include "_maps\Sonic.asm"
+		dc.w	playsp0-playpat
+		dc.w	playsp1-playpat
+		dc.w	playsp2-playpat
+		dc.w	playsp3-playpat
+		dc.w	playsp4-playpat
+		dc.w	playsp5-playpat
+		dc.w	playsp6-playpat
+		dc.w	playsp7-playpat
+		dc.w	playsp8-playpat
+		dc.w	playsp9-playpat
+		dc.w	playsp10-playpat
+		dc.w	playsp11-playpat
+		dc.w	playsp12-playpat
+		dc.w	playsp13-playpat
+		dc.w	playsp14-playpat
+		dc.w	byte_21391-playpat
+		dc.w	byte_213AB-playpat
+		dc.w	byte_213C0-playpat
+		dc.w	byte_213DA-playpat
+		dc.w	byte_213EF-playpat
+		dc.w	byte_213FA-playpat
+		dc.w	byte_21405-playpat
+		dc.w	byte_2141A-playpat
+		dc.w	byte_21425-playpat
+		dc.w	byte_21435-playpat, byte_21454-playpat
+		dc.w	byte_21473-playpat, byte_21488-playpat
+		dc.w	byte_214A2-playpat, byte_214B7-playpat
+		dc.w	byte_214D1-playpat, byte_214DC-playpat
+		dc.w	byte_214E7-playpat, byte_214F2-playpat
+		dc.w	byte_214FD-playpat, byte_21512-playpat
+		dc.w	byte_21522-playpat, byte_21537-playpat
+		dc.w	byte_21547-playpat, byte_21552-playpat
+		dc.w	byte_2155D-playpat, byte_21568-playpat
+		dc.w	byte_21573-playpat, byte_21588-playpat
+		dc.w	byte_21593-playpat, byte_215A8-playpat
+		dc.w	byte_215B3-playpat, byte_215B9-playpat
+		dc.w	byte_215BF-playpat, byte_215C5-playpat
+		dc.w	byte_215CB-playpat, byte_215D1-playpat
+		dc.w	byte_215DC-playpat, byte_215E2-playpat
+		dc.w	byte_215ED-playpat, byte_215F3-playpat
+		dc.w	byte_215FE-playpat, byte_21613-playpat
+		dc.w	byte_21628-playpat
+		dc.w	byte_21638-playpat
+		dc.w	byte_21648-playpat
+		dc.w	byte_21658-playpat
+		dc.w	byte_21663-playpat
+		dc.w	byte_21673-playpat
+		dc.w	byte_21683-playpat
+		dc.w	byte_21693-playpat
+		dc.w	byte_216A8-playpat
+		dc.w	byte_216BD-playpat
+		dc.w	byte_216D7-playpat
+		dc.w	byte_216F1-playpat
+		dc.w	byte_216FC-playpat
+		dc.w	byte_2170C-playpat
+		dc.w	byte_21717-playpat
+		dc.w	byte_21727-playpat
+		dc.w	byte_21732-playpat
+		dc.w	byte_21742-playpat
+		dc.w	byte_21752-playpat
+		dc.w	byte_2176C-playpat
+		dc.w	byte_21786-playpat
+		dc.w	byte_21791-playpat
+		dc.w	byte_217A1-playpat
+		dc.w	byte_217A7-playpat
+		dc.w	byte_217AD-playpat
+		dc.w	byte_217B3-playpat
+		dc.w	byte_217C3-playpat
+		dc.w	byte_217D3-playpat
+		dc.w	byte_217E3-playpat
+		dc.w	byte_217F3-playpat
+playsp0:	dc.b 0
+playsp1:	dc.b 4			; standing
+		dc.b $EC, 8, 0,	0, $F0
+		dc.b $F4, $D, 0, 3, $F0
+		dc.b 4,	8, 0, $B, $F0
+		dc.b $C, 8, 0, $E, $F8
+playsp2:	dc.b 3			; waiting 1
+		dc.b $EC, 9, 0,	0, $F0
+		dc.b $FC, 9, 0,	6, $F0
+		dc.b $C, 8, 0, $C, $F8
+playsp3:	dc.b 3			; waiting 2
+		dc.b $EC, 9, 0,	0, $F0
+		dc.b $FC, 9, 0,	6, $F0
+		dc.b $C, 8, 0, $C, $F8
+playsp4:	dc.b 3			; waiting 3
+		dc.b $EC, 9, 0,	0, $F0
+		dc.b $FC, 9, 0,	6, $F0
+		dc.b $C, 8, 0, $C, $F8
+playsp5:	dc.b 3			; looking up
+		dc.b $EC, $A, 0, 0, $F0
+		dc.b 4,	8, 0, 9, $F0
+		dc.b $C, 8, 0, $C, $F8
+playsp6:	dc.b 4			; walking 1-1
+		dc.b $EB, $D, 0, 0, $EC
+		dc.b $FB, 9, 0,	8, $EC
+		dc.b $FB, 6, 0,	$E, 4
+		dc.b $B, 4, 0, $14, $EC
+playsp7:	dc.b 2			; walking 1-2
+		dc.b $EC, $D, 0, 0, $ED
+		dc.b $FC, $E, 0, 8, $F5
+playsp8:	dc.b 2			; walking 1-3
+		dc.b $ED, 9, 0,	0, $F3
+		dc.b $FD, $A, 0, 6, $F3
+playsp9:	dc.b 4			; walking 1-4
+		dc.b $EB, 9, 0,	0, $F4
+		dc.b $FB, 9, 0,	6, $EC
+		dc.b $FB, 6, 0,	$C, 4
+		dc.b $B, 4, 0, $12, $EC
+playsp10:	dc.b 2			; walking 1-5
+		dc.b $EC, 9, 0,	0, $F3
+		dc.b $FC, $E, 0, 6, $EB
+playsp11:	dc.b 3			; walking 1-6
+		dc.b $ED, $D, 0, 0, $EC
+		dc.b $FD, $C, 0, 8, $F4
+		dc.b 5,	9, 0, $C, $F4
+playsp12:	dc.b 5			; walking 2-1
+		dc.b $EB, 9, 0,	0, $EB
+		dc.b $EB, 6, 0,	6, 3
+		dc.b $FB, 8, 0,	$C, $EB
+		dc.b 3,	9, 0, $F, $F3
+		dc.b $13, 0, 0,	$15, $FB
+playsp13:	dc.b 6			; walking 2-2
+		dc.b $EC, 9, 0,	0, $EC
+		dc.b $EC, 1, 0,	6, 4
+		dc.b $FC, $C, 0, 8, $EC
+		dc.b 4,	9, 0, $C, $F4
+		dc.b $FC, 5, 0,	$12, $C
+		dc.b $F4, 0, 0,	$16, $14
+playsp14:	dc.b 4			; walking 2-3
+		dc.b $ED, 9, 0,	0, $ED
+		dc.b $ED, 1, 0,	6, 5
+		dc.b $FD, $D, 0, 8, $F5
+		dc.b $D, 8, 0, $10, $FD
+byte_21391:	dc.b 5			; walking 2-4
+		dc.b $EB, 9, 0,	0, $EB
+		dc.b $EB, 5, 0,	6, 3
+		dc.b $FB, $D, 0, $A, $F3
+		dc.b $B, 8, 0, $12, $F3
+		dc.b $13, 4, 0,	$15, $FB
+byte_213AB:	dc.b 4			; walking 2-5
+		dc.b $EC, 9, 0,	0, $EC
+		dc.b $EC, 1, 0,	6, 4
+		dc.b $FC, $D, 0, 8, $F4
+		dc.b $C, 8, 0, $10, $FC
+byte_213C0:	dc.b 5			; walking 2-6
+		dc.b $ED, 9, 0,	0, $ED
+		dc.b $ED, 1, 0,	6, 5
+		dc.b $FD, 0, 0,	8, $ED
+		dc.b $FD, $D, 0, 9, $F5
+		dc.b $D, 8, 0, $11, $FD
+byte_213DA:	dc.b 4			; walking 3-1
+		dc.b $F4, 7, 0,	0, $EB
+		dc.b $EC, 9, 0,	8, $FB
+		dc.b $FC, 4, 0,	$E, $FB
+		dc.b 4,	9, 0, $10, $FB
+byte_213EF:	dc.b 2			; walking 3-2
+		dc.b $F4, 7, 0,	0, $EC
+		dc.b $EC, $B, 0, 8, $FC
+byte_213FA:	dc.b 2			; walking 3-3
+		dc.b $F4, 6, 0,	0, $ED
+		dc.b $F4, $A, 0, 6, $FD
+byte_21405:	dc.b 4			; walking 3-4
+		dc.b $F4, 6, 0,	0, $EB
+		dc.b $EC, 9, 0,	6, $FB
+		dc.b $FC, 4, 0,	$C, $FB
+		dc.b 4,	9, 0, $E, $FB
+byte_2141A:	dc.b 2			; walking 3-5
+		dc.b $F4, 6, 0,	0, $EC
+		dc.b $F4, $B, 0, 6, $FC
+byte_21425:	dc.b 3			; walking 3-6
+		dc.b $F4, 7, 0,	0, $ED
+		dc.b $EC, 0, 0,	8, $FD
+		dc.b $F4, $A, 0, 9, $FD
+byte_21435:	dc.b 6			; walking 4-1
+		dc.b $FD, 6, 0,	0, $EB
+		dc.b $ED, 4, 0,	6, $F3
+		dc.b $F5, 4, 0,	8, $EB
+		dc.b $F5, $A, 0, $A, $FB
+		dc.b $D, 0, 0, $13, $FB
+		dc.b $FD, 0, 0,	$14, $13
+byte_21454:	dc.b 6			; walking 4-2
+		dc.b $FC, 6, 0,	0, $EC
+		dc.b $E4, 8, 0,	6, $F4
+		dc.b $EC, 4, 0,	9, $FC
+		dc.b $F4, 4, 0,	$B, $EC
+		dc.b $F4, $A, 0, $D, $FC
+		dc.b $C, 0, 0, $16, $FC
+byte_21473:	dc.b 4			; walking 4-3
+		dc.b $FB, 6, 0,	0, $ED
+		dc.b $F3, 4, 0,	6, $ED
+		dc.b $EB, $A, 0, 8, $FD
+		dc.b 3,	4, 0, $11, $FD
+byte_21488:	dc.b 5			; walking 4-4
+		dc.b $FD, 6, 0,	0, $EB
+		dc.b $ED, 8, 0,	6, $F3
+		dc.b $F5, 4, 0,	9, $EB
+		dc.b $F5, $D, 0, $B, $FB
+		dc.b 5,	8, 0, $13, $FB
+byte_214A2:	dc.b 4			; walking 4-5
+		dc.b $FC, 6, 0,	0, $EC
+		dc.b $F4, 4, 0,	6, $EC
+		dc.b $EC, $A, 0, 8, $FC
+		dc.b 4,	4, 0, $11, $FC
+byte_214B7:	dc.b 5			; walking 4-6
+		dc.b $FB, 6, 0,	0, $ED
+		dc.b $EB, $A, 0, 6, $FD
+		dc.b $F3, 4, 0,	$F, $ED
+		dc.b 3,	4, 0, $11, $FD
+		dc.b $B, 0, 0, $13, $FD
+byte_214D1:	dc.b 2			; running 1-1
+		dc.b $EE, 9, 0,	0, $F4
+		dc.b $FE, $E, 0, 6, $EC
+byte_214DC:	dc.b 2			; running 1-2
+		dc.b $EE, 9, 0,	0, $F4
+		dc.b $FE, $E, 0, 6, $EC
+byte_214E7:	dc.b 2			; running 1-3
+		dc.b $EE, 9, 0,	0, $F4
+		dc.b $FE, $E, 0, 6, $EC
+byte_214F2:	dc.b 2			; running 1-4
+		dc.b $EE, 9, 0,	0, $F4
+		dc.b $FE, $E, 0, 6, $EC
+byte_214FD:	dc.b 4			; running 2-1
+		dc.b $EE, 9, 0,	0, $EE
+		dc.b $EE, 1, 0,	6, 6
+		dc.b $FE, $E, 0, 8, $F6
+		dc.b $FE, 0, 0,	$14, $EE
+byte_21512:	dc.b 3			; running 2-2
+		dc.b $EE, 9, 0,	0, $EE
+		dc.b $EE, 1, 0,	6, 6
+		dc.b $FE, $E, 0, 8, $F6
+byte_21522:	dc.b 4			; running 2-3
+		dc.b $EE, 9, 0,	0, $EE
+		dc.b $EE, 1, 0,	6, 6
+		dc.b $FE, $E, 0, 8, $F6
+		dc.b $FE, 0, 0,	$14, $EE
+byte_21537:	dc.b 3			; running 2-4
+		dc.b $EE, 9, 0,	0, $EE
+		dc.b $EE, 1, 0,	6, 6
+		dc.b $FE, $E, 0, 8, $F6
+byte_21547:	dc.b 2			; running 3-1
+		dc.b $F4, 6, 0,	0, $EE
+		dc.b $F4, $B, 0, 6, $FE
+byte_21552:	dc.b 2			; running 3-2
+		dc.b $F4, 6, 0,	0, $EE
+		dc.b $F4, $B, 0, 6, $FE
+byte_2155D:	dc.b 2			; running 3-3
+		dc.b $F4, 6, 0,	0, $EE
+		dc.b $F4, $B, 0, 6, $FE
+byte_21568:	dc.b 2			; running 3-4
+		dc.b $F4, 6, 0,	0, $EE
+		dc.b $F4, $B, 0, 6, $FE
+byte_21573:	dc.b 4			; running 4-1
+		dc.b $FA, 6, 0,	0, $EE
+		dc.b $F2, 4, 0,	6, $EE
+		dc.b $EA, $B, 0, 8, $FE
+		dc.b $A, 0, 0, $14, $FE
+byte_21588:	dc.b 2			; running 4-2
+		dc.b $F2, 7, 0,	0, $EE
+		dc.b $EA, $B, 0, 8, $FE
+byte_21593:	dc.b 4			; running 4-3
+		dc.b $FA, 6, 0,	0, $EE
+		dc.b $F2, 4, 0,	6, $EE
+		dc.b $EA, $B, 0, 8, $FE
+		dc.b $A, 0, 0, $14, $FE
+byte_215A8:	dc.b 2			; running 4-4
+		dc.b $F2, 7, 0,	0, $EE
+		dc.b $EA, $B, 0, 8, $FE
+byte_215B3:	dc.b 1			; rolling 1
+		dc.b $F0, $F, 0, 0, $F0
+byte_215B9:	dc.b 1			; rolling 2
+		dc.b $F0, $F, 0, 0, $F0
+byte_215BF:	dc.b 1			; rolling 3
+		dc.b $F0, $F, 0, 0, $F0
+byte_215C5:	dc.b 1			; rolling 4
+		dc.b $F0, $F, 0, 0, $F0
+byte_215CB:	dc.b 1			; rolling 5
+		dc.b $F0, $F, 0, 0, $F0
+byte_215D1:	dc.b 2			; warped 1 (unused)
+		dc.b $F4, $E, 0, 0, $EC
+		dc.b $F4, 2, 0,	$C, $C
+byte_215DC:	dc.b 1			; warped 2 (unused)
+		dc.b $F0, $F, 0, 0, $F0
+byte_215E2:	dc.b 2			; warped 3 (unused)
+		dc.b $EC, $B, 0, 0, $F4
+		dc.b $C, 8, 0, $C, $F4
+byte_215ED:	dc.b 1			; warped 4 (unused)
+		dc.b $F0, $F, 0, 0, $F0
+byte_215F3:	dc.b 2			; stopping 1
+		dc.b $ED, 9, 0,	0, $F0
+		dc.b $FD, $E, 0, 6, $F0
+byte_215FE:	dc.b 4			; stopping 2
+		dc.b $ED, 9, 0,	0, $F0
+		dc.b $FD, $D, 0, 6, $F0
+		dc.b $D, 4, 0, $E, 0
+		dc.b 5,	0, 0, $10, $E8
+byte_21613:	dc.b 4			; ducking
+		dc.b $F4, 4, 0,	0, $FC
+		dc.b $FC, $D, 0, 2, $F4
+		dc.b $C, 8, 0, $A, $F4
+		dc.b 4,	0, 0, $D, $EC
+byte_21628:	dc.b 3			; balancing 1
+		dc.b $EC, 8, 8,	0, $E8
+		dc.b $F4, 2, 8,	3, 0
+		dc.b $F4, $F, 8, 6, $E0
+byte_21638:	dc.b 3			; balancing 2
+		dc.b $EC, $E, 8, 0, $E8
+		dc.b 4,	$D, 8, $C, $E0
+		dc.b $C, 0, $18, $14, 0
+byte_21648:	dc.b 3
+		dc.b $F4, $D, 0, 0, $FC
+		dc.b $FC, 5, 0,	8, $EC
+		dc.b 4,	8, 0, $C, $FC
+byte_21658:	dc.b 2
+		dc.b $F4, $A, 0, 0, $E8
+		dc.b $F4, $A, 8, 0, 0
+byte_21663:	dc.b 3
+		dc.b $F4, $D, 0, 0, $E4
+		dc.b $FC, 0, 0,	8, 4
+		dc.b 4,	$C, 0, 9, $EC
+byte_21673:	dc.b 3
+		dc.b $F4, $D, 0, 0, $FC
+		dc.b $FC, 5, 0,	8, $EC
+		dc.b 4,	8, 0, $C, $FC
+byte_21683:	dc.b 3
+		dc.b $E8, $B, 0, 0, $F0
+		dc.b 8,	4, 0, $C, $F8
+		dc.b $10, 0, 0,	$E, $F8
+byte_21693:	dc.b 4
+		dc.b $F8, $E, 0, 0, $E8
+		dc.b 0,	5, 0, $C, 8
+		dc.b $F8, 0, 0,	$10, 8
+		dc.b $F0, 0, 0,	$11, $F8
+byte_216A8:	dc.b 4
+		dc.b $F8, $E, 0, 0, $E8
+		dc.b 0,	5, 0, $C, 8
+		dc.b $F8, 0, 0,	$10, 8
+		dc.b $F0, 0, 0,	$11, $F8
+byte_216BD:	dc.b 5
+		dc.b $E8, $A, 0, 0, $F4
+		dc.b $F0, 1, 0,	9, $C
+		dc.b 0,	9, 0, $B, $F4
+		dc.b $10, 4, 0,	$11, $F4
+		dc.b 0,	0, 0, $13, $EC
+byte_216D7:	dc.b 5
+		dc.b $E8, $A, 0, 0, $F4
+		dc.b $E8, 1, 0,	9, $C
+		dc.b 0,	9, 0, $B, $F4
+		dc.b $10, 4, 0,	$11, $F4
+		dc.b 0,	0, 0, $13, $EC
+byte_216F1:	dc.b 2
+		dc.b $ED, $A, 0, 0, $F3
+		dc.b 5,	$D, 0, 9, $EB
+byte_216FC:	dc.b 3
+		dc.b $EC, $A, 0, 0, $F3
+		dc.b 4,	8, 0, 9, $F3
+		dc.b $C, 4, 0, $C, $F3
+byte_2170C:	dc.b 2
+		dc.b $ED, $A, 0, 0, $F3
+		dc.b 5,	$D, 0, 9, $EB
+byte_21717:	dc.b 3
+		dc.b $EC, $A, 0, 0, $F3
+		dc.b 4,	8, 0, 9, $F3
+		dc.b $C, 4, 0, $C, $F3
+byte_21727:	dc.b 2
+		dc.b $EC, 9, 0,	0, $F0
+		dc.b $FC, $E, 0, 6, $F0
+byte_21732:	dc.b 3
+		dc.b $EC, $A, 0, 0, $F0
+		dc.b 4,	5, 0, 9, $F8
+		dc.b $E4, 0, 0,	$D, $F8
+byte_21742:	dc.b 3
+		dc.b $E8, $D, 0, 0, $EC
+		dc.b $E8, 1, 0,	8, $C
+		dc.b $F8, $B, 0, $A, $F4
+byte_21752:	dc.b 5
+		dc.b $E8, $D, 0, 0, $EC
+		dc.b $E8, 1, 0,	8, $C
+		dc.b $F8, 9, 0,	$A, $F4
+		dc.b 8,	$C, 0, $10, $F4
+		dc.b $10, 0, 0,	$14, $F4
+byte_2176C:	dc.b 5
+		dc.b $E8, $D, 0, 0, $EC
+		dc.b $E8, 1, 0,	8, $C
+		dc.b $F8, 9, 0,	$A, $F4
+		dc.b 8,	$C, 0, $10, $F4
+		dc.b $10, 0, 0,	$14, $F4
+byte_21786:	dc.b 2
+		dc.b $EC, 8, 0,	0, $F0
+		dc.b $F4, $F, 0, 3, $F0
+byte_21791:	dc.b 3
+		dc.b $EC, 8, 0,	0, $F0
+		dc.b $F4, $E, 0, 3, $F0
+		dc.b $C, 8, 0, $F, $F8
+byte_217A1:	dc.b 1
+		dc.b $F0, $B, 0, 0, $F4
+byte_217A7:	dc.b 1
+		dc.b $F4, 6, 0,	0, $F8
+byte_217AD:	dc.b 1
+		dc.b $F8, 1, 0,	0, $FC
+byte_217B3:	dc.b 3
+		dc.b $F4, $D, 8, 0, $E4
+		dc.b $FC, 5, 8,	8, 4
+		dc.b 4,	8, 8, $C, $EC
+byte_217C3:	dc.b 3
+		dc.b $F4, $D, 8, 0, $FC
+		dc.b $FC, 0, 8,	8, $F4
+		dc.b 4,	$C, 8, 9, $F4
+byte_217D3:	dc.b 3
+		dc.b $F0, $E, 0, 0, $EC
+		dc.b $F8, 1, 0,	$C, $C
+		dc.b 8,	$C, 0, $E, $F4
+byte_217E3:	dc.b 3
+		dc.b $EB, 9, 0,	0, $F4
+		dc.b $FB, $E, 0, 6, $EC
+		dc.b 3,	1, 0, $12, $C
+byte_217F3:	dc.b 2
+		dc.b $F0, $F, 0, 0, $EC
+		dc.b $F8, 2, 0,	$10, $C
+;------------------------------------------------------------------------------
+		align
+;------------------------------------------------------------------------------
 
 ; ---------------------------------------------------------------------------
 ; Uncompressed graphics	loading	array for Sonic
@@ -37120,7 +37394,7 @@ golecg:	incbin	artnem\signpost.bin	; end of level signpost
 		even
 savecg:	incbin	artnem\lamppost.bin	; lamppost
 		even
-ebigringcg:	incbin	artnem\rngflash.bin	; flash from giant ring
+bigring2cg:	incbin	artnem\rngflash.bin	; flash from giant ring
 		even
 btencg:	incbin	artnem\bonus.bin	; hidden bonuses at end of a level
 		even
@@ -37224,41 +37498,48 @@ Nem_EndStH:	incbin	artnem\endtext.bin	; ending sequence "Sonic the Hedgehog" tex
 		even
 		incbin	misc\padding2.bin
 		even
-; ---------------------------------------------------------------------------
-; Collision data
-; ---------------------------------------------------------------------------
-AngleMap:	incbin	collide\anglemap.bin	; floor angle map
-		even
-CollArray1:	incbin	collide\carray_n.bin	; normal collision array
-		even
-CollArray2:	incbin	collide\carray_r.bin	; rotated collision array
-		even
-zone1scd:	incbin	collide\ghz.bin		; GHZ index
-		even
-zone2scd:		incbin	collide\lz.bin		; LZ index
-		even
-zone3scd:		incbin	collide\mz.bin		; MZ index
-		even
-zone4scd:	incbin	collide\slz.bin		; SLZ index
-		even
-zone5scd:	incbin	collide\syz.bin		; SYZ index
-		even
-zone6scd:	incbin	collide\sbz.bin		; SBZ index
-		even
+
+scddirtbl:
+		incbin	'SCDDIRTBL.BLT'
+		align
+scdtbl1:
+		incbin	'SCDTBLWK.SCD'
+		align
+scdtbl2:
+		incbin	'SCDTBLWK2.SCD'
+		align
+zone1scd:
+		incbin	'ZONE1.BLT'
+		align
+zone2scd:
+		incbin	'ZONE2.BLT'
+		align
+zone3scd:
+		incbin	'ZONE3.BLT'
+		align
+zone4scd:
+		incbin	'ZONE4.BLT'
+		align
+zone5scd:
+		incbin	'ZONE5.BLT'
+		align
+zone6scd:
+		incbin	'ZONE6.BLT'
+		align
 ; ---------------------------------------------------------------------------
 ; Special layouts
 ; ---------------------------------------------------------------------------
-SS_1:		incbin	sslayout\1.bin
+rotmaptbl0:		incbin	sslayout\1.bin
 		even
-SS_2:		incbin	sslayout\2.bin
+rotmaptbl1:		incbin	sslayout\2.bin
 		even
-SS_3:		incbin	sslayout\3.bin
+rotmaptbl2:		incbin	sslayout\3.bin
 		even
-SS_4:		incbin	sslayout\4.bin
+rotmaptbl3:		incbin	sslayout\4.bin
 		even
-SS_5:		incbin	sslayout\5.bin
+rotmaptbl4:		incbin	sslayout\5.bin
 		even
-SS_6:		incbin	sslayout\6.bin
+rotmaptbl5:		incbin	sslayout\6.bin
 		even
 ; ---------------------------------------------------------------------------
 ; Animated uncompressed graphics
@@ -37281,34 +37562,34 @@ Art_SbzSmoke:	incbin	artunc\sbzsmoke.bin	; SBZ smoke in background
 ; ---------------------------------------------------------------------------
 ; Level	layout index
 ; ---------------------------------------------------------------------------
-Level_Index:	dc.w Level_GHZ1-Level_Index, Level_GHZbg-Level_Index, byte_68D70-Level_Index
-		dc.w Level_GHZ2-Level_Index, Level_GHZbg-Level_Index, byte_68E3C-Level_Index
-		dc.w Level_GHZ3-Level_Index, Level_GHZbg-Level_Index, byte_68F84-Level_Index
-		dc.w byte_68F88-Level_Index, byte_68F88-Level_Index, byte_68F88-Level_Index
-		dc.w Level_LZ1-Level_Index, Level_LZbg-Level_Index, byte_69190-Level_Index
-		dc.w Level_LZ2-Level_Index, Level_LZbg-Level_Index, byte_6922E-Level_Index
-		dc.w Level_LZ3-Level_Index, Level_LZbg-Level_Index, byte_6934C-Level_Index
-		dc.w Level_SBZ3-Level_Index, Level_LZbg-Level_Index, byte_6940A-Level_Index
-		dc.w Level_MZ1-Level_Index, Level_MZ1bg-Level_Index, Level_MZ1-Level_Index
-		dc.w Level_MZ2-Level_Index, Level_MZ2bg-Level_Index, byte_6965C-Level_Index
-		dc.w Level_MZ3-Level_Index, Level_MZ3bg-Level_Index, byte_697E6-Level_Index
-		dc.w byte_697EA-Level_Index, byte_697EA-Level_Index, byte_697EA-Level_Index
-		dc.w Level_SLZ1-Level_Index, Level_SLZbg-Level_Index, byte_69B84-Level_Index
-		dc.w Level_SLZ2-Level_Index, Level_SLZbg-Level_Index, byte_69B84-Level_Index
-		dc.w Level_SLZ3-Level_Index, Level_SLZbg-Level_Index, byte_69B84-Level_Index
-		dc.w byte_69B84-Level_Index, byte_69B84-Level_Index, byte_69B84-Level_Index
-		dc.w Level_SYZ1-Level_Index, Level_SYZbg-Level_Index, byte_69C7E-Level_Index
-		dc.w Level_SYZ2-Level_Index, Level_SYZbg-Level_Index, byte_69D86-Level_Index
-		dc.w Level_SYZ3-Level_Index, Level_SYZbg-Level_Index, byte_69EE4-Level_Index
-		dc.w byte_69EE8-Level_Index, byte_69EE8-Level_Index, byte_69EE8-Level_Index
-		dc.w Level_SBZ1-Level_Index, Level_SBZ1bg-Level_Index, Level_SBZ1bg-Level_Index
-		dc.w Level_SBZ2-Level_Index, Level_SBZ2bg-Level_Index, Level_SBZ2bg-Level_Index
-		dc.w Level_SBZ2-Level_Index, Level_SBZ2bg-Level_Index, byte_6A2F8-Level_Index
-		dc.w byte_6A2FC-Level_Index, byte_6A2FC-Level_Index, byte_6A2FC-Level_Index
-		dc.w Level_End-Level_Index, Level_GHZbg-Level_Index, byte_6A320-Level_Index
-		dc.w Level_End-Level_Index, Level_GHZbg-Level_Index, byte_6A320-Level_Index
-		dc.w byte_6A320-Level_Index, byte_6A320-Level_Index, byte_6A320-Level_Index
-		dc.w byte_6A320-Level_Index, byte_6A320-Level_Index, byte_6A320-Level_Index
+zonemaptbl:	dc.w Level_GHZ1-zonemaptbl, Level_GHZbg-zonemaptbl, byte_68D70-zonemaptbl
+		dc.w Level_GHZ2-zonemaptbl, Level_GHZbg-zonemaptbl, byte_68E3C-zonemaptbl
+		dc.w Level_GHZ3-zonemaptbl, Level_GHZbg-zonemaptbl, byte_68F84-zonemaptbl
+		dc.w byte_68F88-zonemaptbl, byte_68F88-zonemaptbl, byte_68F88-zonemaptbl
+		dc.w Level_LZ1-zonemaptbl, Level_LZbg-zonemaptbl, byte_69190-zonemaptbl
+		dc.w Level_LZ2-zonemaptbl, Level_LZbg-zonemaptbl, byte_6922E-zonemaptbl
+		dc.w Level_LZ3-zonemaptbl, Level_LZbg-zonemaptbl, byte_6934C-zonemaptbl
+		dc.w Level_SBZ3-zonemaptbl, Level_LZbg-zonemaptbl, byte_6940A-zonemaptbl
+		dc.w Level_MZ1-zonemaptbl, Level_MZ1bg-zonemaptbl, Level_MZ1-zonemaptbl
+		dc.w Level_MZ2-zonemaptbl, Level_MZ2bg-zonemaptbl, byte_6965C-zonemaptbl
+		dc.w Level_MZ3-zonemaptbl, Level_MZ3bg-zonemaptbl, byte_697E6-zonemaptbl
+		dc.w byte_697EA-zonemaptbl, byte_697EA-zonemaptbl, byte_697EA-zonemaptbl
+		dc.w Level_SLZ1-zonemaptbl, Level_SLZbg-zonemaptbl, byte_69B84-zonemaptbl
+		dc.w Level_SLZ2-zonemaptbl, Level_SLZbg-zonemaptbl, byte_69B84-zonemaptbl
+		dc.w Level_SLZ3-zonemaptbl, Level_SLZbg-zonemaptbl, byte_69B84-zonemaptbl
+		dc.w byte_69B84-zonemaptbl, byte_69B84-zonemaptbl, byte_69B84-zonemaptbl
+		dc.w Level_SYZ1-zonemaptbl, Level_SYZbg-zonemaptbl, byte_69C7E-zonemaptbl
+		dc.w Level_SYZ2-zonemaptbl, Level_SYZbg-zonemaptbl, byte_69D86-zonemaptbl
+		dc.w Level_SYZ3-zonemaptbl, Level_SYZbg-zonemaptbl, byte_69EE4-zonemaptbl
+		dc.w byte_69EE8-zonemaptbl, byte_69EE8-zonemaptbl, byte_69EE8-zonemaptbl
+		dc.w Level_SBZ1-zonemaptbl, Level_SBZ1bg-zonemaptbl, Level_SBZ1bg-zonemaptbl
+		dc.w Level_SBZ2-zonemaptbl, Level_SBZ2bg-zonemaptbl, Level_SBZ2bg-zonemaptbl
+		dc.w Level_SBZ2-zonemaptbl, Level_SBZ2bg-zonemaptbl, byte_6A2F8-zonemaptbl
+		dc.w byte_6A2FC-zonemaptbl, byte_6A2FC-zonemaptbl, byte_6A2FC-zonemaptbl
+		dc.w Level_End-zonemaptbl, Level_GHZbg-zonemaptbl, byte_6A320-zonemaptbl
+		dc.w Level_End-zonemaptbl, Level_GHZbg-zonemaptbl, byte_6A320-zonemaptbl
+		dc.w byte_6A320-zonemaptbl, byte_6A320-zonemaptbl, byte_6A320-zonemaptbl
+		dc.w byte_6A320-zonemaptbl, byte_6A320-zonemaptbl, byte_6A320-zonemaptbl
 
 Level_GHZ1:	incbin	levels\ghz1.bin
 		even
@@ -37394,7 +37675,7 @@ byte_6A320:	dc.b 0,	0, 0, 0
 ; ---------------------------------------------------------------------------
 ; Animated uncompressed giant ring graphics
 ; ---------------------------------------------------------------------------
-Art_BigRing:	incbin	artunc\bigring.bin
+bigringcg:	incbin	artunc\bigring.bin
 		even
 
 		incbin	misc\padding3.bin
@@ -37559,7 +37840,7 @@ SoundTypes:	dc.b $90, $90, $90, $90, $90, $90, $90,	$90, $90, $90, $90, $90, $90
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-sub_71B4C:				; XREF: loc_B10; PalToCRAM
+sub_71B4C:				; XREF: Vblank; Hint
 		move.w	#$100,($A11100).l ; stop the Z80
 		nop	
 		nop	

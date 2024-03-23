@@ -2,6 +2,9 @@ byte:			equ 1
 word:			equ 2
 long:			equ 4
 
+mapwka:			equ $ffa400
+mapwkb:			equ $ffa440
+
 playposiwk:		equ $ffcb00
 
 actwk:
@@ -52,8 +55,11 @@ watercoliflag:	equ $fff7c7
 mizuflag:		equ $fff7ca
 
 plautoflag:		equ $fff7cc
+special_flag:	equ $fff7cd
 
 emyscorecnt:	equ $fff7d0
+
+flagwork:		equ $fffc00
 
 gametimer:		equ $fffe04
 editno:			equ $fffe06
@@ -68,6 +74,10 @@ pl_suu_f:		equ $fffe1c
 plring_f:		equ $fffe1d
 pltime_f:		equ $fffe1e
 plscore_f:		equ $fffe1f
+
+gameflag:		equ $fffe02
+
+systemtimer:	equ $fffe0c
 
 pltime:			equ $fffe22
 
@@ -111,6 +121,8 @@ plpower_m:		equ $fffe2d
 plpower_s:		equ $fffe2e
 
 extrascore:		equ	$ffffc0
+
+debugwork:		equ $ffffec
 
 debugflag:		equ $fffffa
 
@@ -213,10 +225,10 @@ kageb_act:		equ $44
 *htoge_act:		equ $45	* NOT CONFIRMED
 fblock_act:		equ $46
 bobin_act:		equ $47
-*bball_act:		equ $48	* NOT CONFIRMED
+bossba_act:		equ $48
 *taki_act:		equ $49	* NOT CONFIRMED
 *plspe_act:		equ $4A * NOT CONFIRMED
-bigring_act:	equ $4B
+bring_act:		equ $4B
 myogan_act:		equ $4C
 yogan_act:		equ $4D
 yogan2_act:		equ $4E
@@ -265,7 +277,7 @@ imo_act:		equ $78
 save_act:		equ $79
 *boss5_act:		equ $7A	* NOT CONFIRMED
 *btekyu_act:	equ $7B	* NOT CONFIRMED
-*ebigring_act:	equ $7C	* NOT CONFIRMED
+bring2_act:		equ $7C
 bten_act:		equ $7D
 *font2_act:		equ $7E	* NOT CONFIRMED
 *font2spr_act:	equ $7F	* NOT CONFIRMED
